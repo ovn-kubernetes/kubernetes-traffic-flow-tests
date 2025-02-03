@@ -17,9 +17,4 @@ spec:
     image: {{ test_image }}
     command: {{ command }}
     args: {{ args }}
-    imagePullPolicy: {{ image_pull_policy }} {% if use_secondary_network and resource_name %}
-    resources:
-      requests:
-        {{ resource_name }}: '1'
-      limits:
-        {{ resource_name }}: '1' {% endif %}
+    imagePullPolicy: {{ image_pull_policy }}
