@@ -194,7 +194,6 @@ class IperfClient(task.ClientTask):
     def _aggregate_output(
         self,
         result: tftbase.AggregatableOutput,
-        tft_result_builder: tftbase.TftResultBuilder,
     ) -> None:
         assert isinstance(result, FlowTestOutput)
         if not result.success:

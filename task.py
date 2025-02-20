@@ -33,6 +33,7 @@ from testSettings import TestSettings
 from tftbase import BaseOutput
 from tftbase import ClusterMode
 from tftbase import ConnectionMode
+from tftbase import PluginOutput
 from tftbase import PodType
 from tftbase import TaskRole
 
@@ -638,13 +639,14 @@ class Task(ABC):
                 # fine for a task that returned the FlowTestOutput. Don't call
                 # _aggregate_output.
                 return
+        elif isinstance(result, PluginOutput):
+            tft_result_builder.add_plugin(result)
 
-        self._aggregate_output(result, tft_result_builder)
+        self._aggregate_output(result)
 
     def _aggregate_output(
         self,
         result: tftbase.AggregatableOutput,
-        tft_result_builder: tftbase.TftResultBuilder,
     ) -> None:
         # This should never happen.
         #
