@@ -27,28 +27,66 @@ IPERF_UDP_OPT = "-u -b 25G"
 IPERF_REV_OPT = "-R"
 
 
-def _calculate_gbps_tcp(result: Mapping[str, Any]) -> Bitrate:
-    sum_sent = result["end"]["sum_sent"]
-    sum_received = result["end"]["sum_received"]
+class ResultTcp:
+    def __init__(self, data: Mapping[str, Any]):
+        sum_sent: Mapping[str, Any] = data["end"]["sum_sent"]
+        sum_received: Mapping[str, Any] = data["end"]["sum_received"]
 
-    bitrate_sent = sum_sent["bits_per_second"] / 1e9
-    bitrate_received = sum_received["bits_per_second"] / 1e9
+        self.transfer_sent = float(sum_sent["bytes"]) / (1024**3)
+        self.bitrate_sent = float(sum_sent["bits_per_second"]) / 1e9
+        self.transfer_received = float(sum_received["bytes"]) / (1024**3)
+        self.bitrate_received = float(sum_received["bits_per_second"]) / 1e9
+        self.mss = int(data["start"]["tcp_mss_default"])
+        self.sum_sent_seconds = float(sum_sent["seconds"])
+        self.sum_received_seconds = float(sum_received["seconds"])
 
-    return Bitrate(tx=float(f"{bitrate_sent:.5g}"), rx=float(f"{bitrate_received:.5g}"))
+        self.bitrate = Bitrate(
+            tx=float(f"{self.bitrate_sent:.5g}"),
+            rx=float(f"{self.bitrate_received:.5g}"),
+        )
+
+    def log(self) -> None:
+        logger.info(
+            f"\n  [ ID]   Interval              Transfer        Bitrate\n"
+            f"  [SENT]   0.00-{self.sum_sent_seconds:.2f} sec   {self.transfer_sent:.2f} GBytes  {self.bitrate_sent:.2f} Gbits/sec sender\n"
+            f"  [REC]   0.00-{self.sum_received_seconds:.2f} sec   {self.transfer_received:.2f} GBytes  {self.bitrate_received:.2f} Gbits/sec receiver\n"
+            f"  MSS = {self.mss}"
+        )
 
 
-def _calculate_gbps_udp(result: Mapping[str, Any]) -> Bitrate:
-    sum_data = result["end"]["sum"]
+class ResultUdp:
+    def __init__(self, data: Mapping[str, Any]):
+        sum_data: Mapping[str, Any] = data["end"]["sum"]
 
-    # UDP tests only have sender traffic
-    bitrate_sent = sum_data["bits_per_second"] / 1e9
-    return Bitrate(tx=float(f"{bitrate_sent:.5g}"), rx=float(f"{bitrate_sent:.5g}"))
+        self.total_gigabytes = float(sum_data["bytes"]) / (1024**3)
+        self.average_gigabitrate = float(sum_data["bits_per_second"]) / 1e9
+        self.average_jitter = float(sum_data["jitter_ms"])
+        self.total_lost_packets = float(sum_data["lost_packets"])
+        self.total_lost_percent = float(sum_data["lost_percent"])
+
+        self.bitrate = Bitrate(
+            tx=float(f"{self.average_gigabitrate:.5g}"),
+            rx=float(f"{self.average_gigabitrate:.5g}"),
+        )
+
+    def log(self) -> None:
+        logger.info(
+            f"\n  Total GBytes: {self.total_gigabytes:.4f} GBytes\n"
+            f"  Average Bitrate: {self.average_gigabitrate:.2f} Gbits/s\n"
+            f"  Average Jitter: {self.average_jitter:.9f} ms\n"
+            f"  Total Lost Packets: {self.total_lost_packets}\n"
+            f"  Total Lost Percent: {self.total_lost_percent:.2f}%"
+        )
 
 
 def _calculate_gbps(test_type: TestType, result: Mapping[str, Any]) -> Bitrate:
-    if test_type == TestType.IPERF_TCP:
-        return _calculate_gbps_tcp(result)
-    return _calculate_gbps_udp(result)
+    try:
+        if test_type == TestType.IPERF_TCP:
+            return ResultTcp(result).bitrate
+        else:
+            return ResultUdp(result).bitrate
+    except Exception:
+        return Bitrate.NA
 
 
 @dataclass(frozen=True)
@@ -117,11 +155,9 @@ class IperfClient(task.ClientTask):
                 if result and "error" not in result:
                     success = True
 
-            try:
-                bitrate_gbps = _calculate_gbps(self.test_type, result)
-            except Exception:
+            bitrate_gbps = _calculate_gbps(self.test_type, result)
+            if bitrate_gbps == Bitrate.NA:
                 success = False
-                bitrate_gbps = Bitrate.NA
 
             return FlowTestOutput(
                 success=success,
@@ -142,41 +178,9 @@ class IperfClient(task.ClientTask):
         tft_result_builder: tftbase.TftResultBuilder,
     ) -> None:
         assert isinstance(result, FlowTestOutput)
+        if not result.success:
+            return
         if self.test_type == TestType.IPERF_TCP:
-            self.print_tcp_results(result.result)
-        if self.test_type == TestType.IPERF_UDP:
-            self.print_udp_results(result.result)
-
-    def print_tcp_results(self, data: Mapping[str, Any]) -> None:
-        sum_sent = data["end"]["sum_sent"]
-        sum_received = data["end"]["sum_received"]
-
-        transfer_sent = sum_sent["bytes"] / (1024**3)
-        bitrate_sent = sum_sent["bits_per_second"] / 1e9
-        transfer_received = sum_received["bytes"] / (1024**3)
-        bitrate_received = sum_received["bits_per_second"] / 1e9
-        mss = data["start"]["tcp_mss_default"]
-
-        logger.info(
-            f"\n  [ ID]   Interval              Transfer        Bitrate\n"
-            f"  [SENT]   0.00-{sum_sent['seconds']:.2f} sec   {transfer_sent:.2f} GBytes  {bitrate_sent:.2f} Gbits/sec sender\n"
-            f"  [REC]   0.00-{sum_received['seconds']:.2f} sec   {transfer_received:.2f} GBytes  {bitrate_received:.2f} Gbits/sec receiver\n"
-            f"  MSS = {mss}"
-        )
-
-    def print_udp_results(self, data: Mapping[str, Any]) -> None:
-        sum_data = data["end"]["sum"]
-
-        total_gigabytes = sum_data["bytes"] / (1024**3)
-        average_gigabitrate = sum_data["bits_per_second"] / 1e9
-        average_jitter = sum_data["jitter_ms"]
-        total_lost_packets = sum_data["lost_packets"]
-        total_lost_percent = sum_data["lost_percent"]
-
-        logger.info(
-            f"\n  Total GBytes: {total_gigabytes:.4f} GBytes\n"
-            f"  Average Bitrate: {average_gigabitrate:.2f} Gbits/s\n"
-            f"  Average Jitter: {average_jitter:.9f} ms\n"
-            f"  Total Lost Packets: {total_lost_packets}\n"
-            f"  Total Lost Percent: {total_lost_percent:.2f}%"
-        )
+            ResultTcp(result.result).log()
+        else:
+            ResultUdp(result.result).log()
