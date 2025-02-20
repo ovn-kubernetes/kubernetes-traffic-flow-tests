@@ -5,6 +5,7 @@ import task
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
+from typing import Optional
 
 import tftbase
 
@@ -141,26 +142,44 @@ class IperfClient(task.ClientTask):
             r = self.run_oc_exec(cmd)
             self.ts.event_client_finished.set()
 
+            success = True
+            msg: Optional[str] = None
             result: dict[str, Any] = {}
 
-            success = False
+            if not r.success:
+                success = False
+                msg = f'Command "{cmd}" failed: {r.debug_msg()}'
 
-            if r.success:
-                data = r.out
+            if success:
                 try:
-                    result = json.loads(data)
+                    result = json.loads(r.out)
                 except Exception:
-                    pass
+                    success = False
+                    msg = f'Output of "{cmd}" is not valid JSON: {r.debug_msg()}'
 
-                if result and "error" not in result:
-                    success = True
+            if success:
+                if (
+                    not result
+                    or not isinstance(result, dict)
+                    or not all(isinstance(k, str) for k in result)
+                ):
+                    success = False
+                    msg = f'Output of "{cmd}" contains unexpected data: {r.debug_msg()}'
+
+            if success:
+                if "error" in result:
+                    success = False
+                    msg = f'Output of "{cmd}" contains "error": {r.debug_msg()}'
 
             bitrate_gbps = _calculate_gbps(self.test_type, result)
-            if bitrate_gbps == Bitrate.NA:
-                success = False
+            if success:
+                if bitrate_gbps == Bitrate.NA:
+                    success = False
+                    msg = f'Output of "{cmd}" does not contain expected data: {r.debug_msg()}'
 
             return FlowTestOutput(
                 success=success,
+                msg=msg,
                 tft_metadata=self.ts.get_test_metadata(),
                 command=cmd,
                 result=result,
