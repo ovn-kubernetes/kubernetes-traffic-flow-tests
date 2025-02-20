@@ -1,8 +1,11 @@
 import logging
 import jc
+import typing
 
 from typing import Any
-from typing import cast
+from typing import Optional
+
+from ktoolbox import common
 
 import task
 import pluginbase
@@ -77,14 +80,41 @@ class TaskMeasureCPU(PluginTask):
             cmd = f"mpstat -P ALL {self.get_duration()} 1"
             r = self.run_oc_exec(cmd)
 
-            data = r.out
+            success = True
+            msg: Optional[str] = None
+            result: dict[str, Any] = {}
 
-            # satisfy the linter. jc.parse returns a list of dicts in this case
-            parsed_data = cast(list[dict[str, Any]], jc.parse("mpstat", data))
+            if not r.success:
+                success = False
+                msg = r.debug_msg()
+
+            if success:
+                try:
+                    lst = typing.cast(list[dict[str, Any]], jc.parse("mpstat", r.out))
+                    rdict = lst[0]
+                except Exception:
+                    success = False
+                    msg = f'Output of "{cmd}" cannot be parsed: {r.debug_msg()}'
+
+            if success:
+                if (
+                    isinstance(rdict, dict)
+                    and all(isinstance(k, str) for k in rdict)
+                    and all(required_key in rdict for required_key in ("percent_idle",))
+                ):
+                    result = rdict
+                else:
+                    success = False
+                    msg = 'Output of "{cmd}" contains unexpected data: {r.debug_msg()}'
+
+            result["cmd"] = common.dataclass_to_dict(r)
+
             return PluginOutput(
+                success=success,
+                msg=msg,
                 plugin_metadata=self.get_plugin_metadata(),
                 command=cmd,
-                result=parsed_data[0],
+                result=result,
             )
 
         return TaskOperation(
@@ -98,5 +128,7 @@ class TaskMeasureCPU(PluginTask):
         tft_result_builder: tftbase.TftResultBuilder,
     ) -> None:
         result = tft_result_builder.add_plugin(result)
+        if not result.success:
+            return
         p_idle = result.result["percent_idle"]
         logger.info(f"Idle on {self.node_name} = {p_idle}%")
