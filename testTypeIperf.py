@@ -191,13 +191,11 @@ class IperfClient(task.ClientTask):
             thread_action=_thread_action,
         )
 
-    def _aggregate_output(
+    def _aggregate_output_log_success(
         self,
         result: tftbase.AggregatableOutput,
     ) -> None:
         assert isinstance(result, FlowTestOutput)
-        if not result.success:
-            return
         if self.test_type == TestType.IPERF_TCP:
             ResultTcp(result.result).log()
         else:

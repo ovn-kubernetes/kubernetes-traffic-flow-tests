@@ -124,7 +124,7 @@ class TaskMeasurePower(PluginTask):
             thread_action=_thread_action,
         )
 
-    def _aggregate_output(
+    def _aggregate_output_log_success(
         self,
         result: tftbase.AggregatableOutput,
     ) -> None:
