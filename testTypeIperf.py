@@ -103,31 +103,31 @@ class IperfClient(task.ClientTask):
             r = self.run_oc_exec(cmd)
             self.ts.event_client_finished.set()
 
-            parsed_data: dict[str, Any] = {}
+            result: dict[str, Any] = {}
 
-            success_result = False
+            success = False
 
             if r.success:
                 data = r.out
                 try:
-                    parsed_data = json.loads(data)
+                    result = json.loads(data)
                 except Exception:
                     pass
 
-                if parsed_data and "error" not in parsed_data:
-                    success_result = True
+                if result and "error" not in result:
+                    success = True
 
             try:
-                bitrate_gbps = _calculate_gbps(self.test_type, parsed_data)
+                bitrate_gbps = _calculate_gbps(self.test_type, result)
             except Exception:
-                success_result = False
+                success = False
                 bitrate_gbps = Bitrate.NA
 
             return FlowTestOutput(
-                success=success_result,
+                success=success,
                 tft_metadata=self.ts.get_test_metadata(),
                 command=cmd,
-                result=parsed_data,
+                result=result,
                 bitrate_gbps=bitrate_gbps,
             )
 
