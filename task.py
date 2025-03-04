@@ -33,6 +33,7 @@ from testSettings import TestSettings
 from tftbase import BaseOutput
 from tftbase import ClusterMode
 from tftbase import ConnectionMode
+from tftbase import PluginOutput
 from tftbase import PodType
 from tftbase import TaskRole
 
@@ -632,30 +633,19 @@ class Task(ABC):
                 log_msg = "failure"
             logger.log(log_level, f"Results of {self.ts.get_test_str()}: {log_msg}")
             logger.debug(f"result: {common.dataclass_to_json(result)}")
+        elif isinstance(result, PluginOutput):
+            tft_result_builder.add_plugin(result)
 
-            if type(self)._aggregate_output is Task._aggregate_output:
-                # This instance did not overwrite _aggregate_output(). This is
-                # fine for a task that returned the FlowTestOutput. Don't call
-                # _aggregate_output.
-                return
+        if not result.success:
+            logger.warn(f"Result of {type(self).__name__} failed: {result.eval_msg}")
+        else:
+            self._aggregate_output_log_success(result)
 
-        self._aggregate_output(result, tft_result_builder)
-
-    def _aggregate_output(
+    def _aggregate_output_log_success(
         self,
         result: tftbase.AggregatableOutput,
-        tft_result_builder: tftbase.TftResultBuilder,
     ) -> None:
-        # This should never happen.
-        #
-        # A task that returns an AggregatableOutput *must* implement _aggregate_output().
-        #
-        # Exception: if the task is a test and returns a flow_test, then it may
-        # not override this method. aggregate_output() will take care to not
-        # call in that case.
-        raise RuntimeError(
-            f"Task {self.log_name} should not be called to aggregate output {result} "
-        )
+        logger.info(f"Result of {type(self).__name__} is success")
 
     def pod_get_device_infos(
         self,

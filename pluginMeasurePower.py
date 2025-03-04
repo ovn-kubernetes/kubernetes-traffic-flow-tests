@@ -124,10 +124,9 @@ class TaskMeasurePower(PluginTask):
             thread_action=_thread_action,
         )
 
-    def _aggregate_output(
+    def _aggregate_output_log_success(
         self,
         result: tftbase.AggregatableOutput,
-        tft_result_builder: tftbase.TftResultBuilder,
     ) -> None:
-        result = tft_result_builder.add_plugin(result)
+        assert isinstance(result, PluginOutput)
         logger.info(f"measurePower results: {result.result['measure_power']}")
