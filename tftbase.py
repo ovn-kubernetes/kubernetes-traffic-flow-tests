@@ -434,13 +434,9 @@ class TftResultBuilder:
             raise RuntimeError("Cannot set multiple FlowTestOutput results")
         self._flow_test = flow_test
 
-    def add_plugin(self, plugin_output: AggregatableOutput) -> PluginOutput:
-        if not isinstance(plugin_output, PluginOutput):
-            raise ValueError(
-                "Invalid parameter of type {type(plugin_output)} for add_plugin()"
-            )
+    def add_plugin(self, plugin_output: PluginOutput) -> None:
+        assert isinstance(plugin_output, PluginOutput)
         self._plugins.append(plugin_output)
-        return plugin_output
 
     def build(self) -> "TftResult":
         if self._flow_test is None:
