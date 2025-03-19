@@ -936,6 +936,7 @@ class ClientTask(Task, ABC):
             **super().get_template_args(),
             "default_network": self.ts.node_client.default_network,
             "pod_name": self.pod_name,
+            "port": "",
         }
 
     def initialize(self) -> None:
