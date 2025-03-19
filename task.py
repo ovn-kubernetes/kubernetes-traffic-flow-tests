@@ -336,6 +336,7 @@ class Task(ABC):
             "index": f"{self.index}",
             "node_name": self.node_name,
             "pod_name": self.pod_name,
+            "port": self._get_template_args_port(),
             "secondary_network_nad": self.ts.connection.effective_secondary_network_nad,
             "use_secondary_network": (
                 "1" if self.ts.connection.secondary_network_nad else ""
@@ -351,6 +352,9 @@ class Task(ABC):
             ),
             "default_network": self.node.default_network,
         }
+
+    def _get_template_args_port(self) -> str:
+        return ""
 
     def render_file(
         self,
@@ -769,11 +773,8 @@ class ServerTask(Task, ABC):
         self.out_file_yaml = out_file_yaml
         self.pod_name = pod_name
 
-    def get_template_args(self) -> dict[str, str | list[str]]:
-        return {
-            **super().get_template_args(),
-            "port": f"{self.port}",
-        }
+    def _get_template_args_port(self) -> str:
+        return str(self.port)
 
     def initialize(self) -> None:
         super().initialize()
@@ -927,12 +928,6 @@ class ClientTask(Task, ABC):
         self.in_file_template = in_file_template
         self.out_file_yaml = out_file_yaml
         self.pod_name = pod_name
-
-    def get_template_args(self) -> dict[str, str | list[str]]:
-        return {
-            **super().get_template_args(),
-            "port": "",
-        }
 
     def initialize(self) -> None:
         super().initialize()
