@@ -73,7 +73,6 @@ class TaskMeasurePower(PluginTask):
         return {
             **super().get_template_args(),
             "pod_name": self.pod_name,
-            "test_image": tftbase.get_tft_test_image(),
         }
 
     def initialize(self) -> None:
