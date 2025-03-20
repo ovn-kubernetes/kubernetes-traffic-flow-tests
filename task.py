@@ -766,16 +766,11 @@ class ServerTask(Task, ABC):
         self.pod_name = pod_name
 
     def get_template_args(self) -> dict[str, str | list[str]]:
-
-        extra_args: dict[str, str] = {}
-        if self.connection_mode != ConnectionMode.EXTERNAL_IP:
-            extra_args["pod_name"] = self.pod_name
-            extra_args["port"] = f"{self.port}"
-
         return {
             **super().get_template_args(),
             "default_network": self.ts.node_server.default_network,
-            **extra_args,
+            "pod_name": self.pod_name,
+            "port": f"{self.port}",
         }
 
     def initialize(self) -> None:
