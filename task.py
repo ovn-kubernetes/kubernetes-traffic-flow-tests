@@ -335,6 +335,7 @@ class Task(ABC):
             "args": [],
             "index": f"{self.index}",
             "node_name": self.node_name,
+            "pod_name": self.pod_name,
             "secondary_network_nad": self.ts.connection.effective_secondary_network_nad,
             "use_secondary_network": (
                 "1" if self.ts.connection.secondary_network_nad else ""
@@ -771,7 +772,6 @@ class ServerTask(Task, ABC):
         return {
             **super().get_template_args(),
             "default_network": self.ts.node_server.default_network,
-            "pod_name": self.pod_name,
             "port": f"{self.port}",
         }
 
@@ -932,7 +932,6 @@ class ClientTask(Task, ABC):
         return {
             **super().get_template_args(),
             "default_network": self.ts.node_client.default_network,
-            "pod_name": self.pod_name,
             "port": "",
         }
 
