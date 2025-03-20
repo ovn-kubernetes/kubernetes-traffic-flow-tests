@@ -76,11 +76,19 @@ TestTypeHandler.register_test_type(TestTypeHandlerNetPerf(TestType.NETPERF_TCP_R
 
 
 class NetPerfServer(task.ServerTask):
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        return [
+            NETPERF_SERVER_EXE,
+            "-p",
+            f"{self.port}",
+            "-N",
+        ]
+
     def get_template_args(self) -> dict[str, str | list[str]]:
 
         extra_args: dict[str, str | list[str]] = {}
         if self.exec_persistent:
-            extra_args["args"] = [NETPERF_SERVER_EXE, "-p", f"{self.port}", "-N"]
+            extra_args["args"] = self.cmd_line_args(for_template=True)
 
         return {
             **super().get_template_args(),

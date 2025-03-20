@@ -108,11 +108,19 @@ TestTypeHandler.register_test_type(TestTypeHandlerIperf(TestType.IPERF_UDP))
 
 
 class IperfServer(task.ServerTask):
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        return [
+            IPERF_EXE,
+            "-s",
+            "-p",
+            f"{self.port}",
+        ]
+
     def get_template_args(self) -> dict[str, str | list[str]]:
 
         extra_args: dict[str, str | list[str]] = {}
         if self.exec_persistent:
-            extra_args["args"] = [IPERF_EXE, "-s", "-p", f"{self.port}"]
+            extra_args["args"] = self.cmd_line_args(for_template=True)
 
         return {
             **super().get_template_args(),
