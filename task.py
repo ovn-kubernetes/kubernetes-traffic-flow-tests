@@ -349,6 +349,7 @@ class Task(ABC):
                 )
                 or ""
             ),
+            "default_network": self.node.default_network,
         }
 
     def render_file(
@@ -771,7 +772,6 @@ class ServerTask(Task, ABC):
     def get_template_args(self) -> dict[str, str | list[str]]:
         return {
             **super().get_template_args(),
-            "default_network": self.ts.node_server.default_network,
             "port": f"{self.port}",
         }
 
@@ -931,7 +931,6 @@ class ClientTask(Task, ABC):
     def get_template_args(self) -> dict[str, str | list[str]]:
         return {
             **super().get_template_args(),
-            "default_network": self.ts.node_client.default_network,
             "port": "",
         }
 
