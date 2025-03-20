@@ -21,8 +21,8 @@ from typing import TypeVar
 
 from ktoolbox import common
 from ktoolbox import host
-from ktoolbox import netdev
 from ktoolbox import kjinja2
+from ktoolbox import netdev
 from ktoolbox.k8sClient import K8sClient
 
 import testConfig
@@ -339,13 +339,15 @@ class Task(ABC):
             "use_secondary_network": (
                 "1" if self.ts.connection.secondary_network_nad else ""
             ),
-            "resource_name": self.ts.connection.resource_name
-            or Task._fetch_default_resource_name(
-                self.client,
-                self.get_namespace(),
-                self.ts.connection.secondary_network_nad,
-            )
-            or "",
+            "resource_name": (
+                self.ts.connection.resource_name
+                or Task._fetch_default_resource_name(
+                    self.client,
+                    self.get_namespace(),
+                    self.ts.connection.secondary_network_nad,
+                )
+                or ""
+            ),
         }
 
     def render_file(
