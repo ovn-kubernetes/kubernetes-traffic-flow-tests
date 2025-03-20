@@ -34,7 +34,7 @@ TestTypeHandler.register_test_type(TestTypeHandlerHttp())
 
 
 class HttpServer(task.ServerTask):
-    def cmd_line_args(self) -> list[str]:
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
         return [
             "python3",
             "-m",
@@ -48,7 +48,7 @@ class HttpServer(task.ServerTask):
 
         extra_args: dict[str, str | list[str]] = {}
         if self.exec_persistent:
-            extra_args["args"] = self.cmd_line_args()
+            extra_args["args"] = self.cmd_line_args(for_template=True)
 
         return {
             **super().get_template_args(),
