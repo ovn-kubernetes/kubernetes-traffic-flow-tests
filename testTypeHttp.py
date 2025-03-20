@@ -1,4 +1,3 @@
-import shlex
 import time
 
 from dataclasses import dataclass
@@ -54,9 +53,6 @@ class HttpServer(task.ServerTask):
             **super().get_template_args(),
             **extra_args,
         }
-
-    def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        return shlex.join(self.cmd_line_args())
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return "killall python3"

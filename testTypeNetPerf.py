@@ -1,5 +1,3 @@
-import shlex
-
 from dataclasses import dataclass
 from typing import Any
 from typing import Optional
@@ -96,9 +94,6 @@ class NetPerfServer(task.ServerTask):
             **super().get_template_args(),
             **extra_args,
         }
-
-    def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        return shlex.join(self.cmd_line_args())
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return f"killall {NETPERF_SERVER_EXE}"

@@ -56,9 +56,6 @@ class SimpleServer(task.ServerTask):
             **extra_args,
         }
 
-    def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        return shlex.join(self.cmd_line_args())
-
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return "killall python3"
 

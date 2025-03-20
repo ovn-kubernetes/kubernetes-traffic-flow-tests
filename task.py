@@ -814,8 +814,11 @@ class ServerTask(Task, ABC):
         self.ts.event_server_alive.set()
 
     @abstractmethod
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        raise RuntimeError()
+
     def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        pass
+        return shlex.join(self.cmd_line_args())
 
     @abstractmethod
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
