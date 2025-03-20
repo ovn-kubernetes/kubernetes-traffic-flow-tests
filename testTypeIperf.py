@@ -121,17 +121,6 @@ class IperfServer(task.ServerTask):
             *extra_args,
         ]
 
-    def get_template_args(self) -> dict[str, str | list[str]]:
-
-        extra_args: dict[str, str | list[str]] = {}
-        if self.exec_persistent:
-            extra_args["args"] = self.cmd_line_args(for_template=True)
-
-        return {
-            **super().get_template_args(),
-            **extra_args,
-        }
-
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return f"killall {IPERF_EXE}"
 

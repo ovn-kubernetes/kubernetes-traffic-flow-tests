@@ -45,17 +45,6 @@ class SimpleServer(task.ServerTask):
             *(self.ts.cfg_descr.get_server().args or ()),
         ]
 
-    def get_template_args(self) -> dict[str, str | list[str]]:
-
-        extra_args: dict[str, str | list[str]] = {}
-        if self.exec_persistent:
-            extra_args["args"] = self.cmd_line_args(for_template=True)
-
-        return {
-            **super().get_template_args(),
-            **extra_args,
-        }
-
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return "killall python3"
 

@@ -332,7 +332,7 @@ class Task(ABC):
             "test_image": tftbase.get_tft_test_image(),
             "image_pull_policy": tftbase.get_tft_image_pull_policy(),
             "command": ["/usr/bin/container-entry-point.sh"],
-            "args": [],
+            "args": self._get_template_args_args(),
             "index": f"{self.index}",
             "node_name": self.node_name,
             "pod_name": self.pod_name,
@@ -355,6 +355,9 @@ class Task(ABC):
 
     def _get_template_args_port(self) -> str:
         return ""
+
+    def _get_template_args_args(self) -> list[str]:
+        return []
 
     def render_file(
         self,
@@ -790,6 +793,11 @@ class ServerTask(Task, ABC):
         if self.connection_mode == ConnectionMode.MULTI_NETWORK:
             self.create_ingress_multi_network_policy(self.port)
             self.create_egress_multi_network_policy(self.port)
+
+    def _get_template_args_args(self) -> list[str]:
+        if not self.exec_persistent:
+            return []
+        return self.cmd_line_args(for_template=True)
 
     def confirm_server_alive(self) -> None:
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
