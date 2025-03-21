@@ -382,7 +382,14 @@ class Task(ABC):
             out_file=out_file_yaml,
         )
 
-        rendered_dict = yaml.safe_load(rendered)
+        try:
+            rendered_dict = yaml.safe_load(rendered)
+        except Exception as e:
+            logger.error(
+                f'"{in_file_template}" rendered as {repr(rendered)} is not valid YAML: {e}'
+            )
+            raise
+
         logger.debug(f'"{in_file_template}" contains: {json.dumps(rendered_dict)}')
 
     def initialize(self) -> None:
