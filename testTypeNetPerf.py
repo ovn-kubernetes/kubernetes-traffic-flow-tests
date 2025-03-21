@@ -76,19 +76,13 @@ TestTypeHandler.register_test_type(TestTypeHandlerNetPerf(TestType.NETPERF_TCP_R
 
 
 class NetPerfServer(task.ServerTask):
-    def get_template_args(self) -> dict[str, str | list[str]]:
-
-        extra_args: dict[str, str | list[str]] = {}
-        if self.exec_persistent:
-            extra_args["args"] = [NETPERF_SERVER_EXE, "-p", f"{self.port}", "-N"]
-
-        return {
-            **super().get_template_args(),
-            **extra_args,
-        }
-
-    def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        return f"{NETPERF_SERVER_EXE} -p {self.port} -N"
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        return [
+            NETPERF_SERVER_EXE,
+            "-p",
+            f"{self.port}",
+            "-N",
+        ]
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return f"killall {NETPERF_SERVER_EXE}"

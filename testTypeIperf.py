@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 import task
 
 from collections.abc import Mapping
@@ -108,19 +108,18 @@ TestTypeHandler.register_test_type(TestTypeHandlerIperf(TestType.IPERF_UDP))
 
 
 class IperfServer(task.ServerTask):
-    def get_template_args(self) -> dict[str, str | list[str]]:
-
-        extra_args: dict[str, str | list[str]] = {}
-        if self.exec_persistent:
-            extra_args["args"] = [IPERF_EXE, "-s", "-p", f"{self.port}"]
-
-        return {
-            **super().get_template_args(),
-            **extra_args,
-        }
-
-    def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        return f"{IPERF_EXE} -s -p {self.port} --one-off --json"
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        if for_template:
+            extra_args = []
+        else:
+            extra_args = ["--one-off", "--json"]
+        return [
+            IPERF_EXE,
+            "-s",
+            "-p",
+            f"{self.port}",
+            *extra_args,
+        ]
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return f"killall {IPERF_EXE}"

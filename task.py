@@ -21,8 +21,8 @@ from typing import TypeVar
 
 from ktoolbox import common
 from ktoolbox import host
-from ktoolbox import netdev
 from ktoolbox import kjinja2
+from ktoolbox import netdev
 from ktoolbox.k8sClient import K8sClient
 
 import testConfig
@@ -332,21 +332,32 @@ class Task(ABC):
             "test_image": tftbase.get_tft_test_image(),
             "image_pull_policy": tftbase.get_tft_image_pull_policy(),
             "command": ["/usr/bin/container-entry-point.sh"],
-            "args": [],
+            "args": self._get_template_args_args(),
             "index": f"{self.index}",
             "node_name": self.node_name,
+            "pod_name": self.pod_name,
+            "port": self._get_template_args_port(),
             "secondary_network_nad": self.ts.connection.effective_secondary_network_nad,
             "use_secondary_network": (
                 "1" if self.ts.connection.secondary_network_nad else ""
             ),
-            "resource_name": self.ts.connection.resource_name
-            or Task._fetch_default_resource_name(
-                self.client,
-                self.get_namespace(),
-                self.ts.connection.secondary_network_nad,
-            )
-            or "",
+            "resource_name": (
+                self.ts.connection.resource_name
+                or Task._fetch_default_resource_name(
+                    self.client,
+                    self.get_namespace(),
+                    self.ts.connection.secondary_network_nad,
+                )
+                or ""
+            ),
+            "default_network": self.node.default_network,
         }
+
+    def _get_template_args_port(self) -> str:
+        return ""
+
+    def _get_template_args_args(self) -> list[str]:
+        return []
 
     def render_file(
         self,
@@ -371,7 +382,14 @@ class Task(ABC):
             out_file=out_file_yaml,
         )
 
-        rendered_dict = yaml.safe_load(rendered)
+        try:
+            rendered_dict = yaml.safe_load(rendered)
+        except Exception as e:
+            logger.error(
+                f'"{in_file_template}" rendered as {repr(rendered)} is not valid YAML: {e}'
+            )
+            raise
+
         logger.debug(f'"{in_file_template}" contains: {json.dumps(rendered_dict)}')
 
     def initialize(self) -> None:
@@ -765,18 +783,8 @@ class ServerTask(Task, ABC):
         self.out_file_yaml = out_file_yaml
         self.pod_name = pod_name
 
-    def get_template_args(self) -> dict[str, str | list[str]]:
-
-        extra_args: dict[str, str] = {}
-        if self.connection_mode != ConnectionMode.EXTERNAL_IP:
-            extra_args["pod_name"] = self.pod_name
-            extra_args["port"] = f"{self.port}"
-
-        return {
-            **super().get_template_args(),
-            "default_network": self.ts.node_server.default_network,
-            **extra_args,
-        }
+    def _get_template_args_port(self) -> str:
+        return str(self.port)
 
     def initialize(self) -> None:
         super().initialize()
@@ -792,6 +800,11 @@ class ServerTask(Task, ABC):
         if self.connection_mode == ConnectionMode.MULTI_NETWORK:
             self.create_ingress_multi_network_policy(self.port)
             self.create_egress_multi_network_policy(self.port)
+
+    def _get_template_args_args(self) -> list[str]:
+        if not self.exec_persistent:
+            return []
+        return self.cmd_line_args(for_template=True)
 
     def confirm_server_alive(self) -> None:
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
@@ -816,8 +829,11 @@ class ServerTask(Task, ABC):
         self.ts.event_server_alive.set()
 
     @abstractmethod
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        raise RuntimeError()
+
     def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        pass
+        return shlex.join(self.cmd_line_args())
 
     @abstractmethod
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
@@ -930,13 +946,6 @@ class ClientTask(Task, ABC):
         self.in_file_template = in_file_template
         self.out_file_yaml = out_file_yaml
         self.pod_name = pod_name
-
-    def get_template_args(self) -> dict[str, str | list[str]]:
-        return {
-            **super().get_template_args(),
-            "default_network": self.ts.node_client.default_network,
-            "pod_name": self.pod_name,
-        }
 
     def initialize(self) -> None:
         super().initialize()

@@ -69,13 +69,6 @@ class TaskMeasurePower(PluginTask):
         )
         self.pod_name = f"tools-pod-{self.node_name}-measure-cpu"
 
-    def get_template_args(self) -> dict[str, str | list[str]]:
-        return {
-            **super().get_template_args(),
-            "pod_name": self.pod_name,
-            "test_image": tftbase.get_tft_test_image(),
-        }
-
     def initialize(self) -> None:
         super().initialize()
         self.render_file("Server Pod Yaml")

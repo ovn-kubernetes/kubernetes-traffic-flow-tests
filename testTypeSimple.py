@@ -34,7 +34,7 @@ CMD_SIMPLE_TCP_SERVER_CLIENT = "simple-tcp-server-client"
 
 
 class SimpleServer(task.ServerTask):
-    def cmd_line_args(self) -> list[str]:
+    def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
         return [
             CMD_SIMPLE_TCP_SERVER_CLIENT,
             "--server",
@@ -44,20 +44,6 @@ class SimpleServer(task.ServerTask):
             f"{self.port}",
             *(self.ts.cfg_descr.get_server().args or ()),
         ]
-
-    def get_template_args(self) -> dict[str, str | list[str]]:
-
-        extra_args: dict[str, str | list[str]] = {}
-        if self.exec_persistent:
-            extra_args["args"] = self.cmd_line_args()
-
-        return {
-            **super().get_template_args(),
-            **extra_args,
-        }
-
-    def _create_setup_operation_get_thread_action_cmd(self) -> str:
-        return shlex.join(self.cmd_line_args())
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return "killall python3"
