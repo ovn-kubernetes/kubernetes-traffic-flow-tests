@@ -88,7 +88,10 @@ class Evaluator:
         tft_results: TftResults,
     ) -> TftResults:
         lst = [self.eval_test_result(tft_result) for tft_result in tft_results]
-        return TftResults(lst=tuple(lst))
+        return TftResults(
+            lst=tuple(lst),
+            filename=tft_results.filename,
+        )
 
     def eval_from_file(
         self,
@@ -136,11 +139,11 @@ def parse_args() -> argparse.Namespace:
 
     if args.config and not Path(args.config).exists():
         logger.error(f"No config file found at {args.config}, exiting")
-        sys.exit(-1)
+        sys.exit(common.EX_CONFIG)
 
     if not args.logs or not Path(args.logs).exists():
         logger.error(f"Log file {args.logs} does not exist")
-        sys.exit(-1)
+        sys.exit(common.EX_CONFIG)
 
     return args
 
@@ -154,4 +157,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    common.run_main(main)

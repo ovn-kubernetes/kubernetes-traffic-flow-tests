@@ -6,6 +6,8 @@ from pathlib import Path
 
 from ktoolbox import common
 
+import print_results
+
 from evaluator import Evaluator
 from testConfig import ConfigDescriptor
 from testConfig import TestConfig
@@ -48,6 +50,13 @@ def parse_args() -> argparse.Namespace:
         'the current directory. If unspecified, the files are written to "${logs}/${timestamp}.json" '
         'where "${logs}" can be specified in the config file (and defaults to "./ft-logs/").',
     )
+    parser.add_argument(
+        "-c",
+        "--check",
+        type=bool,
+        default=False,
+        help='By default, the program only runs the tests and writes the results. It is not expected to fail unless a serious error happened. In that case, you usually want to run `print_results.py` command afterwards. Passing "--check" combines those two steps in one and the `tft.py` command succeeds only if all tests pass.',
+    )
 
     common.log_argparse_add_argument_verbosity(parser)
 
@@ -61,7 +70,7 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def main() -> None:
+def main() -> int:
     args = parse_args()
 
     tc = TestConfig(
@@ -75,9 +84,18 @@ def main() -> None:
 
     evaluator = Evaluator(tc.evaluator_config)
 
+    tft_results_lst = []
+
     for cfg_descr in ConfigDescriptor(tc).describe_all_tft():
-        tft.test_run(cfg_descr, evaluator)
+        tft_results = tft.test_run(cfg_descr, evaluator)
+        tft_results_lst.append(tft_results)
+
+    if args.check:
+        if not print_results.process_results_all(tft_results_lst):
+            return print_results.EXIT_CODE_VALIDATION
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    common.run_main(main)

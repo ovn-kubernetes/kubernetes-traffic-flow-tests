@@ -156,7 +156,7 @@ class TrafficFlowTests:
         self,
         cfg_descr: ConfigDescriptor,
         evaluator: Evaluator,
-    ) -> None:
+    ) -> TftResults:
         test = cfg_descr.get_tft()
         self._configure_namespace(cfg_descr)
         self._cleanup_previous_testspace(cfg_descr)
@@ -182,3 +182,8 @@ class TrafficFlowTests:
 
         if not result_status.result:
             logger.error(f"Failure detected in {cfg_descr.get_tft().name} results")
+
+        return TftResults(
+            lst=tft_results.lst,
+            filename=str(log_file),
+        )
