@@ -2,11 +2,15 @@
 
 import argparse
 
+from collections.abc import Iterable
 from typing import Optional
 
 from ktoolbox import common
 
 import tftbase
+
+
+EXIT_CODE_VALIDATION = 1
 
 
 def print_flow_test_output(test_output: Optional[tftbase.FlowTestOutput]) -> None:
@@ -47,6 +51,40 @@ def print_tft_results(tft_results: tftbase.TftResults) -> None:
         print_tft_result(tft_result)
 
 
+def process_results(tft_results: tftbase.TftResults) -> bool:
+
+    group_success, group_fail = tft_results.group_by_success()
+
+    print(
+        f"There are {len(group_success)} passing flows{tft_results.log_detail}.{' Details:' if group_success else ''}"
+    )
+    print_tft_results(group_success)
+
+    print(
+        f"There are {len(group_fail)} failing flows{tft_results.log_detail}.{' Details:' if group_fail else ''}"
+    )
+    print_tft_results(group_fail)
+
+    print()
+    return not group_fail
+
+
+def process_results_all(tft_results_lst: Iterable[tftbase.TftResults]) -> bool:
+    failed_files: list[str] = []
+
+    for tft_results in common.iter_eval_now(tft_results_lst):
+        if not process_results(tft_results):
+            failed_files.append(common.unwrap(tft_results.filename))
+
+    print()
+    if failed_files:
+        print(f"Failures detected in {repr(failed_files)}")
+        return False
+
+    print("No failures detected in results")
+    return True
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Tool to prettify the TFT Flow test results"
@@ -65,42 +103,12 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def process_file(result_file: str) -> bool:
-
-    tft_results = tftbase.TftResults.parse_from_file(result_file)
-
-    group_success, group_fail = tft_results.group_by_success()
-
-    print(
-        f"There are {len(group_success)} passing flows in {repr(result_file)}.{' Details:' if group_success else ''}"
-    )
-    print_tft_results(group_success)
-
-    print(
-        f"There are {len(group_fail)} failing flows in {repr(result_file)}.{' Details:' if group_fail else ''}"
-    )
-    print_tft_results(group_fail)
-
-    print()
-    return not group_fail
-
-
 def main() -> int:
     args = parse_args()
-
-    failed_files: list[str] = []
-
-    for result_file in args.result:
-        if not process_file(result_file):
-            failed_files.append(result_file)
-
-    print()
-    if failed_files:
-        print(f"Failures detected in {repr(failed_files)}")
-        return 1
-
-    print("No failures detected in results")
-    return 0
+    success = process_results_all(
+        tftbase.TftResults.parse_from_file(file) for file in args.result
+    )
+    return 0 if success else EXIT_CODE_VALIDATION
 
 
 if __name__ == "__main__":
