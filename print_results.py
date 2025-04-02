@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
-import traceback
 
 from typing import Optional
 
@@ -87,7 +85,7 @@ def process_file(result_file: str) -> bool:
     return not group_fail
 
 
-def main() -> None:
+def main() -> int:
     args = parse_args()
 
     failed_files: list[str] = []
@@ -99,15 +97,11 @@ def main() -> None:
     print()
     if failed_files:
         print(f"Failures detected in {repr(failed_files)}")
-        sys.exit(1)
+        return 1
 
     print("No failures detected in results")
-    sys.exit(0)
+    return 0
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        traceback.print_exc()
-        sys.exit(2)
+    common.run_main(main)
