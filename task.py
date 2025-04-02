@@ -146,7 +146,7 @@ class TaskOperation:
 
             logger.error(f"thread[{self.log_name}]: action raised exception {e}")
             logger.error(f"backtrace:\n{traceback.format_exc()}")
-            os._exit(-1)
+            os._exit(common.EX_SOFTWARE)
 
         with self._lock:
             assert not hasattr(self, "_intermediate_result")

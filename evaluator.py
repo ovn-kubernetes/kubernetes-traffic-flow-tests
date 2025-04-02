@@ -136,11 +136,11 @@ def parse_args() -> argparse.Namespace:
 
     if args.config and not Path(args.config).exists():
         logger.error(f"No config file found at {args.config}, exiting")
-        sys.exit(-1)
+        sys.exit(common.EX_CONFIG)
 
     if not args.logs or not Path(args.logs).exists():
         logger.error(f"Log file {args.logs} does not exist")
-        sys.exit(-1)
+        sys.exit(common.EX_CONFIG)
 
     return args
 
