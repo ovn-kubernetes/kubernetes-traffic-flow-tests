@@ -480,6 +480,7 @@ class TftResult:
 @dataclass(frozen=True, kw_only=True)
 class TftResults:
     lst: tuple[TftResult, ...]
+    filename: Optional[str] = None
 
     TFT_TESTS: typing.ClassVar[str] = "tft-tests"
 
@@ -488,6 +489,12 @@ class TftResults:
 
     def __len__(self) -> int:
         return len(self.lst)
+
+    @property
+    def log_detail(self) -> str:
+        if self.filename is None:
+            return ""
+        return f" in {repr(self.filename)}"
 
     def serialize(self) -> dict[str, Any]:
         return {
@@ -547,7 +554,10 @@ class TftResults:
                         f'{err} has invalid plugin name "{plugin_output.plugin_metadata.plugin_name}" in result #{r_idx}'
                     )
 
-        return TftResults(lst=tuple(lst))
+        return TftResults(
+            lst=tuple(lst),
+            filename=(str(filename) if filename is not None else None),
+        )
 
     @staticmethod
     def parse_from_file(filename: str | Path) -> "TftResults":
@@ -580,8 +590,8 @@ class TftResults:
         group_fail.sort(key=_key_fcn)
 
         return (
-            TftResults(lst=tuple(group_success)),
-            TftResults(lst=tuple(group_fail)),
+            TftResults(lst=tuple(group_success), filename=self.filename),
+            TftResults(lst=tuple(group_fail), filename=self.filename),
         )
 
     def get_pass_fail_status(self) -> "PassFailStatus":

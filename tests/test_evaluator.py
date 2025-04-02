@@ -222,7 +222,7 @@ def test_output_list_parse(
         assert isinstance(output, tftbase.TftResults)
 
     data2 = output.serialize()
-    output2 = tftbase.TftResults.parse(data2)
+    output2 = tftbase.TftResults.parse(data2, filename=filename)
     assert isinstance(output2, tftbase.TftResults)
     assert output == output2
 

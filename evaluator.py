@@ -88,7 +88,10 @@ class Evaluator:
         tft_results: TftResults,
     ) -> TftResults:
         lst = [self.eval_test_result(tft_result) for tft_result in tft_results]
-        return TftResults(lst=tuple(lst))
+        return TftResults(
+            lst=tuple(lst),
+            filename=tft_results.filename,
+        )
 
     def eval_from_file(
         self,
