@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import shlex
-import sys
 import threading
 import time
 import typing
@@ -822,9 +821,9 @@ class ServerTask(Task, ABC):
             r = self.run_oc(
                 f"wait --for=condition=ready pod/{self.pod_name} --timeout=1m"
             )
-        if not r or not r.success:
-            logger.error(f"Failed to start server: {r.err}")
-            sys.exit(-1)
+        if not r:
+            logger.error(f"Failed to start server {self.pod_name}: {r.err}")
+            raise RuntimeError(f"Failed to start server {self.pod_name}: {r.err}")
 
         self.ts.event_server_alive.set()
 
