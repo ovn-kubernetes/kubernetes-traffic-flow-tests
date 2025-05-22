@@ -62,7 +62,7 @@ class TaskMeasurePower(PluginTask):
             tenant=tenant,
         )
 
-        self.pod_name = f"tools-pod-{self.node_name_sanitized()}-measure-cpu"
+        self.pod_name = f"tools-pod-{self.node_name_sanitized}-measure-cpu"
         self.in_file_template = tftbase.get_manifest("tools-pod.yaml.j2")
 
     def initialize(self) -> None:

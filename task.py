@@ -290,6 +290,7 @@ class Task(ABC):
     def node_name(self) -> str:
         return self.node.name
 
+    @property
     def node_name_sanitized(self) -> str:
         return tftbase.str_sanitize(self.node_name)
 
@@ -764,7 +765,7 @@ class ServerTask(Task, ABC):
 
         connection_mode = ts.connection_mode
         pod_type = ts.server_pod_type
-        node_name_sanitized = self.node_name_sanitized()
+        node_name_sanitized = self.node_name_sanitized
         port = 5201 + self.index
 
         if connection_mode == ConnectionMode.EXTERNAL_IP:
@@ -920,7 +921,7 @@ class ClientTask(Task, ABC):
         )
 
         pod_type = ts.client_pod_type
-        node_name_sanitized = self.node_name_sanitized()
+        node_name_sanitized = self.node_name_sanitized
         port = server.port
         connection_mode = ts.connection_mode
 
