@@ -156,7 +156,7 @@ class TaskValidateOffload(PluginTask):
             tenant=tenant,
         )
 
-        self.pod_name = f"tools-pod-{self.node_name_sanitized()}-validate-offload"
+        self.pod_name = f"tools-pod-{self.node_name_sanitized}-validate-offload"
         self.in_file_template = tftbase.get_manifest("tools-pod.yaml.j2")
         self._perf_instance = perf_instance
         self.perf_pod_name = perf_instance.pod_name
