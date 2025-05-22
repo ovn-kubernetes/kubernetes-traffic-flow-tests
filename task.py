@@ -257,7 +257,6 @@ class Task(ABC):
     ) -> None:
         self.task_role = task_role
         self.in_file_template = ""
-        self.out_file_yaml = ""
         self.pod_name = ""
         self._setup_operation: Optional[TaskOperation] = None
         self._task_operation: Optional[TaskOperation] = None
@@ -299,6 +298,12 @@ class Task(ABC):
 
     def get_duration(self) -> int:
         return self.ts.cfg_descr.get_tft().duration
+
+    @property
+    def out_file_yaml(self) -> str:
+        if not self.in_file_template or not self.pod_name:
+            raise RuntimeError("task cannot generate a pod yaml")
+        return tftbase.get_manifest_renderpath(self.pod_name + ".yaml")
 
     @functools.cache
     @staticmethod
@@ -378,7 +383,6 @@ class Task(ABC):
         return []
 
     def render_pod_file(self, log_info: str) -> None:
-        assert self.in_file_template
         self.render_file(
             log_info,
             self.in_file_template,
@@ -763,11 +767,8 @@ class ServerTask(Task, ABC):
         node_name_sanitized = self.node_name_sanitized()
         port = 5201 + self.index
 
-        out_file_yaml: Optional[str] = None
-
         if connection_mode == ConnectionMode.EXTERNAL_IP:
             in_file_template = ""
-            out_file_yaml = ""
             pod_name = EXTERNAL_PERF_SERVER
         elif connection_mode in (
             ConnectionMode.MULTI_HOME,
@@ -792,15 +793,11 @@ class ServerTask(Task, ABC):
         if in_file_template != "":
             in_file_template = tftbase.get_manifest(in_file_template)
 
-        if out_file_yaml != "":
-            out_file_yaml = tftbase.get_manifest_renderpath(pod_name + ".yaml")
-
         self.exec_persistent = ts.node_server.is_persistent_server
         self.port = port
         self.pod_type = pod_type
         self.connection_mode = ts.connection_mode
         self.in_file_template = in_file_template
-        self.out_file_yaml = out_file_yaml
         self.pod_name = pod_name
 
     def _get_template_args_port(self) -> str:
@@ -808,8 +805,6 @@ class ServerTask(Task, ABC):
 
     def initialize(self) -> None:
         super().initialize()
-
-        assert (self.in_file_template == "") == (self.out_file_yaml == "")
 
         if self.in_file_template != "":
             self.render_pod_file("Server Pod Yaml")
@@ -947,7 +942,6 @@ class ClientTask(Task, ABC):
             raise ValueError("Invalid pod_type {pod_type}")
 
         in_file_template = tftbase.get_manifest(in_file_template)
-        out_file_yaml = tftbase.get_manifest_renderpath(pod_name + ".yaml")
 
         self.server = server
         self.port = port
@@ -957,7 +951,6 @@ class ClientTask(Task, ABC):
         self.test_case_id = ts.test_case_id
         self.reverse = ts.reverse
         self.in_file_template = in_file_template
-        self.out_file_yaml = out_file_yaml
         self.pod_name = pod_name
 
     def initialize(self) -> None:
