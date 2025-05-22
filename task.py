@@ -377,17 +377,21 @@ class Task(ABC):
     def _get_template_args_args(self) -> list[str]:
         return []
 
+    def render_pod_file(self, log_info: str) -> None:
+        assert self.in_file_template
+        self.render_file(
+            log_info,
+            self.in_file_template,
+            self.out_file_yaml,
+        )
+
     def render_file(
         self,
         log_info: str,
-        in_file_template: Optional[str] = None,
-        out_file_yaml: Optional[str] = None,
+        in_file_template: str,
+        out_file_yaml: str,
         template_args: Optional[dict[str, str | list[str]]] = None,
     ) -> None:
-        if in_file_template is None:
-            in_file_template = self.in_file_template
-        if out_file_yaml is None:
-            out_file_yaml = self.out_file_yaml
         if template_args is None:
             template_args = self.get_template_args()
         logger.info(
@@ -808,7 +812,7 @@ class ServerTask(Task, ABC):
         assert (self.in_file_template == "") == (self.out_file_yaml == "")
 
         if self.in_file_template != "":
-            self.render_file("Server Pod Yaml")
+            self.render_pod_file("Server Pod Yaml")
 
             self.cluster_ip_addr = self.create_cluster_ip_service()
             self.nodeport_ip_addr = self.create_node_port_service(self.port + 25000)
@@ -958,7 +962,7 @@ class ClientTask(Task, ABC):
 
     def initialize(self) -> None:
         super().initialize()
-        self.render_file("Client Pod Yaml")
+        self.render_pod_file("Client Pod Yaml")
 
     def get_target_ip(self) -> str:
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
