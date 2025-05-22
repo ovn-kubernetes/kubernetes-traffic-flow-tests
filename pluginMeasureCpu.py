@@ -60,7 +60,7 @@ class TaskMeasureCPU(PluginTask):
 
     def initialize(self) -> None:
         super().initialize()
-        self.render_file("Server Pod Yaml")
+        self.render_pod_file("Plugin Pod Yaml")
 
     def _create_task_operation(self) -> TaskOperation:
         def _thread_action() -> BaseOutput:
