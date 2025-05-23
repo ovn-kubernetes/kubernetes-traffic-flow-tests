@@ -1,6 +1,8 @@
 import json
 import os
 import pathlib
+import pytest
+import re
 import sys
 import yaml
 
@@ -143,8 +145,7 @@ def test_config1() -> None:
 
 
 def test_config2() -> None:
-    full_config = yaml.safe_load(
-        """
+    full_config_str = """
 tft:
   - name: "Test 1"
     namespace: "default"
@@ -162,7 +163,7 @@ tft:
      - name: con2
        type: simple
        client:
-         - name: c1
+         - name: client1.example.com
            args: "foo '-x x'"
            privileged_pod: False
            default-network: default--n
@@ -173,7 +174,7 @@ tft:
 kubeconfig: /path/to/kubeconfig
 kubeconfig_infra: /path/to/kubeconfig_infra
 """
-    )
+    full_config = yaml.safe_load(full_config_str)
     tc = testConfig.TestConfig(
         full_config=full_config,
         kubeconfigs=None,
@@ -195,6 +196,8 @@ kubeconfig_infra: /path/to/kubeconfig_infra
         TestCaseType.HOST_TO_CLUSTER_IP_TO_POD_DIFF_NODE,
         TestCaseType.HOST_TO_CLUSTER_IP_TO_HOST_SAME_NODE,
     )
+    assert tc.config.tft[0].connections[1].name == "con2"
+    assert tc.config.tft[0].connections[1].client[0].name == "client1.example.com"
     assert tc.config.tft[0].connections[0].test_type == TestType.IPERF_TCP
     assert tc.config.tft[0].connections[0].plugins[0].name == "measure_cpu"
     assert (
@@ -219,6 +222,24 @@ kubeconfig_infra: /path/to/kubeconfig_infra
         for cfg_descr3 in cfg_descr2.describe_all_test_cases():
             t.append(cfg_descr3.get_test_case())
     assert tc.config.tft[0].test_cases == tuple(t)
+
+    # Fail with invalid node name (no valid DNS name).
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            'invalid configuration: ".tft[0].connections[1].client[0].name": invalid string'
+        ),
+    ):
+        testConfig.TestConfig(
+            full_config=yaml.safe_load(
+                full_config_str.replace(
+                    "client1.example.com",
+                    "client1.example..com",
+                ),
+            ),
+            kubeconfigs=None,
+            output_base="/tmp/",
+        )
 
     # A minimal yaml.
     full_config = yaml.safe_load(
