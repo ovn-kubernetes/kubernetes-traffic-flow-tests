@@ -291,7 +291,7 @@ class Task(ABC):
         return self.node.name
 
     def node_name_sanitized(self) -> str:
-        return self.node_name.replace(".", "-")
+        return tftbase.str_sanitize(self.node_name)
 
     def get_namespace(self) -> str:
         return self.ts.cfg_descr.get_tft().namespace
