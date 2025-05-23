@@ -3,6 +3,7 @@ import functools
 import json
 import math
 import os
+import re
 import shlex
 import typing
 
@@ -148,6 +149,44 @@ def get_manifest(filename: str) -> str:
     raise ValueError(
         f"Could not find manifest file {repr(filename)}. Checked in {msg}{repr(f2)}."
     )
+
+
+def str_sanitize(value: str) -> str:
+    # Sanitize the string like a DNS label.
+    #
+    # The main purpose is to use this as a pod name.
+    #
+    # - reversible (in theory)
+    # - only lower case characters, digits and '-'.
+    # - encoding:
+    #     "-"     => "--"
+    #     "A"-"Z" => "-a" to "-z"
+    #     "."     => "-0"
+    #     *       => "-<hex>-"
+    # - no '-' at begining or end of string. Leading or trailing "[-ps]" get
+    #   prefix/suffix "p-"/"-s".
+    def _repl(m: re.Match[str]) -> str:
+        ch = m.group(0)
+        if ch == "-":
+            return "--"
+        if "A" <= ch <= "Z":
+            return f"-{ch.lower()}"
+        if ch == ".":
+            return "-0"
+        return f"-{ord(ch):2x}-"
+
+    v = re.sub(r"[^a-z0-9]", _repl, value)
+
+    # No leading or tailing dash. Replace them with
+    # "p-"/"-s".
+    prefix = ""
+    suffix = ""
+    if v:
+        if v[0] in ("-", "p", "s"):
+            prefix = "p-"
+        if len(v) > 1 and v[-1] in ("-", "p", "s"):
+            suffix = "-s"
+    return prefix + v + suffix
 
 
 @functools.cache
