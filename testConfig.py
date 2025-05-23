@@ -98,7 +98,10 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     ) -> T2:
         with pctx.with_strdict() as varg:
 
-            name = common.structparse_pop_str_name(varg.for_name())
+            name = common.structparse_pop_str_name(
+                varg.for_name(),
+                check=common.validate_dns_name,
+            )
 
             sriov = common.structparse_pop_bool(
                 varg.for_key("sriov"),
