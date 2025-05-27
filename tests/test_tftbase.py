@@ -185,3 +185,24 @@ def test_get_manifest() -> None:
         tftbase.tftfile("manifests/overrides/host-pod.yaml.j2"),
     )
     assert os.path.exists(f)
+
+
+def test_str_sanitize() -> None:
+    assert tftbase.str_sanitize("") == ""
+    assert tftbase.str_sanitize("hello!wo_rld@12.3") == "hello-21-wo-5f-rld-40-12-03"
+    assert tftbase.str_sanitize("-") == "p----s"
+    assert tftbase.str_sanitize("-b") == "p---b"
+    assert tftbase.str_sanitize("foo-") == "foo---s"
+    assert tftbase.str_sanitize("f.oO-") == "f-0o-o---s"
+    assert tftbase.str_sanitize("A.B") == "p--a-0-b"
+    assert tftbase.str_sanitize("A.P") == "p--a-0-p-s"
+    assert tftbase.str_sanitize("safe123") == "p-safe123"
+    assert tftbase.str_sanitize("a-end-") == "a--end---s"
+    assert tftbase.str_sanitize("UPPER_case-") == "p--u-p-p-e-r-5f-case---s"
+    assert tftbase.str_sanitize("") == ""
+    assert tftbase.str_sanitize("-") == "p----s"
+    assert tftbase.str_sanitize("ab") == "ab"
+    assert tftbase.str_sanitize("preamble") == "p-preamble"
+    assert tftbase.str_sanitize("ends") == "ends-s"
+    assert tftbase.str_sanitize("\u03c0") == "p--3c0--s"
+    assert tftbase.str_sanitize("qs.gnrd.cAxs2.foo") == "qs-0gnrd-0c-axs2-0foo"
