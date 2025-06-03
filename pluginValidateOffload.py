@@ -156,16 +156,15 @@ class TaskValidateOffload(PluginTask):
             tenant=tenant,
         )
 
-        self.pod_name = f"tools-pod-{self.node_name_sanitized()}-validate-offload"
+        self.pod_name = f"tools-pod-{self.node_name_sanitized}-validate-offload"
         self.in_file_template = tftbase.get_manifest("tools-pod.yaml.j2")
-        self.out_file_yaml = tftbase.get_manifest_renderpath(self.pod_name + ".yaml")
         self._perf_instance = perf_instance
         self.perf_pod_name = perf_instance.pod_name
         self.perf_pod_type = perf_instance.pod_type
 
     def initialize(self) -> None:
         super().initialize()
-        self.render_file("Server Pod Yaml")
+        self.render_pod_file("Plugin Pod Yaml")
 
     def _create_task_operation(self) -> TaskOperation:
         def _thread_action() -> BaseOutput:

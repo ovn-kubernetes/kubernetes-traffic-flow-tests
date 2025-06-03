@@ -2,4 +2,4 @@ PyYAML
 jc
 jinja2
 paramiko
-git+https://github.com/thom311/ktoolbox@d30bacd0e4e71c470f276cc9192d7ae117a45a02
+git+https://github.com/thom311/ktoolbox@7708daaf4f8c1fc49b560a17c4f5f66690b34c35
