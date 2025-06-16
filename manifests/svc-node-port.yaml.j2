@@ -4,7 +4,7 @@ metadata:
   name: tft-nodeport-service
   namespace: {{ name_space }}
   labels:
-    tft-tests: "{{ index }}"
+    tft-tests: {{ label_tft_tests }}
 spec:
   type: NodePort
   ports:
