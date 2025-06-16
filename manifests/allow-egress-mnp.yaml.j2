@@ -4,7 +4,7 @@ metadata:
   namespace: {{ name_space }}
   name: allow-egress-mnp
   labels:
-    tft-tests: "{{ index }}"
+    tft-tests: {{ label_tft_tests }}
   annotations:
     k8s.v1.cni.cncf.io/policy-for: {{ secondary_network_nad }}
 spec:
