@@ -7,7 +7,6 @@ import threading
 import time
 import typing
 import yaml
-import functools
 
 from abc import ABC
 from abc import abstractmethod
@@ -54,6 +53,34 @@ class _OperationState(enum.Enum):
     RUNNING = (3,)
     STOPPING = 4
     STOPPED = 5
+
+
+def _detect_default_resource_name(
+    client: K8sClient,
+    namespace: str,
+    secondary_network_nad: Optional[str],
+) -> Optional[str]:
+    if secondary_network_nad is not None:
+        if "/" in secondary_network_nad:
+            ns, nad = secondary_network_nad.split("/", 1)
+        else:
+            ns, nad = namespace, secondary_network_nad
+        data = client.oc_get(
+            f"network-attachment-definition/{nad}",
+            namespace=ns,
+        )
+    else:
+        data = None
+    resource_name = None
+
+    if data is not None:
+        try:
+            r = data["metadata"]["annotations"]["k8s.v1.cni.cncf.io/resourceName"]
+            if isinstance(r, str) and r:
+                resource_name = r
+        except Exception:
+            pass
+    return resource_name
 
 
 class TaskOperation:
@@ -257,6 +284,7 @@ class Task(ABC):
         tenant: bool,
         task_role: TaskRole,
     ) -> None:
+        self._lock = threading.Lock()
         self.task_role = task_role
         self.in_file_template = ""
         self.pod_name = ""
@@ -268,6 +296,7 @@ class Task(ABC):
         self.tenant = tenant
         self.ts = ts
         self.tc = ts.cfg_descr.tc
+        self._resource_name: Optional[str] = None
 
         if not self.tenant and self.tc.mode == ClusterMode.SINGLE:
             raise ValueError("Cannot have non-tenant Task when cluster mode is single")
@@ -308,44 +337,35 @@ class Task(ABC):
             raise RuntimeError("task cannot generate a pod yaml")
         return tftbase.get_manifest_renderpath(self.pod_name + ".yaml")
 
-    @functools.cache
-    @staticmethod
-    def _fetch_default_resource_name(
-        client: K8sClient, namespace: str, secondary_network_nad: Optional[str]
-    ) -> Optional[str]:
-        if secondary_network_nad is not None:
-            if "/" in secondary_network_nad:
-                ns, nad = secondary_network_nad.split("/", 1)
-            else:
-                ns, nad = namespace, secondary_network_nad
-            data = client.oc_get(
-                f"network-attachment-definition/{nad}",
-                namespace=ns,
-            )
-        else:
-            data = None
-        resource_name = None
-
-        if data is not None:
-            try:
-                r = data["metadata"]["annotations"]["k8s.v1.cni.cncf.io/resourceName"]
-                if isinstance(r, str) and r:
-                    resource_name = r
-            except Exception:
-                pass
-        logger.info(f"autodetected resource_name as {repr(resource_name)}")
-        return resource_name
-
-    def get_template_args(self) -> dict[str, str | list[str] | bool]:
+    def get_resource_name(self) -> str:
+        with self._lock:
+            if self._resource_name is not None:
+                return self._resource_name
+        resource_name_config = self.ts.connection.resource_name
         resource_name = (
-            self.ts.connection.resource_name
-            or Task._fetch_default_resource_name(
+            resource_name_config
+            or _detect_default_resource_name(
                 self.client,
                 self.get_namespace(),
                 self.ts.connection.secondary_network_nad,
             )
             or ""
         )
+        with self._lock:
+            if self._resource_name is None:
+                if not resource_name:
+                    logger.debug("resource_name: unset and undetected")
+                elif resource_name_config:
+                    logger.debug(f"resource_name: from config as {repr(resource_name)}")
+                else:
+                    logger.info(f"resource_name: autodetected as {repr(resource_name)}")
+                self._resource_name = resource_name
+            else:
+                resource_name = self._resource_name
+        return resource_name
+
+    def get_template_args(self) -> dict[str, str | list[str] | bool]:
+        resource_name = self.get_resource_name()
         return {
             "name_space": _j(self.get_namespace()),
             "test_image": _j(tftbase.get_tft_test_image()),
