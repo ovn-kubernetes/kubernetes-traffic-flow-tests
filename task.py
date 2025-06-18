@@ -336,7 +336,16 @@ class Task(ABC):
         logger.info(f"autodetected resource_name as {repr(resource_name)}")
         return resource_name
 
-    def get_template_args(self) -> dict[str, str | list[str]]:
+    def get_template_args(self) -> dict[str, str | list[str] | bool]:
+        resource_name = (
+            self.ts.connection.resource_name
+            or Task._fetch_default_resource_name(
+                self.client,
+                self.get_namespace(),
+                self.ts.connection.secondary_network_nad,
+            )
+            or ""
+        )
         return {
             "name_space": _j(self.get_namespace()),
             "test_image": _j(tftbase.get_tft_test_image()),
@@ -348,19 +357,12 @@ class Task(ABC):
             "pod_name": _j(self.pod_name),
             "privileged_pod": _j(self._get_template_args_privileged_pod()),
             "port": self._get_template_args_port(),
-            "secondary_network_nad": _j(self.ts.connection.effective_secondary_network_nad),
-            "use_secondary_network": (
-                "1" if self.ts.connection.secondary_network_nad else ""
+            "secondary_network_nad": _j(
+                self.ts.connection.effective_secondary_network_nad
             ),
-            "resource_name": (
-                self.ts.connection.resource_name
-                or Task._fetch_default_resource_name(
-                    self.client,
-                    self.get_namespace(),
-                    self.ts.connection.secondary_network_nad,
-                )
-                or ""
-            ),
+            "use_secondary_network": bool(self.ts.connection.secondary_network_nad),
+            "has_resource_name": bool(resource_name),
+            "resource_name": _j(resource_name),
             "default_network": _j(self.node.default_network),
         }
 
@@ -394,7 +396,7 @@ class Task(ABC):
         log_info: str,
         in_file_template: str,
         out_file_yaml: str,
-        template_args: Optional[dict[str, str | list[str]]] = None,
+        template_args: Optional[dict[str, str | list[str] | bool]] = None,
     ) -> None:
         if template_args is None:
             template_args = self.get_template_args()
