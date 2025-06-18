@@ -1,4 +1,5 @@
 import enum
+import functools
 import json
 import logging
 import os
@@ -7,7 +8,6 @@ import threading
 import time
 import typing
 import yaml
-import functools
 
 from abc import ABC
 from abc import abstractmethod
@@ -54,6 +54,36 @@ class _OperationState(enum.Enum):
     RUNNING = (3,)
     STOPPING = 4
     STOPPED = 5
+
+
+@functools.cache
+def detect_default_resource_name_cached(
+    client: K8sClient,
+    namespace: str,
+    secondary_network_nad: Optional[str],
+) -> Optional[str]:
+    if secondary_network_nad is not None:
+        if "/" in secondary_network_nad:
+            ns, nad = secondary_network_nad.split("/", 1)
+        else:
+            ns, nad = namespace, secondary_network_nad
+        data = client.oc_get(
+            f"network-attachment-definition/{nad}",
+            namespace=ns,
+        )
+    else:
+        data = None
+    resource_name = None
+
+    if data is not None:
+        try:
+            r = data["metadata"]["annotations"]["k8s.v1.cni.cncf.io/resourceName"]
+            if isinstance(r, str) and r:
+                resource_name = r
+        except Exception:
+            pass
+    logger.info(f"autodetected resource_name as {repr(resource_name)}")
+    return resource_name
 
 
 class TaskOperation:
@@ -308,38 +338,10 @@ class Task(ABC):
             raise RuntimeError("task cannot generate a pod yaml")
         return tftbase.get_manifest_renderpath(self.pod_name + ".yaml")
 
-    @functools.cache
-    @staticmethod
-    def _fetch_default_resource_name(
-        client: K8sClient, namespace: str, secondary_network_nad: Optional[str]
-    ) -> Optional[str]:
-        if secondary_network_nad is not None:
-            if "/" in secondary_network_nad:
-                ns, nad = secondary_network_nad.split("/", 1)
-            else:
-                ns, nad = namespace, secondary_network_nad
-            data = client.oc_get(
-                f"network-attachment-definition/{nad}",
-                namespace=ns,
-            )
-        else:
-            data = None
-        resource_name = None
-
-        if data is not None:
-            try:
-                r = data["metadata"]["annotations"]["k8s.v1.cni.cncf.io/resourceName"]
-                if isinstance(r, str) and r:
-                    resource_name = r
-            except Exception:
-                pass
-        logger.info(f"autodetected resource_name as {repr(resource_name)}")
-        return resource_name
-
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = (
             self.ts.connection.resource_name
-            or Task._fetch_default_resource_name(
+            or detect_default_resource_name_cached(
                 self.client,
                 self.get_namespace(),
                 self.ts.connection.secondary_network_nad,
