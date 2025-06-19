@@ -1,4 +1,5 @@
 import enum
+import functools
 import json
 import logging
 import os
@@ -7,7 +8,6 @@ import threading
 import time
 import typing
 import yaml
-import functools
 
 from abc import ABC
 from abc import abstractmethod
@@ -37,6 +37,8 @@ from tftbase import PodType
 from tftbase import TaskRole
 
 
+_j = json.dumps
+
 logger = common.ExtendedLogger("tft." + __name__)
 
 
@@ -52,6 +54,36 @@ class _OperationState(enum.Enum):
     RUNNING = (3,)
     STOPPING = 4
     STOPPED = 5
+
+
+@functools.cache
+def detect_default_resource_name_cached(
+    client: K8sClient,
+    namespace: str,
+    secondary_network_nad: Optional[str],
+) -> Optional[str]:
+    if secondary_network_nad is not None:
+        if "/" in secondary_network_nad:
+            ns, nad = secondary_network_nad.split("/", 1)
+        else:
+            ns, nad = namespace, secondary_network_nad
+        data = client.oc_get(
+            f"network-attachment-definition/{nad}",
+            namespace=ns,
+        )
+    else:
+        data = None
+    resource_name = None
+
+    if data is not None:
+        try:
+            r = data["metadata"]["annotations"]["k8s.v1.cni.cncf.io/resourceName"]
+            if isinstance(r, str) and r:
+                resource_name = r
+        except Exception:
+            pass
+    logger.info(f"autodetected resource_name as {repr(resource_name)}")
+    return resource_name
 
 
 class TaskOperation:
@@ -306,63 +338,34 @@ class Task(ABC):
             raise RuntimeError("task cannot generate a pod yaml")
         return tftbase.get_manifest_renderpath(self.pod_name + ".yaml")
 
-    @functools.cache
-    @staticmethod
-    def _fetch_default_resource_name(
-        client: K8sClient, namespace: str, secondary_network_nad: Optional[str]
-    ) -> Optional[str]:
-        if secondary_network_nad is not None:
-            if "/" in secondary_network_nad:
-                ns, nad = secondary_network_nad.split("/", 1)
-            else:
-                ns, nad = namespace, secondary_network_nad
-            data = client.oc_get(
-                f"network-attachment-definition/{nad}",
-                namespace=ns,
+    def get_template_args(self) -> dict[str, str | list[str] | bool]:
+        resource_name = (
+            self.ts.connection.resource_name
+            or detect_default_resource_name_cached(
+                self.client,
+                self.get_namespace(),
+                self.ts.connection.secondary_network_nad,
             )
-        else:
-            data = None
-        resource_name = None
-
-        if data is not None:
-            try:
-                r = data["metadata"]["annotations"]["k8s.v1.cni.cncf.io/resourceName"]
-                if isinstance(r, str) and r:
-                    resource_name = r
-            except Exception:
-                pass
-        logger.info(f"autodetected resource_name as {repr(resource_name)}")
-        return resource_name
-
-    def get_template_args(self) -> dict[str, str | list[str]]:
+            or ""
+        )
         return {
-            "name_space": self.get_namespace(),
-            "test_image": tftbase.get_tft_test_image(),
-            "image_pull_policy": tftbase.get_tft_image_pull_policy(),
-            "command": ["/usr/bin/container-entry-point.sh"],
-            "args": self._get_template_args_args(),
-            "index": f"{self.index}",
-            "node_name": self.node_name,
-            "pod_name": self.pod_name,
+            "name_space": _j(self.get_namespace()),
+            "test_image": _j(tftbase.get_tft_test_image()),
+            "image_pull_policy": _j(tftbase.get_tft_image_pull_policy()),
+            "command": _j(["/usr/bin/container-entry-point.sh"]),
+            "args": _j(self._get_template_args_args()),
+            "label_tft_tests": _j(f"{self.index}"),
+            "node_name": _j(self.node_name),
+            "pod_name": _j(self.pod_name),
+            "privileged_pod": _j(self._get_template_args_privileged_pod()),
             "port": self._get_template_args_port(),
-            "privileged_pod": common.bool_to_str(
-                self._get_template_args_privileged_pod(),
-                format="true",
+            "secondary_network_nad": _j(
+                self.ts.connection.effective_secondary_network_nad
             ),
-            "secondary_network_nad": self.ts.connection.effective_secondary_network_nad,
-            "use_secondary_network": (
-                "1" if self.ts.connection.secondary_network_nad else ""
-            ),
-            "resource_name": (
-                self.ts.connection.resource_name
-                or Task._fetch_default_resource_name(
-                    self.client,
-                    self.get_namespace(),
-                    self.ts.connection.secondary_network_nad,
-                )
-                or ""
-            ),
-            "default_network": self.node.default_network,
+            "use_secondary_network": bool(self.ts.connection.secondary_network_nad),
+            "has_resource_name": bool(resource_name),
+            "resource_name": _j(resource_name),
+            "default_network": _j(self.node.default_network),
         }
 
     def _get_template_args_privileged_pod(self) -> bool:
@@ -395,7 +398,7 @@ class Task(ABC):
         log_info: str,
         in_file_template: str,
         out_file_yaml: str,
-        template_args: Optional[dict[str, str | list[str]]] = None,
+        template_args: Optional[dict[str, str | list[str] | bool]] = None,
     ) -> None:
         if template_args is None:
             template_args = self.get_template_args()
@@ -545,7 +548,7 @@ class Task(ABC):
 
         template_args = {
             **self.get_template_args(),
-            "nodeport_svc_port": f"{nodeport}",
+            "nodeport_svc_port": _j(nodeport),
         }
 
         self.render_file(
@@ -567,7 +570,7 @@ class Task(ABC):
 
         template_args = {
             **self.get_template_args(),
-            "ingress_port": f"{ingressPort}",
+            "ingress_port": _j(ingressPort),
         }
 
         self.render_file(
@@ -592,7 +595,7 @@ class Task(ABC):
 
         template_args = {
             **self.get_template_args(),
-            "egress_port": f"{egressPort}",
+            "egress_port": _j(egressPort),
         }
 
         self.render_file(

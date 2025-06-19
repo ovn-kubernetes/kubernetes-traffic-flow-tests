@@ -2,15 +2,15 @@ apiVersion: v1
 kind: Pod
 metadata:
   namespace: {{ name_space }}
-  name: "{{ pod_name }}"
+  name: {{ pod_name }}
   labels:
-    tft-tests: "{{ index }}"
+    tft-tests: {{ label_tft_tests }}
 spec:
   nodeSelector:
-    kubernetes.io/hostname: "{{ node_name }}"
+    kubernetes.io/hostname: {{ node_name }}
   hostNetwork: true
   containers:
-  - name: "{{ pod_name }}"
+  - name: {{ pod_name }}
     image: {{ test_image }}
     command: {{ command }}
     args: {{ args }}
