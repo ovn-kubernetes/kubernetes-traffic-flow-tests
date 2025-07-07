@@ -89,6 +89,23 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
+def parse_args_full() -> tuple[TestConfig, bool]:
+    args = parse_args()
+
+    args_check = args.check
+    tc = TestConfig(
+        config_path=args.config,
+        evaluator_config=args.evaluator_config,
+        kubeconfigs=option_get_kubeconfigs(
+            args.kubeconfig,
+            args.kubeconfig_infra,
+        ),
+        output_base=args.output_base,
+    )
+
+    return tc, args_check
+
+
 def option_get_kubeconfigs(
     kubeconfig: Optional[str], kubeconfig_infra: Optional[str]
 ) -> Optional[tuple[str, Optional[str]]]:
@@ -133,29 +150,18 @@ def option_get_kubeconfigs(
 def main() -> int:
     time_start = time.monotonic()
 
-    args = parse_args()
+    tc, args_check = parse_args_full()
 
-    args_check = args.check
-    tc = TestConfig(
-        config_path=args.config,
-        evaluator_config=args.evaluator_config,
-        kubeconfigs=option_get_kubeconfigs(
-            args.kubeconfig,
-            args.kubeconfig_infra,
-        ),
-        output_base=args.output_base,
-    )
     tc.system_check()
     tc.log_config()
     tft = TrafficFlowTests()
 
     evaluator = Evaluator(tc.evaluator_config)
 
-    tft_results_lst = []
-
-    for cfg_descr in ConfigDescriptor(tc).describe_all_tft():
-        tft_results = tft.test_run(cfg_descr, evaluator)
-        tft_results_lst.append(tft_results)
+    tft_results_lst = [
+        tft.test_run(cfg_descr, evaluator)
+        for cfg_descr in ConfigDescriptor(tc).describe_all_tft()
+    ]
 
     exit_code = 0
 
