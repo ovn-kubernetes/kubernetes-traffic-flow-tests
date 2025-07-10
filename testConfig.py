@@ -818,7 +818,7 @@ class TestConfig:
         if self.evaluator_config is not None:
             if not os.path.exists(self.evaluator_config):
                 raise ValueError(
-                    "evaluator_config file {shlex.quote(self.evaluator_config) does not exist"
+                    f"evaluator_config file {shlex.quote(self.evaluator_config)} does not exist"
                 )
 
     def log_config(self, *, logger: logging.Logger = logger) -> None:
