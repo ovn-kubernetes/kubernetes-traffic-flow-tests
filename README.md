@@ -173,3 +173,14 @@ Or
 ```
 podman run --rm -ti -v .:/pwd:Z -w /pwd ghcr.io/ovn-kubernetes/kubernetes-traffic-flow-tests:latest wormhole receive $CODE
 ```
+
+## Use ktoolbox-netdev
+
+Use ktoolbox' netdev command to collect interface information:
+
+```
+podman run --privileged --network=host ghcr.io/ovn-kubernetes/kubernetes-traffic-flow-tests:latest ktoolbox-netdev
+```
+```
+podman run --privileged --network=host ghcr.io/ovn-kubernetes/kubernetes-traffic-flow-tests:latest sh -c 'ktoolbox-netdev | yq -P -C' | less -R
+```
