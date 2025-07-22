@@ -77,6 +77,7 @@ def _get_plugin_registry() -> dict[str, Plugin]:
     import pluginMeasureCpu  # noqa: F401
     import pluginMeasurePower  # noqa: F401
     import pluginValidateOffload  # noqa: F401
+    import pluginValidateBandwidth  # noqa: F401
 
     return _plugin_registry
 
