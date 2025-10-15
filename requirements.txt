@@ -2,4 +2,4 @@ PyYAML
 jc
 jinja2
 paramiko
-https://raw.githubusercontent.com/thom311/ktoolbox/85ed9ba7ff346f20a02c78beffba9df08c67729a/wheels/155.6601dd6cdf03/ktoolbox-0.8.0-py3-none-any.whl
+https://raw.githubusercontent.com/thom311/ktoolbox/e5a5a6e690d2346e2b11b97a828a6c2a648d0895/wheels/201.2c3119360103/ktoolbox-0.8.0-py3-none-any.whl
