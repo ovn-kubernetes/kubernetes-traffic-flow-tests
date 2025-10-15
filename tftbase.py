@@ -173,7 +173,7 @@ def str_sanitize(value: str) -> str:
             return f"-{ch.lower()}"
         if ch == ".":
             return "-0"
-        return f"-{ord(ch):2x}-"
+        return f"-{ord(ch):02x}-"
 
     v = re.sub(r"[^a-z0-9]", _repl, value)
 
