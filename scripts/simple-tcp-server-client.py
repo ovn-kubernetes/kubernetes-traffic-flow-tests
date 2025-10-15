@@ -292,7 +292,10 @@ def run_exec(
 
         # Hack up ssl._create_default_https_context so that urlretrieve()
         # ignores SSL errors.
-        ssl._create_default_https_context = ssl._create_unverified_context
+        ssl_untyped: Any = ssl
+        ssl_untyped._create_default_https_context = (
+            ssl_untyped._create_unverified_context
+        )
 
     _print(f"{log_prefix}downloading exec URL {repr(exec_url)} to {filename}")
     urllib.request.urlretrieve(exec_url, filename)
