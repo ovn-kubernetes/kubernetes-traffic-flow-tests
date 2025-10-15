@@ -184,3 +184,80 @@ podman run --privileged --network=host ghcr.io/ovn-kubernetes/kubernetes-traffic
 ```
 podman run --privileged --network=host ghcr.io/ovn-kubernetes/kubernetes-traffic-flow-tests:latest sh -c 'ktoolbox-netdev | yq -P -C' | less -R
 ```
+
+## Debugging Tests using Simple Exec Script
+
+When a TFT test fails, it cleans up the broken environment. That can make
+debugging cumbersome.
+
+One possible way can be using the "simple" test type with the "--exec"
+parameter. The "simple" test type runs
+[scripts/simple-tcp-server-client.py](scripts/simple-tcp-server-client.py)
+script. Check the `--help` output about the `--exec` options (and
+`--exec-insecure`, `--exec-args`, `--exec-arg`). In exec mode, the script
+simple does something else. It will download an external script and execute
+that instead. That script can do anything and you can tweak it to be useful for
+debugging.
+
+There is already a default script
+[scripts/simple-exec.sh](scripts/simple-exec.sh). You could take that script as
+starting poing and tweak it (or you can use your own script).
+
+If you use `scripts/simple-exec.sh`, then by default it will call it's calling
+script `simple-tcp-server-client.py` again, albeit with some steps that might
+be useful for debugging. In particular, if the `simple-tcp-server-client.py`
+call fails, the script will hang, which allows you to enter the pod and
+investigate the problem yourself.
+
+If a non-empty first parameter to `scripts/simple-exec.sh` is provided, then
+that is expected to be a URL to download a `simple-tcp-server-client.py` like
+script, which is invoked instead of the `simple-tcp-server-client.py` script
+from the tft container.
+
+This allows you to run arbitrary code without need to rebuild the tft
+container. In a first step, you can pass your own `--exec` script. Either based
+on `scripts/simple-exec.sh` or whatever suits you.
+
+If you use the unmodified `scripts/simple-exec.sh`, then by default it will
+call back into `scripts/simple-tcp-server-client.py` from inside the container.
+This then runs the actual traffic flow test. If you wish, you can also provide
+your own patched variant of that latter script, instead of using the one from
+the container.
+
+For example, consider the following configuration.
+
+```
+--- c/tft-config.yaml
++++ i/tft-config.yaml
+@@ -1,21 +1,24 @@
+ tft:
+   - name: "Test 1"
+     namespace: "default"
+     test_cases: "1"
+     duration: "30"
++    privileged_pod: true
+     connections:
+       - name: "Connection_1"
+-        type: "iperf-udp"
++        type: "simple"
+         instances: 1
+         server:
+           - name: "$worker"
+             sriov: "true"
++            args: "--num-clients 0 --exec https://example.com/tft-test/simple-exec.sh --exec-insecure -E https://example.com/tft-test/simple-tcp-server-client.py"
+         client:
+           - name: "$worker"
+             sriov: "true"
++            args: "--exec https://example.com/tft-test/simple-exec.sh --exec-insecure -E https://example.com/tft-test/simple-tcp-server-client.py"
+```
+
+In above example, the server side will first download and exec
+`https://example.com/tft-test/simple-exec.sh`, with one parameter, the URL
+`https://example.com/tft-test/simple-tcp-server-client.py`. If that scripts
+behaves as the `scripts/simple-exec.sh` from our tree, then it will take the
+first argument, download it, and execut that script as if it were a
+"simple-tcp-server-client.py" script.  Note how the parameters like
+`--num-clients 0` will be passed all the way down to that last python script.
+This leaves you two scripts that you can tweak to your needs and update easily,
+while being based on some default implementations that can be useful without
+modification.
