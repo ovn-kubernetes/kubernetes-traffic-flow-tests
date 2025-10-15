@@ -160,20 +160,23 @@ def str_sanitize(value: str) -> str:
     # - only lower case characters, digits and '-'.
     # - encoding:
     #     "-"     => "--"
-    #     "A"-"Z" => "-a" to "-z"
+    #     "A"-"Y" => "-a" to "-y"
     #     "."     => "-0"
-    #     *       => "-<hex>-"
+    #     "Z"     => "-z-"
+    #     *       => "-z<hex>-"
     # - no '-' at begining or end of string. Leading or trailing "[-ps]" get
     #   prefix/suffix "p-"/"-s".
     def _repl(m: re.Match[str]) -> str:
         ch = m.group(0)
         if ch == "-":
             return "--"
-        if "A" <= ch <= "Z":
+        if "A" <= ch <= "Y":
             return f"-{ch.lower()}"
         if ch == ".":
             return "-0"
-        return f"-{ord(ch):02x}-"
+        if "Z" == ch:
+            return "-z-"
+        return f"-z{ord(ch):02x}-"
 
     v = re.sub(r"[^a-z0-9]", _repl, value)
 
