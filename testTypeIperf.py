@@ -125,6 +125,13 @@ class IperfServer(task.ServerTask):
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return f"killall {IPERF_EXE}"
 
+    def _get_server_listen_protocol(self) -> Optional[str]:
+        # You may wonder why even for TestType.IPERF_UDP, we would detect for TCP here.
+        # The reason is that iperf3 server always listens on TCP even for UDP tests.
+        # Iperf3 defaults to listening to TCP port for the control channel. This is used for
+        # managing the test setup and reporting.
+        return "tcp"
+
 
 class IperfClient(task.ClientTask):
     def _create_task_operation(self) -> TaskOperation:

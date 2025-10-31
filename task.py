@@ -863,7 +863,47 @@ class ServerTask(Task, ABC):
             logger.error(f"Failed to start server {self.pod_name}: {r.err}")
             raise RuntimeError(f"Failed to start server {self.pod_name}: {r.err}")
 
+        self._wait_for_server_listening()
         self.ts.event_server_alive.set()
+
+    # Override in subclasses to specify protocol (tcp/udp) to check.
+    def _get_server_listen_protocol(self) -> Optional[str]:
+        return None
+
+    def _wait_for_server_listening(self) -> None:
+        protocol = self._get_server_listen_protocol()
+        if protocol is None:
+            return
+
+        max_wait_time = 60
+        start_time = time.monotonic()
+
+        logger.info(
+            f"Waiting for server to listen on {protocol} port {self.port} (max {max_wait_time}s)"
+        )
+
+        protocol_flag = "-t" if protocol == "tcp" else "-u"
+
+        while time.monotonic() - start_time < max_wait_time:
+            check_cmd = f"ss -ln {protocol_flag} | grep ':{self.port}'"
+
+            if self.connection_mode == ConnectionMode.EXTERNAL_IP:
+                r = self.lh.run(check_cmd)
+            else:
+                r = self.run_oc_exec(check_cmd, may_fail=True)
+
+            if r.success and r.out.strip():
+                logger.info(
+                    f"Server is now listening on port {self.port} "
+                    f"(took {time.monotonic() - start_time:.2f}s)"
+                )
+                return
+
+            time.sleep(0.5)
+
+        error_msg = f"Server failed to start listening on port {self.port} within {max_wait_time}s"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
 
     @abstractmethod
     def cmd_line_args(self, *, for_template: bool = False) -> list[str]:

@@ -87,6 +87,9 @@ class NetPerfServer(task.ServerTask):
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return f"killall {NETPERF_SERVER_EXE}"
 
+    def _get_server_listen_protocol(self) -> Optional[str]:
+        return "tcp"
+
 
 class NetPerfClient(task.ClientTask):
     def _create_task_operation(self) -> TaskOperation:
