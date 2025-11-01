@@ -1,5 +1,6 @@
 import json
 import task
+import time
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -124,6 +125,37 @@ class IperfServer(task.ServerTask):
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return f"killall {IPERF_EXE}"
+
+    def _check_port_listening(self) -> bool:
+        """Check if the server is listening on self.port using ss command."""
+        end_time = time.monotonic() + 30
+
+        while time.monotonic() < end_time:
+            cmd = f"sh -c \"ss -ln | grep ':{self.port}'\""
+            if self.connection_mode == tftbase.ConnectionMode.EXTERNAL_IP:
+                r = self.lh.run(cmd)
+            else:
+                r = self.run_oc_exec(cmd, may_fail=True)
+
+            if r.success and r.out.strip():
+                logger.info(f"Server is listening on port {self.port}")
+                return True
+
+            time.sleep(0.5)
+
+        logger.error(f"Server failed to listen on port {self.port} within timeout")
+        return False
+
+    def confirm_server_alive(self) -> None:
+        """Confirm server is alive and listening on the port."""
+        # First, call the parent implementation to ensure the pod/container is ready
+        super().confirm_server_alive()
+
+        # Now check if the server is actually listening on the port
+        if not self._check_port_listening():
+            raise RuntimeError(
+                f"Server {self.pod_name} is running but not listening on port {self.port}"
+            )
 
 
 class IperfClient(task.ClientTask):
