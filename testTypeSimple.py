@@ -1,6 +1,7 @@
 import shlex
 
 from dataclasses import dataclass
+from typing import Optional
 
 from ktoolbox import common
 
@@ -47,6 +48,9 @@ class SimpleServer(task.ServerTask):
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         return "killall python3"
+
+    def _get_server_listen_protocol(self) -> Optional[str]:
+        return "tcp"
 
 
 class SimpleClient(task.ClientTask):
