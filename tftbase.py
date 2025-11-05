@@ -37,7 +37,7 @@ ENV_TFT_MANIFESTS_YAMLS = "TFT_MANIFESTS_YAMLS"
 def get_environ(name: str) -> Optional[str]:
     # Some environment variables are honored as configuration.
     # Which ones? Run `git grep -w get_environ`!
-    return os.environ.get(name, None)
+    return common.getenv_config(name)
 
 
 @functools.cache
