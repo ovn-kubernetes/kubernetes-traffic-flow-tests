@@ -927,7 +927,7 @@ class ServerTask(Task, ABC):
             if tftbase.get_tft_image_pull_policy() == "Always":
                 pull_policy = " --pull=always"
 
-            cmd = f"podman run -it --replace --rm -p {self.port} --name={self.pod_name}{pull_policy} {tftbase.get_tft_test_image()} {th_cmd}"
+            cmd = f"podman run -it --replace --rm -p {self.port}:{self.port} --name={self.pod_name}{pull_policy} {tftbase.get_tft_test_image()} {th_cmd}"
             cancel_cmd = f"podman rm --force {self.pod_name}"
         else:
             self.setup_pod()
