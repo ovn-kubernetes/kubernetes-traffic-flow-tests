@@ -817,6 +817,8 @@ class ServerTask(Task, ABC):
 
         self.exec_persistent = ts.node_server.is_persistent_server
         self.port = port
+        # external_port is discovered dynamically for EXTERNAL_IP mode
+        self.external_port: int = 0
         self.pod_type = pod_type
         self.connection_mode = ts.connection_mode
         self.in_file_template = in_file_template
@@ -870,6 +872,24 @@ class ServerTask(Task, ABC):
     def _get_server_listen_protocol(self) -> Optional[str]:
         return None
 
+    def _discover_podman_port(self) -> int:
+        """Query podman to find the auto-assigned host port for EXTERNAL_IP mode."""
+        # Use podman inspect with JSON output for reliable parsing
+        r = self.lh.run(
+            f"podman inspect --format '{{{{json .NetworkSettings.Ports}}}}' {self.pod_name}",
+            log_level_fail=logging.DEBUG,
+        )
+        if r.success and r.out.strip():
+            try:
+                # Output format: {"5201/tcp":[{"HostIp":"0.0.0.0","HostPort":"12345"}]}
+                ports = json.loads(r.out.strip())
+                port_key = f"{self.port}/tcp"
+                if port_key in ports and ports[port_key]:
+                    return int(ports[port_key][0]["HostPort"])
+            except (json.JSONDecodeError, KeyError, IndexError, ValueError):
+                pass
+        return 0
+
     def _wait_for_server_listening(self) -> None:
         protocol = self._get_server_listen_protocol()
         if protocol is None:
@@ -877,31 +897,46 @@ class ServerTask(Task, ABC):
 
         max_wait_time = 60
         start_time = time.monotonic()
-
-        logger.info(
-            f"Waiting for server to listen on {protocol} port {self.port} (max {max_wait_time}s)"
-        )
-
         protocol_flag = "-t" if protocol == "tcp" else "-u"
+        is_external = self.connection_mode == ConnectionMode.EXTERNAL_IP
+
+        logger.info(f"Waiting for server to be ready (max {max_wait_time}s)")
 
         while time.monotonic() - start_time < max_wait_time:
-            check_cmd = f"ss -ln {protocol_flag} | grep ':{self.port}'"
+            time.sleep(0.5)
 
-            if self.connection_mode == ConnectionMode.EXTERNAL_IP:
+            # For EXTERNAL_IP, first discover the port if not yet known
+            if is_external and self.external_port == 0:
+                self.external_port = self._discover_podman_port()
+                if self.external_port > 0:
+                    logger.info(f"Discovered external port: {self.external_port}")
+
+            # Determine which port to check
+            check_port = self.external_port if is_external else self.port
+
+            if check_port == 0:
+                continue
+
+            # Check if server is listening
+            check_cmd = f"ss -ln {protocol_flag} | grep ':{check_port}'"
+            if is_external:
                 r = self.lh.run(check_cmd)
             else:
                 r = self.run_oc_exec(check_cmd, may_fail=True)
 
             if r.success and r.out.strip():
                 logger.info(
-                    f"Server is now listening on port {self.port} "
+                    f"Server is now listening on port {check_port} "
                     f"(took {time.monotonic() - start_time:.2f}s)"
                 )
                 return
 
-            time.sleep(0.5)
-
-        error_msg = f"Server failed to start listening on port {self.port} within {max_wait_time}s"
+        # Timeout - determine appropriate error message
+        if is_external and self.external_port == 0:
+            error_msg = f"Failed to discover podman port within {max_wait_time}s"
+        else:
+            check_port = self.external_port if is_external else self.port
+            error_msg = f"Server failed to start listening on port {check_port} within {max_wait_time}s"
         logger.error(error_msg)
         raise RuntimeError(error_msg)
 
@@ -927,7 +962,8 @@ class ServerTask(Task, ABC):
             if tftbase.get_tft_image_pull_policy() == "Always":
                 pull_policy = " --pull=always"
 
-            cmd = f"podman run -it --replace --rm -p {self.port}:{self.port} --name={self.pod_name}{pull_policy} {tftbase.get_tft_test_image()} {th_cmd}"
+            # Use -p {port} to let podman auto-assign a free host port
+            cmd = f"podman run -it --replace --rm -p {self.port} --name={self.pod_name}{pull_policy} {tftbase.get_tft_test_image()} {th_cmd}"
             cancel_cmd = f"podman rm --force {self.pod_name}"
         else:
             self.setup_pod()
@@ -1031,9 +1067,10 @@ class ClientTask(Task, ABC):
             )
             return self.server.nodeport_ip_addr
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
-            external_pod_ip = self.get_podman_ip(self.server.pod_name)
-            logger.debug(f"get_target_ip() External connection to {external_pod_ip}")
-            return external_pod_ip
+            # For port forwarding, connect to the host's IP, not the container's internal IP
+            host_ip = self.get_host_ip()
+            logger.debug(f"get_target_ip() External connection to host {host_ip}")
+            return host_ip
         elif self.connection_mode in (
             ConnectionMode.MULTI_NETWORK,
             ConnectionMode.MULTI_HOME,
@@ -1043,6 +1080,27 @@ class ClientTask(Task, ABC):
         server_ip = self.server.get_pod_ip()
         logger.debug(f"get_target_ip() Connection to server at {server_ip}")
         return server_ip
+
+    def get_target_port(self) -> int:
+        """Get the port to connect to. For EXTERNAL_IP, use discovered external_port."""
+        if self.connection_mode == ConnectionMode.EXTERNAL_IP:
+            return self.server.external_port
+        return self.port
+
+    def get_host_ip(self) -> str:
+        """Get the host's IP address for EXTERNAL_IP mode."""
+        # Get the IP from default route using JSON output
+        r = self.lh.run("ip -j route get 1")
+        if r.success and r.out.strip():
+            try:
+                routes = json.loads(r.out.strip())
+                if routes and "prefsrc" in routes[0]:
+                    ip: str = routes[0]["prefsrc"]
+                    logger.debug(f"get_host_ip() found: {ip}")
+                    return ip
+            except (json.JSONDecodeError, KeyError, IndexError):
+                pass
+        raise RuntimeError("Failed to get host IP address from default route")
 
     def get_podman_ip(self, pod_name: str) -> str:
         cmd = "podman inspect --format '{{.NetworkSettings.IPAddress}}' " + pod_name

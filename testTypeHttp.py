@@ -54,7 +54,8 @@ class HttpServer(task.ServerTask):
 class HttpClient(task.ClientTask):
     def _create_task_operation(self) -> TaskOperation:
         server_ip = self.get_target_ip()
-        cmd = f"curl --fail -s http://{server_ip}:{self.port}/data"
+        target_port = self.get_target_port()
+        cmd = f"curl --fail -s http://{server_ip}:{target_port}/data"
 
         def _thread_action() -> BaseOutput:
             self.ts.clmo_barrier.wait()

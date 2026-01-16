@@ -136,9 +136,8 @@ class IperfServer(task.ServerTask):
 class IperfClient(task.ClientTask):
     def _create_task_operation(self) -> TaskOperation:
         server_ip = self.get_target_ip()
-        cmd = (
-            f"{IPERF_EXE} -c {server_ip} -p {self.port} --json -t {self.get_duration()}"
-        )
+        target_port = self.get_target_port()
+        cmd = f"{IPERF_EXE} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
         if self.test_type == TestType.IPERF_UDP:
             cmd += f" {IPERF_UDP_OPT}"
         if self.reverse:
@@ -157,12 +156,18 @@ class IperfClient(task.ClientTask):
                 success = False
                 msg = f'Command "{cmd}" failed: {r.debug_msg()}'
 
+            # Log raw output for debugging
+            logger.debug(f"iperf3 raw output: {repr(r.out)}")
+
             if success:
                 try:
                     result = json.loads(r.out)
-                except Exception:
+                except Exception as e:
                     success = False
-                    msg = f'Output of "{cmd}" is not valid JSON: {r.debug_msg()}'
+                    msg = f'Output of "{cmd}" is not valid JSON ({e}): {r.debug_msg()}'
+                    logger.error(
+                        f"Failed to parse JSON. Raw output: {repr(r.out[:500])}"
+                    )
 
             if success:
                 if (

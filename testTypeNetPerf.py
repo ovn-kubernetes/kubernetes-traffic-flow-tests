@@ -96,10 +96,11 @@ class NetPerfClient(task.ClientTask):
         assert not self.reverse
 
         server_ip = self.get_target_ip()
+        target_port = self.get_target_port()
         if self.test_type == TestType.NETPERF_TCP_STREAM:
-            cmd = f"{NETPERF_CLIENT_EXE} -H {server_ip} -p {self.port} -t TCP_STREAM -l {self.get_duration()}"
+            cmd = f"{NETPERF_CLIENT_EXE} -H {server_ip} -p {target_port} -t TCP_STREAM -l {self.get_duration()}"
         else:
-            cmd = f"{NETPERF_CLIENT_EXE} -H {server_ip} -p {self.port} -t TCP_RR -l {self.get_duration()}"
+            cmd = f"{NETPERF_CLIENT_EXE} -H {server_ip} -p {target_port} -t TCP_RR -l {self.get_duration()}"
 
         def _thread_action() -> BaseOutput:
             self.ts.clmo_barrier.wait()
