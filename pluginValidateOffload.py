@@ -1,8 +1,11 @@
+import re
 import typing
 
 from typing import Optional
 
 from ktoolbox import common
+from ktoolbox import host
+from ktoolbox import kjinja2
 
 import pluginbase
 import task
@@ -12,10 +15,10 @@ from task import PluginTask
 from task import TaskOperation
 from testSettings import TestSettings
 from tftbase import BaseOutput
+from tftbase import ClusterMode
 from tftbase import PluginOutput
 from tftbase import PodType
 from tftbase import TaskRole
-
 
 logger = common.ExtendedLogger("tft." + __name__)
 
@@ -142,6 +145,10 @@ class TaskValidateOffload(PluginTask):
     def plugin(self) -> pluginbase.Plugin:
         return plugin
 
+    @property
+    def _is_dpu_mode(self) -> bool:
+        return self.tc.mode == ClusterMode.DPU
+
     def __init__(
         self,
         ts: TestSettings,
@@ -162,9 +169,299 @@ class TaskValidateOffload(PluginTask):
         self.perf_pod_name = perf_instance.pod_name
         self.perf_pod_type = perf_instance.pod_type
 
+        # DPU mode: we need a tools pod on the DPU to query VF reps
+        self._dpu_pod_name: Optional[str] = None
+        self._dpu_node_name: Optional[str] = None
+        logger.debug(
+            f"TaskValidateOffload for {task_role.name}: DPU mode = {self._is_dpu_mode}"
+        )
+        if self._is_dpu_mode:
+            # In DPU mode, create a separate tools pod on the DPU cluster
+            # The DPU node name may differ from host node name
+            self._dpu_node_name = self._get_dpu_node_name()
+            logger.info(
+                f"DPU node name for worker {self.node_name}: {self._dpu_node_name}"
+            )
+            # DPU node names are already valid Kubernetes names, so we use a
+            # simpler sanitization - just replace any remaining problematic chars
+            dpu_node_name_safe = self._dpu_node_name.lower().replace("_", "-")
+            self._dpu_pod_name = f"tools-dpu-{dpu_node_name_safe}"
+            logger.info(f"DPU tools pod name: {self._dpu_pod_name}")
+
+    def _get_dpu_node_name(self) -> str:
+        """Get the DPU node name corresponding to this host node.
+
+        Queries DPU nodes by the configured dpu_node_host_label.
+        For example, with label "provisioning.dpu.nvidia.com/host",
+        finds nodes where that label equals this worker's node name.
+        """
+        host_label = self.tc.dpu_node_host_label
+        if not host_label:
+            raise ValueError(
+                "dpu_node_host_label must be configured when running in DPU mode. "
+                "Set it in config.yaml (e.g., dpu_node_host_label: 'provisioning.dpu.nvidia.com/host')"
+            )
+
+        selector = f"{host_label}={self.node_name}"
+        result = self.tc.client_infra.oc(
+            f"get nodes -l {selector} -o jsonpath='{{.items[*].metadata.name}}'",
+            may_fail=True,
+        )
+
+        if not result.success:
+            raise RuntimeError(
+                f"Failed to query DPU nodes by label {selector}: {result.err}"
+            )
+
+        nodes_str = result.out.strip().strip("'\"")
+        if not nodes_str:
+            raise RuntimeError(
+                f"No DPU node found with label {selector}. "
+                f"Ensure DPU nodes have label '{host_label}' set to the worker node name."
+            )
+
+        dpu_nodes = nodes_str.split()
+        if len(dpu_nodes) == 1:
+            logger.info(
+                f"Found DPU node {dpu_nodes[0]} for worker {self.node_name} via label"
+            )
+            return dpu_nodes[0]
+
+        # Multiple matches - use first but warn
+        logger.warning(
+            f"Multiple DPU nodes found with label {selector}: {dpu_nodes}. "
+            f"Using first: {dpu_nodes[0]}"
+        )
+        return dpu_nodes[0]
+
     def initialize(self) -> None:
         super().initialize()
         self.render_pod_file("Plugin Pod Yaml")
+
+        # In DPU mode, also create and deploy the DPU tools pod
+        if self._is_dpu_mode:
+            if not self._dpu_pod_name:
+                raise RuntimeError(
+                    f"DPU mode enabled but no DPU pod name set for {self.task_role.name}"
+                )
+            logger.info(
+                f"DPU mode enabled for {self.task_role.name}, "
+                f"DPU node: {self._dpu_node_name}, pod: {self._dpu_pod_name}"
+            )
+            self._initialize_dpu_pod()
+
+    def _initialize_dpu_pod(self) -> None:
+        """Create and deploy the tools pod on the DPU cluster."""
+        assert self._dpu_pod_name is not None
+
+        logger.info(
+            f"Creating DPU tools pod {self._dpu_pod_name} on node {self._dpu_node_name}"
+        )
+
+        namespace = self.get_namespace()
+        template_args = {
+            "name_space": f'"{namespace}"',
+            "test_image": f'"{tftbase.get_tft_test_image()}"',
+            "image_pull_policy": f'"{tftbase.get_tft_image_pull_policy()}"',
+            "command": '["/usr/bin/container-entry-point.sh"]',
+            "args": '["sleep", "infinity"]',
+            "label_tft_tests": f'"{self.index}"',
+            "node_name": f'"{self._dpu_node_name}"',
+            "pod_name": f'"{self._dpu_pod_name}"',
+        }
+        logger.debug(f"DPU pod template args: {template_args}")
+
+        # Render the pod YAML
+        dpu_pod_yaml_path = tftbase.get_manifest_renderpath(
+            self._dpu_pod_name + ".yaml"
+        )
+        kjinja2.render_file(
+            self.in_file_template,
+            template_args,
+            out_file=dpu_pod_yaml_path,
+        )
+        logger.info(f"DPU Pod Yaml rendered to {dpu_pod_yaml_path}")
+
+        # Apply the pod on the infra (DPU) cluster
+        logger.info(f"Applying DPU pod YAML to infra cluster in namespace {namespace}")
+        result = self.tc.client_infra.oc(
+            f"apply -f {dpu_pod_yaml_path}",
+            namespace=namespace,
+            may_fail=True,
+        )
+        if not result.success:
+            raise RuntimeError(
+                f"Failed to create DPU tools pod: {result.err}. "
+                f"DPU pod YAML path: {dpu_pod_yaml_path}"
+            )
+        logger.info(f"DPU pod apply result: {result.out}")
+
+        # Wait for the pod to be ready
+        logger.info(f"Waiting for DPU tools pod {self._dpu_pod_name} to be ready...")
+        result = self.tc.client_infra.oc(
+            f"wait --for=condition=Ready pod/{self._dpu_pod_name} --timeout=60s",
+            namespace=namespace,
+            may_fail=True,
+        )
+        if not result.success:
+            # Check pod status for better error message
+            status_result = self.tc.client_infra.oc(
+                f"get pod/{self._dpu_pod_name} -o wide",
+                namespace=namespace,
+                may_fail=True,
+            )
+            pod_status = status_result.out if status_result.success else "unknown"
+            raise RuntimeError(
+                f"DPU tools pod failed to become ready: {result.err}. "
+                f"Pod status: {pod_status}"
+            )
+
+        logger.info(f"DPU tools pod {self._dpu_pod_name} is ready")
+
+    def _run_oc_exec_dpu(
+        self,
+        cmd: str,
+        *,
+        may_fail: bool = False,
+    ) -> host.Result:
+        """Run a command on the DPU tools pod via the infra client."""
+        assert self._dpu_pod_name is not None
+        return self.tc.client_infra.oc_exec(
+            cmd,
+            pod_name=self._dpu_pod_name,
+            may_fail=may_fail,
+            namespace=self.get_namespace(),
+        )
+
+    def _get_vf_info_from_pod(
+        self, pod_name: str, ifname: str
+    ) -> Optional[tuple[int, int]]:
+        """Get the VF index and PF index for an interface inside a pod.
+
+        Uses standard Linux sysfs interfaces (vendor-agnostic).
+        Returns (vf_index, pf_index) or None if not found.
+        """
+        ns = self.get_namespace()
+
+        # Get VF PCI path
+        r = self.tc.client_tenant.oc_exec(
+            f"readlink -f /sys/class/net/{ifname}/device",
+            pod_name=pod_name,
+            may_fail=True,
+            namespace=ns,
+        )
+        if not r.success or not r.out.strip():
+            logger.warning(f"Could not get device path for {ifname}")
+            return None
+        vf_pci_path = r.out.strip()
+        logger.debug(f"VF PCI path: {vf_pci_path}")
+
+        # Get PF PCI path (physfn symlink indicates this is a VF)
+        r = self.tc.client_tenant.oc_exec(
+            f"readlink -f /sys/class/net/{ifname}/device/physfn",
+            pod_name=pod_name,
+            may_fail=True,
+            namespace=ns,
+        )
+        if not r.success or not r.out.strip():
+            logger.warning(f"Could not get PF path for {ifname} - might not be a VF")
+            return None
+        pf_pci_path = r.out.strip()
+        logger.debug(f"PF PCI path: {pf_pci_path}")
+
+        # Get PF index from PCI function number (e.g., 0000:b5:00.1 -> 1)
+        pf_pci = pf_pci_path.split("/")[-1]
+        match = re.search(r"\.(\d+)$", pf_pci)
+        pf_index = int(match.group(1)) if match else 0
+        logger.debug(f"PF PCI: {pf_pci}, PF index: {pf_index}")
+
+        # List virtfn symlinks to find VF index
+        r = self.tc.client_tenant.oc_exec(
+            f"ls -la {pf_pci_path}/virtfn*",
+            pod_name=pod_name,
+            may_fail=True,
+            namespace=ns,
+        )
+        if not r.success:
+            logger.warning(f"Could not list virtfn symlinks: {r.err}")
+            return None
+
+        # Parse: lrwxrwxrwx. 1 root root 0 virtfn0 -> ../0000:b5:00.3
+        vf_pci = vf_pci_path.split("/")[-1]
+        for line in r.out.strip().split("\n"):
+            match = re.search(r"virtfn(\d+)\s+->\s+.*?([^/]+)$", line)
+            if match and match.group(2) == vf_pci:
+                vf_index = int(match.group(1))
+                logger.info(
+                    f"Found VF index {vf_index}, PF index {pf_index} for {ifname}"
+                )
+                return (vf_index, pf_index)
+
+        logger.warning(f"Could not determine VF index for {ifname}")
+        return None
+
+    def _get_vf_rep_on_dpu(self, vf_index: int, pf_index: int = 0) -> Optional[str]:
+        """Find the VF representor on the DPU for a given VF index.
+
+        Uses devlink port show for vendor-agnostic lookup via pfnum/vfnum.
+        """
+        logger.info(
+            f"Looking for VF representor: pf_index={pf_index}, vf_index={vf_index}"
+        )
+
+        # Use devlink (vendor-agnostic)
+        # Format: pci/.../N: type eth netdev <name> flavour pcivf pfnum X vfnum Y
+        r = self._run_oc_exec_dpu("devlink port show", may_fail=True)
+        if not r.success:
+            logger.warning(f"devlink port show failed: {r.err}")
+            return None
+
+        for line in r.out.strip().split("\n"):
+            # Look for pcivf flavour with matching pfnum and vfnum
+            if "flavour pcivf" in line or "flavor pcivf" in line:
+                pf_match = re.search(r"pfnum\s+(\d+)", line)
+                vf_match = re.search(r"vfnum\s+(\d+)", line)
+                netdev_match = re.search(r"netdev\s+(\S+)", line)
+
+                if pf_match and vf_match and netdev_match:
+                    if (
+                        int(pf_match.group(1)) == pf_index
+                        and int(vf_match.group(1)) == vf_index
+                    ):
+                        ifname = netdev_match.group(1)
+                        logger.info(f"Found VF representor via devlink: {ifname}")
+                        return ifname
+
+        logger.warning(
+            f"Could not find VF representor for pf{pf_index}vf{vf_index} in devlink output"
+        )
+        return None
+
+    def _get_vf_rep_dpu_mode(
+        self,
+        pod_name: str,
+        ifname: str,
+    ) -> Optional[str]:
+        """Get VF representor in DPU mode.
+
+        1. Get VF index and PF index from the pod (via sysfs)
+        2. Find the VF representor on the DPU by phys_port_name (pf<X>vf<N>)
+        """
+        assert self._dpu_pod_name is not None
+
+        # Step 1: Get VF and PF index from the perf pod
+        vf_info = self._get_vf_info_from_pod(pod_name, ifname)
+        if vf_info is None:
+            logger.warning(
+                f"Could not determine VF info for {ifname} in pod {pod_name}"
+            )
+            return None
+
+        vf_index, pf_index = vf_info
+
+        # Step 2: Find VF representor on DPU
+        vf_rep = self._get_vf_rep_on_dpu(vf_index, pf_index=pf_index)
+        return vf_rep
 
     def _create_task_operation(self) -> TaskOperation:
         def _thread_action() -> BaseOutput:
@@ -184,11 +481,20 @@ class TaskValidateOffload(PluginTask):
                 logger.info("There is no VF on an external server")
                 msg = "External Iperf Server"
             else:
-                vf_rep = self.pod_get_vf_rep(
-                    pod_name=self.perf_pod_name,
-                    ifname="eth0",
-                    host_pod_name=self.pod_name,
-                )
+                # Get VF representor - use DPU mode if configured
+                if self._is_dpu_mode:
+                    logger.info("DPU mode: querying VF representor from DPU cluster")
+                    vf_rep = self._get_vf_rep_dpu_mode(
+                        pod_name=self.perf_pod_name,
+                        ifname="eth0",
+                    )
+                else:
+                    vf_rep = self.pod_get_vf_rep(
+                        pod_name=self.perf_pod_name,
+                        ifname="eth0",
+                        host_pod_name=self.pod_name,
+                    )
+
                 if vf_rep is None:
                     success_result = False
                     msg = "cannot determine VF_REP for pod"
@@ -204,11 +510,18 @@ class TaskValidateOffload(PluginTask):
             self.ts.clmo_barrier.wait()
 
             if vf_rep is not None:
-                r1 = self.run_oc_exec(ethtool_cmd)
+                # Run ethtool - use DPU pod if in DPU mode
+                if self._is_dpu_mode:
+                    r1 = self._run_oc_exec_dpu(ethtool_cmd)
+                else:
+                    r1 = self.run_oc_exec(ethtool_cmd)
 
                 self.ts.event_client_finished.wait()
 
-                r2 = self.run_oc_exec(ethtool_cmd)
+                if self._is_dpu_mode:
+                    r2 = self._run_oc_exec_dpu(ethtool_cmd)
+                else:
+                    r2 = self.run_oc_exec(ethtool_cmd)
 
                 parsed_data["ethtool_cmd_1"] = common.dataclass_to_dict(r1)
                 parsed_data["ethtool_cmd_2"] = common.dataclass_to_dict(r2)

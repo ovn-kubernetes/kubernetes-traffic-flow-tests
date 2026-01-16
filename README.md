@@ -122,6 +122,47 @@ tool will try to autopopulate resource_name based on the secondary+network_nad p
 18. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
+19. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+  which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
+
+## DPU Mode
+
+When running with a DPU (Data Processing Unit) cluster, the `validate_offload` plugin needs
+to query VF representors from the DPU cluster rather than the host. This is because in DPU
+environments, VF representors reside on the DPU where OVS/OVN runs.
+
+### Configuration
+
+To enable DPU mode, configure the following in your `config.yaml`:
+
+```yaml
+kubeconfig: /path/to/tenant-cluster.kubeconfig
+kubeconfig_infra: /path/to/dpu-cluster.kubeconfig
+dpu_node_host_label: "provisioning.dpu.nvidia.com/host"
+```
+
+The `dpu_node_host_label` specifies which label on DPU nodes identifies the corresponding
+host worker node. For example, with NVIDIA DPUs, each DPU node has a label like:
+
+```
+provisioning.dpu.nvidia.com/host: worker-node-name
+```
+
+The plugin uses this label to find the correct DPU node for each worker node.
+
+### How It Works
+
+1. **DPU Node Discovery**: The plugin queries DPU nodes by label to find the DPU
+   corresponding to each worker node.
+
+2. **VF Info from Pod**: Gets the VF index and PF index from the pod using standard
+   Linux sysfs interfaces (vendor-agnostic).
+
+3. **VF Representor Lookup**: Uses `devlink port show` on the DPU to find the VF
+   representor by matching `pfnum` and `vfnum` (vendor-agnostic).
+
+4. **Ethtool Stats**: Runs `ethtool -S` on the VF representor from the DPU tools pod
+   to verify hardware offload.
 
 ## Running the tests
 
