@@ -60,7 +60,7 @@ class SimpleClient(task.ClientTask):
             "--addr",
             f"{self.get_target_ip()}",
             "--port",
-            f"{self.port}",
+            f"{self.get_target_port()}",
             "--duration",
             f"{self.get_duration()}",
             *(self.ts.cfg_descr.get_client().args or ()),
