@@ -17,7 +17,6 @@ from ktoolbox import common
 from ktoolbox import host
 from ktoolbox.common import strict_dataclass
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

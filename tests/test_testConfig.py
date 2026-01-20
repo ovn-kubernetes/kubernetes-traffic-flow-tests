@@ -15,7 +15,6 @@ import testConfig  # noqa: E402
 from tftbase import TestCaseType  # noqa: E402
 from tftbase import TestType  # noqa: E402
 
-
 testConfigKubeconfigsArgs1 = ("/root/kubeconfig.x1", None)
 
 
@@ -242,13 +241,11 @@ kubeconfig_infra: /path/to/kubeconfig_infra
         )
 
     # A minimal yaml.
-    full_config = yaml.safe_load(
-        """
+    full_config = yaml.safe_load("""
 tft:
   - connections:
     - {}
-"""
-    )
+""")
     tc = testConfig.TestConfig(
         full_config=full_config,
         kubeconfigs=testConfigKubeconfigsArgs1,

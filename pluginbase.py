@@ -9,7 +9,6 @@ from ktoolbox import common
 from tftbase import PluginOutput
 from tftbase import TestMetadata
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

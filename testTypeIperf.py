@@ -20,7 +20,6 @@ from tftbase import Bitrate
 from tftbase import FlowTestOutput
 from tftbase import TestType
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

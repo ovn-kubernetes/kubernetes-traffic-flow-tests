@@ -16,7 +16,6 @@ from typing import Any
 from typing import Callable
 from typing import Optional
 
-
 DEFAULT_ADDR = "127.0.0.1"
 DEFAULT_BUFSIZE = 65495
 DEFAULT_DURATION = 0.0

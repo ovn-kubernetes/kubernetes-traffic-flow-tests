@@ -31,7 +31,6 @@ from tftbase import PodType
 from tftbase import TestCaseType
 from tftbase import TestType
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 
@@ -519,6 +518,7 @@ class ConfConfig(StructParseBase):
     tft: tuple[ConfTest, ...]
     kubeconfig: Optional[str]
     kubeconfig_infra: Optional[str]
+    dpu_node_host_label: Optional[str]
 
     def __post_init__(self) -> None:
         for t in self.tft:
@@ -537,6 +537,7 @@ class ConfConfig(StructParseBase):
             "tft": [c.serialize() for c in self.tft],
             "kubeconfig": self.kubeconfig,
             "kubeconfig_infra": self.kubeconfig_infra,
+            "dpu_node_host_label": self.dpu_node_host_label,
         }
 
     @staticmethod
@@ -560,6 +561,11 @@ class ConfConfig(StructParseBase):
                 default=None,
             )
 
+            dpu_node_host_label = common.structparse_pop_str(
+                varg.for_key("dpu_node_host_label"),
+                default=None,
+            )
+
         if kubeconfig_infra is not None:
             if kubeconfig is None:
                 raise pctx.value_error(
@@ -573,6 +579,7 @@ class ConfConfig(StructParseBase):
             tft=tft,
             kubeconfig=kubeconfig,
             kubeconfig_infra=kubeconfig_infra,
+            dpu_node_host_label=dpu_node_host_label,
         )
 
 
@@ -729,6 +736,10 @@ class TestConfig:
     def kubeconfig_infra(self) -> Optional[str]:
         kubeconfig, kubeconfig_infra = self._get_kubeconfigs()
         return kubeconfig_infra
+
+    @property
+    def dpu_node_host_label(self) -> Optional[str]:
+        return self.config.dpu_node_host_label
 
     def _get_kubeconfigs(self) -> tuple[str, Optional[str]]:
         with self._lock:

@@ -17,7 +17,6 @@ from evalConfig import EvalIdentity
 from tftbase import Bitrate
 from tftbase import TftResults
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

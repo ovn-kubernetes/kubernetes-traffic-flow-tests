@@ -16,7 +16,6 @@ from tftbase import FlowTestOutput
 from tftbase import TftResult
 from tftbase import TftResults
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 
