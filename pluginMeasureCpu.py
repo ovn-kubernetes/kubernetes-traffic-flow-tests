@@ -17,7 +17,6 @@ from tftbase import BaseOutput
 from tftbase import PluginOutput
 from tftbase import TaskRole
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

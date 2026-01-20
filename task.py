@@ -35,7 +35,6 @@ from tftbase import PluginOutput
 from tftbase import PodType
 from tftbase import TaskRole
 
-
 _j = json.dumps
 
 logger = common.ExtendedLogger("tft." + __name__)

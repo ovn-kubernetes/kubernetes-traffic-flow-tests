@@ -10,7 +10,6 @@ from ktoolbox import common
 
 import tftbase
 
-
 EXIT_CODE_VALIDATION = 1
 
 

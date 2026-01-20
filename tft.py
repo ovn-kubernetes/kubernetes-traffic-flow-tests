@@ -17,7 +17,6 @@ from testConfig import ConfigDescriptor
 from testConfig import TestConfig
 from trafficFlowTests import TrafficFlowTests
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

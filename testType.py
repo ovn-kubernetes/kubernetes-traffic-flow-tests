@@ -9,7 +9,6 @@ from ktoolbox import common
 
 from tftbase import TestType
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 _handler_registry_lock = threading.Lock()

@@ -16,7 +16,6 @@ from testSettings import TestSettings
 from tftbase import TftResult
 from tftbase import TftResults
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

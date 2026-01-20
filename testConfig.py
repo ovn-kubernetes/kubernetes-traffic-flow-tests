@@ -31,7 +31,6 @@ from tftbase import PodType
 from tftbase import TestCaseType
 from tftbase import TestType
 
-
 logger = common.ExtendedLogger("tft." + __name__)
 
 

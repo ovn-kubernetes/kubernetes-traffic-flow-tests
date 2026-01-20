@@ -14,7 +14,6 @@ from tftbase import BaseOutput
 from tftbase import FlowTestOutput
 from tftbase import TestType
 
-
 NETPERF_SERVER_EXE = "netserver"
 NETPERF_CLIENT_EXE = "netperf"
 
