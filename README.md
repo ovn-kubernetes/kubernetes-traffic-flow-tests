@@ -110,6 +110,7 @@ kubeconfig_infra: (18)
 12. "name" - The node name of the client.
 13. "sriov" - Whether SRIOV should be used for the client pod. Takes in "true/false"
 14. "default_network" - (Optional) The name of the default network that the sriov pod would use.
+14a. "args" - (Optional) Extra command-line arguments to pass to the test tool (iperf3, simple-tcp-server-client). Supported for iperf-tcp, iperf-udp, and simple test types. Can be a string or list of strings.
 15. "name" - (Optional) list of plugin names
     | Name             | Description          |
     | ---------------- | -------------------- |
@@ -170,6 +171,48 @@ Simply run the python application as so:
 
 ```
 ./tft.py config.yaml
+```
+
+## Example: iperf UDP with custom bandwidth
+
+By default, iperf-udp tests use `-u -b 25G` options. You can customize the bandwidth
+or add other iperf3 options using the `args` parameter on the client and/or server:
+
+```yaml
+tft:
+  - name: "UDP Test with custom bandwidth"
+    namespace: "default"
+    test_cases: "1"
+    duration: "30"
+    connections:
+      - name: "Connection_1"
+        type: "iperf-udp"
+        instances: 1
+        server:
+          - name: "worker-1"
+        client:
+          - name: "worker-2"
+            args: "-b 10G"  # Override the default 25G bandwidth
+```
+
+You can also pass multiple options:
+
+```yaml
+        client:
+          - name: "worker-2"
+            args: "-b 10G --parallel 4"  # Custom bandwidth and 4 parallel streams
+```
+
+Or as a list:
+
+```yaml
+        client:
+          - name: "worker-2"
+            args:
+              - "-b"
+              - "10G"
+              - "--parallel"
+              - "4"
 ```
 
 ## Environment variables

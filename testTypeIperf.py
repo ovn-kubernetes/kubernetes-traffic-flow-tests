@@ -1,4 +1,5 @@
 import json
+import shlex
 import task
 
 from collections.abc import Mapping
@@ -24,7 +25,7 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 
 IPERF_EXE = "iperf3"
-IPERF_UDP_OPT = "-u -b 25G"
+IPERF_UDP_OPT = "-u"
 IPERF_REV_OPT = "-R"
 
 
@@ -113,12 +114,14 @@ class IperfServer(task.ServerTask):
             extra_args = []
         else:
             extra_args = ["--one-off", "--json"]
+        server_args = self.ts.cfg_descr.get_server().args or ()
         return [
             IPERF_EXE,
             "-s",
             "-p",
             f"{self.port}",
             *extra_args,
+            *server_args,
         ]
 
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
@@ -137,8 +140,16 @@ class IperfClient(task.ClientTask):
         server_ip = self.get_target_ip()
         target_port = self.get_target_port()
         cmd = f"{IPERF_EXE} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
+
         if self.test_type == TestType.IPERF_UDP:
             cmd += f" {IPERF_UDP_OPT}"
+
+        client_args = self.ts.cfg_descr.get_client().args
+        if client_args:
+            cmd += f" {shlex.join(client_args)}"
+        elif self.test_type == TestType.IPERF_UDP:
+            cmd += " -b 25G"
+
         if self.reverse:
             cmd += f" {IPERF_REV_OPT}"
 

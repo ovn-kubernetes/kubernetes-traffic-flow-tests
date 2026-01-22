@@ -172,7 +172,11 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
 
     def _validate(self, test_type: TestType) -> None:
         if self.args is not None:
-            if test_type not in (TestType.SIMPLE,):
+            if test_type not in (
+                TestType.SIMPLE,
+                TestType.IPERF_TCP,
+                TestType.IPERF_UDP,
+            ):
                 raise self.value_error(
                     f"not supported with test type {repr(test_type.name)}",
                     key="args",
