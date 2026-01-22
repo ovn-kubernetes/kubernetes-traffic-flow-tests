@@ -11,6 +11,7 @@ import typing
 import yaml
 
 from collections.abc import Generator
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 from typing import Optional
@@ -51,6 +52,34 @@ def _check_plugin_name(
         ) from None
 
 
+def _construct_capabilities_pod(
+    pctx: StructParseParseContext,
+) -> Mapping[str, tuple[str, ...]]:
+    arg = pctx.arg
+    # Expected format: {"add": ["NET_ADMIN", "SYS_TIME"]}
+    if not isinstance(arg, dict):
+        raise pctx.value_error(
+            f'expects a dict with "add" key containing a list of capabilities but got {repr(arg)}'
+        )
+    if set(arg) - {"add"}:
+        raise pctx.value_error(
+            f'expects only "add" key but got extra keys {set(arg) - {"add"}}'
+        )
+    if "add" not in arg:
+        raise pctx.value_error(
+            f'expects a dict with "add" key containing a list of capabilities but got {repr(arg)}'
+        )
+    if not isinstance(arg["add"], (list, tuple)):
+        raise pctx.value_error(
+            f'expects "add" key to contain a list of capabilities but got {repr(arg["add"])}'
+        )
+    if not all(isinstance(s, str) and s for s in arg["add"]):
+        raise pctx.value_error(
+            f'expects "add" to contain only non-empty strings but got {repr(arg["add"])}'
+        )
+    return {"add": tuple(arg["add"])}
+
+
 T2 = TypeVar("T2", bound="ConfNodeServer | ConfNodeClient")
 
 
@@ -69,6 +98,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     pod_type: PodType
     default_network: str
     privileged_pod: Optional[bool]
+    capabilities_pod: Optional[Mapping[str, tuple[str, ...]]]
 
     # Extra arguments for the client/server. Their actual meaning depend on the
     # "type". These might be command line arguments passed to the tool.
@@ -81,6 +111,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     def serialize(self) -> dict[str, Any]:
         d: dict[str, Any] = {}
         common.dict_add_optional(d, "privileged_pod", self.privileged_pod)
+        common.dict_add_optional(d, "capabilities_pod", self.capabilities_pod)
         if self.args is not None:
             d["args"] = list(self.args)
         return {
@@ -119,6 +150,12 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
 
             privileged_pod = common.structparse_pop_bool(
                 varg.for_key("privileged_pod"),
+                default=None,
+            )
+
+            capabilities_pod = common.structparse_pop_obj(
+                varg.for_key("capabilities_pod"),
+                construct=_construct_capabilities_pod,
                 default=None,
             )
 
@@ -164,6 +201,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
             sriov=sriov,
             default_network=default_network,
             privileged_pod=privileged_pod,
+            capabilities_pod=capabilities_pod,
             args=args,
             **type_specific_kwargs,
         )
@@ -176,6 +214,9 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
                 TestType.SIMPLE,
                 TestType.IPERF_TCP,
                 TestType.IPERF_UDP,
+                TestType.IB_WRITE_BW,
+                TestType.IB_READ_BW,
+                TestType.IB_SEND_BW,
             ):
                 raise self.value_error(
                     f"not supported with test type {repr(test_type.name)}",
@@ -389,6 +430,7 @@ class ConfTest(StructParseBaseNamed):
     test_cases: tuple[TestCaseType, ...]
     duration: int
     privileged_pod: bool
+    capabilities_pod: Mapping[str, tuple[str, ...]]
     connections: tuple[ConfConnection, ...]
     logs: pathlib.Path
 
@@ -407,6 +449,7 @@ class ConfTest(StructParseBaseNamed):
             "test_cases": [t.name for t in self.test_cases],
             "duration": self.duration,
             "privileged_pod": self.privileged_pod,
+            "capabilities_pod": self.capabilities_pod,
             "connections": [c.serialize() for c in self.connections],
             "logs": str(self.logs),
         }
@@ -461,6 +504,14 @@ class ConfTest(StructParseBaseNamed):
                 default=False,
             )
 
+            capabilities_pod: Mapping[str, tuple[str, ...]] = (
+                common.structparse_pop_obj(
+                    varg.for_key("capabilities_pod"),
+                    construct=_construct_capabilities_pod,
+                    default={"add": ()},
+                )
+            )
+
             connections = common.structparse_pop_objlist(
                 varg.for_key("connections"),
                 construct=lambda pctx2: ConfConnection.parse(
@@ -484,6 +535,7 @@ class ConfTest(StructParseBaseNamed):
             test_cases=tuple(test_cases),
             duration=duration,
             privileged_pod=privileged_pod,
+            capabilities_pod=capabilities_pod,
             connections=connections,
             logs=pathlib.Path(logs),
         )
