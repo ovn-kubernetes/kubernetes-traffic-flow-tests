@@ -19,5 +19,4 @@ spec:
     imagePullPolicy: {{ image_pull_policy }}
     securityContext:
       privileged: {{ privileged_pod }}
-      capabilities:
-        add: ["NET_ADMIN","NET_RAW"]
+      capabilities: {{ capabilities_pod }}

@@ -69,6 +69,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     pod_type: PodType
     default_network: str
     privileged_pod: Optional[bool]
+    capabilities_pod: Optional[dict[str, list[str]]]
 
     # Extra arguments for the client/server. Their actual meaning depend on the
     # "type". These might be command line arguments passed to the tool.
@@ -81,6 +82,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     def serialize(self) -> dict[str, Any]:
         d: dict[str, Any] = {}
         common.dict_add_optional(d, "privileged_pod", self.privileged_pod)
+        common.dict_add_optional(d, "capabilities_pod", self.capabilities_pod)
         if self.args is not None:
             d["args"] = list(self.args)
         return {
@@ -120,6 +122,36 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
             privileged_pod = common.structparse_pop_bool(
                 varg.for_key("privileged_pod"),
                 default=None,
+            )
+
+            def _construct_capabilities_pod(
+                pctx2: StructParseParseContext,
+            ) -> dict[str, list[str]]:
+                arg = pctx2.arg
+                if isinstance(arg, dict):
+                    # Expected format: {"add": ["NET_ADMIN", "SYS_TIME"]}
+                    if "add" in arg and isinstance(arg["add"], list):
+                        return {"add": [str(c) for c in arg["add"]]}
+                    raise pctx2.value_error(
+                        f'expects a dict with "add" key containing a list of capabilities but got {repr(arg)}'
+                    )
+                if isinstance(arg, list):
+                    # Shorthand: just a list of capabilities
+                    return {"add": [str(c) for c in arg]}
+                if isinstance(arg, str):
+                    # Comma-separated string
+                    caps = [c.strip() for c in arg.split(",") if c.strip()]
+                    return {"add": caps}
+                raise pctx2.value_error(
+                    f"expects a dict, list, or comma-separated string but got {repr(arg)}"
+                )
+
+            capabilities_pod: Optional[dict[str, list[str]]] = (
+                common.structparse_pop_obj(
+                    varg.for_key("capabilities_pod"),
+                    construct=_construct_capabilities_pod,
+                    default=None,
+                )
             )
 
             def _construct_args(pctx2: StructParseParseContext) -> tuple[str, ...]:
@@ -164,6 +196,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
             sriov=sriov,
             default_network=default_network,
             privileged_pod=privileged_pod,
+            capabilities_pod=capabilities_pod,
             args=args,
             **type_specific_kwargs,
         )
@@ -176,6 +209,9 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
                 TestType.SIMPLE,
                 TestType.IPERF_TCP,
                 TestType.IPERF_UDP,
+                TestType.IB_WRITE_BW,
+                TestType.IB_READ_BW,
+                TestType.IB_SEND_BW,
             ):
                 raise self.value_error(
                     f"not supported with test type {repr(test_type.name)}",
@@ -389,6 +425,7 @@ class ConfTest(StructParseBaseNamed):
     test_cases: tuple[TestCaseType, ...]
     duration: int
     privileged_pod: bool
+    capabilities_pod: dict[str, list[str]]
     connections: tuple[ConfConnection, ...]
     logs: pathlib.Path
 
@@ -407,6 +444,7 @@ class ConfTest(StructParseBaseNamed):
             "test_cases": [t.name for t in self.test_cases],
             "duration": self.duration,
             "privileged_pod": self.privileged_pod,
+            "capabilities_pod": self.capabilities_pod,
             "connections": [c.serialize() for c in self.connections],
             "logs": str(self.logs),
         }
@@ -461,6 +499,34 @@ class ConfTest(StructParseBaseNamed):
                 default=False,
             )
 
+            def _construct_capabilities_pod_tft(
+                pctx2: StructParseParseContext,
+            ) -> dict[str, list[str]]:
+                arg = pctx2.arg
+                if isinstance(arg, dict):
+                    # Expected format: {"add": ["NET_ADMIN", "SYS_TIME"]}
+                    if "add" in arg and isinstance(arg["add"], list):
+                        return {"add": [str(c) for c in arg["add"]]}
+                    raise pctx2.value_error(
+                        f'expects a dict with "add" key containing a list of capabilities but got {repr(arg)}'
+                    )
+                if isinstance(arg, list):
+                    # Shorthand: just a list of capabilities
+                    return {"add": [str(c) for c in arg]}
+                if isinstance(arg, str):
+                    # Comma-separated string
+                    caps = [c.strip() for c in arg.split(",") if c.strip()]
+                    return {"add": caps}
+                raise pctx2.value_error(
+                    f"expects a dict, list, or comma-separated string but got {repr(arg)}"
+                )
+
+            capabilities_pod: dict[str, list[str]] = common.structparse_pop_obj(
+                varg.for_key("capabilities_pod"),
+                construct=_construct_capabilities_pod_tft,
+                default={"add": []},
+            )
+
             connections = common.structparse_pop_objlist(
                 varg.for_key("connections"),
                 construct=lambda pctx2: ConfConnection.parse(
@@ -484,6 +550,7 @@ class ConfTest(StructParseBaseNamed):
             test_cases=tuple(test_cases),
             duration=duration,
             privileged_pod=privileged_pod,
+            capabilities_pod=capabilities_pod,
             connections=connections,
             logs=pathlib.Path(logs),
         )

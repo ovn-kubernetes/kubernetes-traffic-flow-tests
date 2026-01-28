@@ -10,7 +10,7 @@ tft:
     connections:
       - name: "Connection_1"
         # supported "type": iperf-tcp, iperf-udp, netperf-tcp-stream,
-        # netperf-tcp-rr, http, simple.
+        # netperf-tcp-rr, http, simple, ib-write-bw, ib-read-bw, ib-send-bw.
         type: "iperf-tcp"
         instances: 1
         server:

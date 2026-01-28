@@ -44,6 +44,7 @@ class TestTypeHandler(ABC):
         import testTypeHttp  # noqa: F401
         import testTypeIperf  # noqa: F401
         import testTypeNetPerf  # noqa: F401
+        import testTypeRdma  # noqa: F401
         import testTypeSimple  # noqa: F401
 
         with _handler_registry_lock:
