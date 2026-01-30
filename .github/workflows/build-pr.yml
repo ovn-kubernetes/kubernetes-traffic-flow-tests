@@ -16,9 +16,18 @@ jobs:
     - name: Set up Docker Buildx
       run: |
         docker buildx create --use
-    - name: Build Multiarch image
+    - name: Build Base Multiarch image
       run: |
         docker buildx build \
           --file ./Containerfile \
+          --target base \
+          --platform linux/arm64,linux/amd64 \
+          .
+
+    - name: Build RDMA Multiarch image
+      run: |
+        docker buildx build \
+          --file ./Containerfile \
+          --target rdma \
           --platform linux/arm64,linux/amd64 \
           .

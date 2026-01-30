@@ -1,4 +1,4 @@
-FROM quay.io/centos/centos:stream9
+FROM quay.io/centos/centos:stream9 AS base
 
 RUN dnf install -y 'dnf-command(config-manager)'
 
@@ -68,3 +68,19 @@ COPY ./images/container-entry-point.sh /usr/bin/container-entry-point.sh
 WORKDIR /
 ENTRYPOINT ["/usr/bin/container-entry-point.sh"]
 CMD ["/usr/bin/sleep", "infinity"]
+
+#
+# Stage: rdma
+# Image with RDMA tools (extends base)
+#
+FROM base AS rdma
+
+RUN dnf install -y \
+        rdma-core \
+        libibverbs \
+        libibverbs-utils \
+        librdmacm \
+        librdmacm-utils \
+        infiniband-diags \
+        perftest \
+        qperf

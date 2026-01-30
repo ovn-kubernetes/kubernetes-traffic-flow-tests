@@ -7,10 +7,14 @@ tft:
     duration: "30"
     # "logs": location of test results. Defaults to "<working-dir>/ft-logs/".
     # It is better to pass "--output-base" to ./tft.py.
+    # "privileged_pod": whether to run test pods as privileged. Defaults to false.
+    # "capabilities_pod": Linux capabilities for test pods. Format: {"add": ["CAP1", "CAP2"]}
+    # capabilities_pod:
+    #   add: ["NET_ADMIN", "SYS_TIME"]
     connections:
       - name: "Connection_1"
         # supported "type": iperf-tcp, iperf-udp, netperf-tcp-stream,
-        # netperf-tcp-rr, http, simple.
+        # netperf-tcp-rr, http, simple, ib-write-bw, ib-read-bw, ib-send-bw.
         type: "iperf-tcp"
         instances: 1
         server:

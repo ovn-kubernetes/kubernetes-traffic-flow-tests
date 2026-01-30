@@ -21,6 +21,7 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 
 ENV_TFT_TEST_IMAGE = "TFT_TEST_IMAGE"
+ENV_TFT_RDMA_TEST_IMAGE = "TFT_RDMA_TEST_IMAGE"
 ENV_TFT_IMAGE_PULL_POLICY = "TFT_IMAGE_PULL_POLICY"
 
 ENV_TFT_PRIVILEGED_POD = "TFT_PRIVILEGED_POD"
@@ -39,11 +40,57 @@ def get_environ(name: str) -> Optional[str]:
     return common.getenv_config(name)
 
 
+def _is_ib_test_type(test_type: "TestType") -> bool:
+    """Check if the test type requires RDMA/IB tools."""
+    return test_type in (TestType.IB_WRITE_BW, TestType.IB_READ_BW, TestType.IB_SEND_BW)
+
+
+def _derive_rdma_image(base_image: str) -> str:
+    """Derive RDMA image name from base image by adding -rdma suffix before the tag.
+
+    Example: ghcr.io/user/image:tag -> ghcr.io/user/image-rdma:tag
+    """
+    if ":" in base_image:
+        name, tag = base_image.rsplit(":", 1)
+        return f"{name}-rdma:{tag}"
+    return f"{base_image}-rdma"
+
+
 @functools.cache
 def get_tft_test_image() -> str:
+    """Get the base test image (without RDMA). Use get_tft_test_image_for_type() for auto-switching."""
     s = get_environ(ENV_TFT_TEST_IMAGE) or ENV_TFT_TEST_IMAGE_DEFAULT
     logger.info(f"env: {ENV_TFT_TEST_IMAGE}={shlex.quote(s)}")
     return s
+
+
+@functools.cache
+def get_tft_rdma_test_image() -> str:
+    """Get the RDMA test image.
+
+    If TFT_RDMA_TEST_IMAGE is set, use it (manual override).
+    Otherwise, derive from the base image by adding -rdma suffix.
+    """
+    s = get_environ(ENV_TFT_RDMA_TEST_IMAGE)
+    if not s:
+        s = _derive_rdma_image(get_tft_test_image())
+    logger.info(f"env: {ENV_TFT_RDMA_TEST_IMAGE}={shlex.quote(s)}")
+    return s
+
+
+def get_tft_test_image_for_type(test_type: "TestType") -> str:
+    """Get the appropriate test image based on test type.
+
+    - For ib-* test types: use RDMA image (from TFT_RDMA_TEST_IMAGE or auto-derived)
+    - For all other test types: use base image (from TFT_TEST_IMAGE or default)
+    """
+    if _is_ib_test_type(test_type):
+        image = get_tft_rdma_test_image()
+        logger.info(f"Using RDMA image for {test_type.name}: {shlex.quote(image)}")
+    else:
+        image = get_tft_test_image()
+        logger.debug(f"Using base image for {test_type.name}: {shlex.quote(image)}")
+    return image
 
 
 @functools.cache
@@ -237,6 +284,9 @@ class TestType(Enum):
     NETPERF_TCP_STREAM = 4
     NETPERF_TCP_RR = 5
     SIMPLE = 6
+    IB_WRITE_BW = 7
+    IB_READ_BW = 8
+    IB_SEND_BW = 9
 
 
 class PodType(Enum):

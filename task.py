@@ -11,6 +11,7 @@ import yaml
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Iterable
+from collections.abc import Mapping
 from threading import Thread
 from typing import Any
 from typing import Callable
@@ -363,11 +364,15 @@ class Task(ABC):
                 resource_name = self._resource_name
         return resource_name
 
+    def _get_template_args_test_image(self) -> str:
+        """Get the test image, auto-selecting RDMA image for ib-* test types."""
+        return tftbase.get_tft_test_image_for_type(self.ts.connection.test_type)
+
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
         return {
             "name_space": _j(self.get_namespace()),
-            "test_image": _j(tftbase.get_tft_test_image()),
+            "test_image": _j(self._get_template_args_test_image()),
             "image_pull_policy": _j(tftbase.get_tft_image_pull_policy()),
             "command": _j(["/usr/bin/container-entry-point.sh"]),
             "args": _j(self._get_template_args_args()),
@@ -375,6 +380,7 @@ class Task(ABC):
             "node_name": _j(self.node_name),
             "pod_name": _j(self.pod_name),
             "privileged_pod": _j(self._get_template_args_privileged_pod()),
+            "capabilities_pod": _j(self._get_template_args_capabilities_pod()),
             "port": self._get_template_args_port(),
             "secondary_network_nad": _j(
                 self.ts.connection.effective_secondary_network_nad
@@ -396,6 +402,12 @@ class Task(ABC):
             return v
         # Finally, take the test-wide setting from the configuration file.
         return self.ts.cfg_descr.get_tft().privileged_pod
+
+    def _get_template_args_capabilities_pod(self) -> Mapping[str, tuple[str, ...]]:
+        # Per-node setting has precedence over test-wide setting.
+        if self.node.capabilities_pod is not None:
+            return self.node.capabilities_pod
+        return self.ts.cfg_descr.get_tft().capabilities_pod
 
     def _get_template_args_port(self) -> str:
         return ""
@@ -962,7 +974,10 @@ class ServerTask(Task, ABC):
                 pull_policy = " --pull=always"
 
             # Use -p {port} to let podman auto-assign a free host port
-            cmd = f"podman run -it --replace --rm -p {self.port} --name={self.pod_name}{pull_policy} {tftbase.get_tft_test_image()} {th_cmd}"
+            test_image = tftbase.get_tft_test_image_for_type(
+                self.ts.connection.test_type
+            )
+            cmd = f"podman run -it --replace --rm -p {self.port} --name={self.pod_name}{pull_policy} {test_image} {th_cmd}"
             cancel_cmd = f"podman rm --force {self.pod_name}"
         else:
             self.setup_pod()

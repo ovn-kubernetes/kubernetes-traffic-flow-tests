@@ -64,8 +64,10 @@ tft:
           - name: (15)
         secondary_network_nad: "(16)"
 	resource_name: "(17)"
-kubeconfig: (18)
-kubeconfig_infra: (18)
+    privileged_pod: (18)
+    capabilities_pod: (19)
+kubeconfig: (20)
+kubeconfig_infra: (20)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -101,7 +103,7 @@ kubeconfig_infra: (18)
     | 29 | POD_TO_POD_MULTI_NETWORK_POLICY |
 4. "duration" - The duration that each individual test will run for.
 5. "name" - This is the connection name. Any string value to identify the connection.
-6. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr
+6. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
 7. "instances" - The number of instances that would be created. Default is "1"
 8. "name" - The node name of the server.
 9. "persistent" - Whether to have the server pod persist after the test. Takes in "true/false"
@@ -120,10 +122,12 @@ kubeconfig_infra: (18)
 16. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-29, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-29 it defaults to "tft-secondary" if not set.
 17. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
 tool will try to autopopulate resource_name based on the secondary+network_nad provided.
-18. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+18. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
+19. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
+20. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-19. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+21. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 ## DPU Mode
@@ -219,6 +223,11 @@ Or as a list:
 
 - `TFT_TEST_IMAGE` specify the test image. Defaults to `ghcr.io/ovn-kubernetes/kubernetes-traffic-flow-tests:latest`.
      This is mainly for development and manual testing, to inject another container image.
+     Used for all test types except ib-* tests.
+- `TFT_RDMA_TEST_IMAGE` specify the RDMA test image containing perftest tools (ib_write_bw, etc.).
+     If not set, automatically derived from `TFT_TEST_IMAGE` by adding `-rdma` suffix
+     (e.g., `image:tag` becomes `image-rdma:tag`).
+     Used automatically for ib-* test types.
 - `TFT_IMAGE_PULL_POLICY` the image pull policy. One of `IfNotPresent`, `Always`, `Never`.
      Defaults to `IfNotPresent`m unless `$TFT_TEST_IMAGE` is set (in which case it defaults
      to `Always`).
