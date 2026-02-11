@@ -12,7 +12,7 @@ spec:
   nodeSelector:
     kubernetes.io/hostname: {{ node_name }}
   containers:
-  - name: {{ pod_name }}
+  - name: tft
     image: {{ test_image }}
     command: {{ command }}
     args: {{ args }}

@@ -10,7 +10,7 @@ spec:
     kubernetes.io/hostname: {{ node_name }}
   hostNetwork: true
   containers:
-  - name: {{ pod_name }}
+  - name: tft
     image: {{ test_image }}
     command: {{ command }}
     args: {{ args }}
