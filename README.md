@@ -106,6 +106,14 @@ kubeconfig_infra: (20)
     | 27 | POD_TO_POD_2ND_INTERFACE_SAME_NODE |
     | 28 | POD_TO_POD_2ND_INTERFACE_DIFF_NODE |
     | 29 | POD_TO_POD_MULTI_NETWORK_POLICY |
+    | 30 | UDN_PRIMARY_POD_TO_POD_SAME_NODE |
+    | 31 | UDN_PRIMARY_POD_TO_POD_DIFF_NODE |
+    | 32 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 33 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 34 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 35 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 36 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
+    | 37 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "name" - This is the connection name. Any string value to identify the connection.
 6. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
@@ -134,6 +142,17 @@ tool will try to autopopulate resource_name based on the secondary+network_nad p
   are detected based on the files we find at /root/kubeconfig.*.
 21. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
+
+## UDN (User Defined Network) Tests
+
+See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
+
+Test cases 30-37 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically.
+
+- **30-35** (Primary UDN): Layer3 network replacing the pod's default network.
+- **36-37** (Secondary UDN): Layer2 network attached as a 2nd interface.
+
+CIDRs default to `15.1.0.0/16` / `15.2.0.0/16`, overridable via `TFT_UDN_PRIMARY_CIDR` and `TFT_UDN_SECONDARY_CIDR`. Reference manifests are in `manifests/udn-primary.yaml.j2` and `manifests/udn-secondary.yaml.j2`.
 
 ## DPU Mode
 

@@ -164,6 +164,23 @@ def get_tft_manifests_yamls() -> str:
 
 TFT_TESTS = "tft-tests"
 
+ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
+ENV_TFT_UDN_SECONDARY_CIDR = "TFT_UDN_SECONDARY_CIDR"
+
+
+@functools.cache
+def get_udn_primary_cidr() -> str:
+    s = get_environ(ENV_TFT_UDN_PRIMARY_CIDR) or "15.1.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_PRIMARY_CIDR}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_udn_secondary_cidr() -> str:
+    s = get_environ(ENV_TFT_UDN_SECONDARY_CIDR) or "15.2.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_SECONDARY_CIDR}={shlex.quote(s)}")
+    return s
+
 
 T = typing.TypeVar("T")
 
@@ -325,6 +342,26 @@ class TestCaseType(Enum):
     POD_TO_POD_2ND_INTERFACE_SAME_NODE = 27
     POD_TO_POD_2ND_INTERFACE_DIFF_NODE = 28
     POD_TO_POD_MULTI_NETWORK_POLICY = 29
+    UDN_PRIMARY_POD_TO_POD_SAME_NODE = 30
+    UDN_PRIMARY_POD_TO_POD_DIFF_NODE = 31
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 32
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 33
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 34
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 35
+    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 36
+    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 37
+
+    @property
+    def is_udn(self) -> bool:
+        return self.name.startswith("UDN_")
+
+    @property
+    def is_udn_primary(self) -> bool:
+        return self.name.startswith("UDN_PRIMARY_")
+
+    @property
+    def is_udn_secondary(self) -> bool:
+        return self.name.startswith("UDN_SECONDARY_")
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -986,6 +1023,62 @@ _test_case_typ_infos = {
         TestCaseTypInfo(
             test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY,
             connection_mode=ConnectionMode.MULTI_NETWORK,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
