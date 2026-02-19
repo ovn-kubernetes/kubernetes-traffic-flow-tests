@@ -1,0 +1,13 @@
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: tft-secondary
+  namespace: {{ name_space }}
+  labels:
+    tft-tests: "udn"
+spec:
+  topology: Layer2
+  layer2:
+    role: Secondary
+    subnets:
+    - {{ secondary_cidr }}

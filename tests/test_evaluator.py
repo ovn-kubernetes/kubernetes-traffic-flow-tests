@@ -57,6 +57,7 @@ TEST_CONFIG_FILES = [
     TestConfigFile(_test_file("input4.json"), is_valid=False),
     TestConfigFile(_test_file("input5.json")),
     TestConfigFile(_test_file("input6.json"), expected_outputfile="input6-RESULTS"),
+    TestConfigFile(_test_file("input7.json")),
 ]
 
 TEST_EVAL_CONFIG_FILES = [

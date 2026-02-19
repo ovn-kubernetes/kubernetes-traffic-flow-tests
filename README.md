@@ -112,6 +112,14 @@ kubeconfig_infra: (21)
     | 31 | POD_TO_POD_ANP_ALLOW |
     | 32 | POD_TO_POD_ANP_DENY |
     | 33 | POD_TO_POD_ANP_PASS_NP_DENY |
+    | 34 | UDN_PRIMARY_POD_TO_POD_SAME_NODE |
+    | 35 | UDN_PRIMARY_POD_TO_POD_DIFF_NODE |
+    | 36 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 37 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 38 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 39 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 40 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
+    | 41 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "name" - This is the connection name. Any string value to identify the connection.
 6. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
@@ -132,7 +140,7 @@ kubeconfig_infra: (21)
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
 16a. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-17. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-29, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-29 it defaults to "tft-secondary" if not set.
+17. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-30, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-30 it defaults to "tft-secondary" if not set.
 18. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
 tool will try to autopopulate resource_name based on the secondary+network_nad provided.
 19. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
@@ -142,6 +150,19 @@ tool will try to autopopulate resource_name based on the secondary+network_nad p
   are detected based on the files we find at /root/kubeconfig.*.
 22. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
+
+
+## UDN (User Defined Network) Tests
+
+See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
+
+Test cases 34-41 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically.
+
+- **34-39** (Primary UDN): Layer3 network replacing the pod's default network.
+- **40-41** (Secondary UDN): Layer2 network attached as a 2nd interface.
+
+CIDRs default to `15.1.0.0/16` / `15.2.0.0/16`, overridable via `TFT_UDN_PRIMARY_CIDR` and `TFT_UDN_SECONDARY_CIDR`. Reference manifests are in `manifests/udn-primary.yaml.j2` and `manifests/udn-secondary.yaml.j2`.
+
 ## DPU Mode
 
 When running with a DPU (Data Processing Unit) cluster, the `validate_offload` plugin needs
