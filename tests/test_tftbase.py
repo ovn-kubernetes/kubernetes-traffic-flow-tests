@@ -128,12 +128,23 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 29
+    assert list(TestCaseType)[-1].value == 37
     list_numeric = list(range(1, list(TestCaseType)[-1].value + 1))
     assert list_numeric == [typ.value for typ in tftbase.TestCaseType]
 
+    for typ in TestCaseType:
+        if typ.is_udn_primary or typ.is_udn_secondary:
+            assert typ.is_udn
+        if typ.is_udn:
+            assert typ.is_udn_primary or typ.is_udn_secondary
+        assert not (typ.is_udn_primary and typ.is_udn_secondary)
+
     def _is_identical(ti1: TestCaseTypInfo, ti2: TestCaseTypInfo) -> bool:
         assert ti1.test_case_type != ti2.test_case_type
+        is_udn1 = ti1.test_case_type.is_udn
+        is_udn2 = ti2.test_case_type.is_udn
+        if is_udn1 != is_udn2:
+            return False
         return (
             ti1.connection_mode == ti2.connection_mode
             and ti1.is_same_node == ti2.is_same_node

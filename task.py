@@ -326,7 +326,10 @@ class Task(ABC):
         return tftbase.str_sanitize(self.node_name)
 
     def get_namespace(self) -> str:
-        return self.ts.cfg_descr.get_tft().namespace
+        ns = self.ts.cfg_descr.get_tft().namespace
+        if self.ts.test_case_id.is_udn:
+            return f"{ns}-udn"
+        return ns
 
     def get_duration(self) -> int:
         return self.ts.cfg_descr.get_tft().duration
@@ -368,6 +371,13 @@ class Task(ABC):
         """Get the test image, auto-selecting RDMA image for ib-* test types."""
         return tftbase.get_tft_test_image_for_type(self.ts.connection.test_type)
 
+    def _get_effective_secondary_network_nad(self) -> str:
+        nad = self.ts.connection.effective_secondary_network_nad
+        if self.ts.test_case_id.is_udn:
+            nad_name = nad.split("/")[-1]
+            nad = f"{self.get_namespace()}/{nad_name}"
+        return nad
+
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
         return {
@@ -382,10 +392,11 @@ class Task(ABC):
             "privileged_pod": _j(self._get_template_args_privileged_pod()),
             "capabilities_pod": _j(self._get_template_args_capabilities_pod()),
             "port": self._get_template_args_port(),
-            "secondary_network_nad": _j(
-                self.ts.connection.effective_secondary_network_nad
+            "secondary_network_nad": _j(self._get_effective_secondary_network_nad()),
+            "use_secondary_network": (
+                bool(self.ts.connection.secondary_network_nad)
+                or self.ts.test_case_id.is_udn_secondary
             ),
-            "use_secondary_network": bool(self.ts.connection.secondary_network_nad),
             "has_resource_name": bool(resource_name),
             "resource_name": _j(resource_name),
             "default_network": _j(self.node.default_network),
@@ -524,23 +535,41 @@ class Task(ABC):
         pod_ip = None
         try:
             if y:
-                if self.ts.connection.secondary_network_nad:
+                if self.ts.test_case_id.is_udn_primary:
+                    pod_networks_str = y["metadata"]["annotations"].get(
+                        "k8s.ovn.org/pod-networks", ""
+                    )
+                    if pod_networks_str:
+                        pod_networks = json.loads(pod_networks_str)
+                        for net_info in pod_networks.values():
+                            if net_info.get("role") == "primary":
+                                ip_with_cidr = net_info["ip_address"]
+                                pod_ip = ip_with_cidr.split("/")[0]
+                                break
+                    if pod_ip is None:
+                        logger.warning(
+                            f"Could not find UDN primary IP for pod {self.pod_name} "
+                            f"in k8s.ovn.org/pod-networks annotation, "
+                            f"falling back to status.podIP"
+                        )
+                        pod_ip = y["status"]["podIP"]
+                elif self.ts.connection.secondary_network_nad:
                     network_status_str = y["metadata"]["annotations"][
                         "k8s.v1.cni.cncf.io/network-status"
                     ]
                     network_status = json.loads(network_status_str)
 
-                    nad = self.ts.connection.effective_secondary_network_nad
+                    nad = self._get_effective_secondary_network_nad()
                     for network in network_status:
                         if network["name"] == nad:
                             pod_ip = network["ips"][0]
                             break
                 else:
                     pod_ip = y["status"]["podIP"]
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error retrieving pod IP for {self.pod_name}: {e}")
         if not isinstance(pod_ip, str):
-            raise RuntimeError("Failure to get static.podIP for {self.pod_name}")
+            raise RuntimeError(f"Failure to get pod IP for {self.pod_name}")
         return pod_ip
 
     def get_secondary_ip(self) -> str:
@@ -550,7 +579,25 @@ class Task(ABC):
         )
 
         y = yaml.safe_load(r.out)
-        nad = self.ts.connection.effective_secondary_network_nad
+
+        if self.ts.test_case_id.is_udn:
+            if not isinstance(y, dict):
+                raise RuntimeError(
+                    f"k8s.ovn.org/pod-networks annotation for pod {self.pod_name} "
+                    f"is not a valid dict (got {type(y).__name__})"
+                )
+            for net_info in y.values():
+                if net_info.get("role") == "secondary":
+                    ip_address_with_cidr = typing.cast(str, net_info["ip_address"])
+                    ip_address = ip_address_with_cidr.split("/")[0]
+                    logger.info(f"Secondary IP: {ip_address}")
+                    return ip_address
+            raise RuntimeError(
+                f"Could not find UDN secondary IP for pod {self.pod_name} "
+                f"in k8s.ovn.org/pod-networks annotation"
+            )
+
+        nad = self._get_effective_secondary_network_nad()
         ip_address_with_cidr = typing.cast(str, y[nad]["ip_address"])
         ip_address = ip_address_with_cidr.split("/")[0] if ip_address_with_cidr else ""
         logger.info(f"Secondary IP: {ip_address}")
