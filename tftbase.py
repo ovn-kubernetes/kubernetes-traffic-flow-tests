@@ -164,6 +164,31 @@ def get_tft_manifests_yamls() -> str:
 
 TFT_TESTS = "tft-tests"
 
+ENV_TFT_SECONDARY_NAD_SUBNETS = "TFT_SECONDARY_NAD_SUBNETS"
+ENV_TFT_SECONDARY_NAD_MTU = "TFT_SECONDARY_NAD_MTU"
+ENV_TFT_SECONDARY_NAD_TOPOLOGY = "TFT_SECONDARY_NAD_TOPOLOGY"
+
+
+@functools.cache
+def get_secondary_nad_subnets() -> str:
+    s = get_environ(ENV_TFT_SECONDARY_NAD_SUBNETS) or "10.193.0.0/16/26"
+    logger.info(f"env: {ENV_TFT_SECONDARY_NAD_SUBNETS}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_secondary_nad_mtu() -> int:
+    s = get_environ(ENV_TFT_SECONDARY_NAD_MTU) or "1500"
+    logger.info(f"env: {ENV_TFT_SECONDARY_NAD_MTU}={shlex.quote(s)}")
+    return int(s)
+
+
+@functools.cache
+def get_secondary_nad_topology() -> str:
+    s = get_environ(ENV_TFT_SECONDARY_NAD_TOPOLOGY) or "layer3"
+    logger.info(f"env: {ENV_TFT_SECONDARY_NAD_TOPOLOGY}={shlex.quote(s)}")
+    return s
+
 
 T = typing.TypeVar("T")
 
