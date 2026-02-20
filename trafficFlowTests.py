@@ -136,6 +136,70 @@ class TrafficFlowTests:
         self._configure_namespace(cfg_descr, namespace=udn_ns)
         self._udn_setup_done = True
 
+    def _setup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
+        tft = cfg_descr.get_tft()
+        if not any(
+            tc.info.connection_mode
+            in (
+                tftbase.ConnectionMode.MULTI_HOME,
+                tftbase.ConnectionMode.MNP_2ND_ALLOW,
+                tftbase.ConnectionMode.MNP_2ND_DENY,
+                tftbase.ConnectionMode.MNP_PRIMARY_DENY,
+            )
+            for tc in tft.test_cases
+        ) and not any(c.secondary_network_nad is not None for c in tft.connections):
+            return
+
+        namespace = tft.namespace
+        client = cfg_descr.tc.client_tenant
+        nad = cfg_descr.get_tft().connections[0].effective_secondary_network_nad
+        nad_name = nad.split("/")[-1]
+
+        existing = client.oc_get(
+            f"network-attachment-definition/{nad_name}",
+            namespace=namespace,
+            may_fail=True,
+        )
+        if existing is not None:
+            return
+
+        logger.info(f"Creating secondary NAD {nad} in namespace {namespace}")
+
+        resource_names = {c.resource_name for c in tft.connections}
+        resource_name = (
+            resource_names.pop()
+            if len(resource_names) == 1 and None not in resource_names
+            else None
+        )
+
+        _j = json.dumps
+        in_template = tftbase.get_manifest("secondary-nad.yaml.j2")
+        out_yaml = tftbase.get_manifest_renderpath("secondary-nad.yaml")
+        kjinja2.render_file(
+            in_template,
+            {
+                "nad_name": _j(nad_name),
+                "name_space": _j(namespace),
+                "net_attach_def_name": _j(nad),
+                "subnets": _j(tftbase.get_secondary_nad_subnets()),
+                "mtu": tftbase.get_secondary_nad_mtu(),
+                "topology": _j(tftbase.get_secondary_nad_topology()),
+                "has_resource_name": resource_name is not None,
+                "resource_name": _j(resource_name or ""),
+            },
+            out_file=out_yaml,
+        )
+        client.oc(f"apply -f {out_yaml}", die_on_error=True)
+
+    def _cleanup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
+        namespace = cfg_descr.get_tft().namespace
+        client = cfg_descr.tc.client_tenant
+        client.oc(
+            "delete network-attachment-definition -l tft-tests=secondary-nad",
+            namespace=namespace,
+            may_fail=True,
+        )
+
     def _cleanup_multi_network_policies(self, cfg_descr: ConfigDescriptor) -> None:
         namespace = cfg_descr.get_tft().namespace
         client = cfg_descr.tc.client_tenant
@@ -192,6 +256,8 @@ class TrafficFlowTests:
             client.oc("delete pods -l tft-tests", namespace=namespace)
             client.oc("delete services -l tft-tests", namespace=namespace)
             self._cleanup_multi_network_policies(cfg_descr)
+            if force_cleanup:
+                self._cleanup_secondary_nad(cfg_descr)
 
             if self._udn_setup_done:
                 udn_ns = f"{namespace}-udn"
@@ -412,6 +478,7 @@ class TrafficFlowTests:
         ns_created = self._configure_namespace(cfg_descr)
         self._cleanup_stale_udn(cfg_descr)
         self._cleanup_previous_testspace(cfg_descr, force_cleanup=True)
+        self._setup_secondary_nad(cfg_descr)
 
         try:
             if test.pre_provision:

@@ -1,0 +1,24 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: {{ nad_name }}
+  namespace: {{ name_space }}
+  labels:
+    tft-tests: "secondary-nad"
+spec:
+  config: '{
+    "cniVersion": "0.4.0",
+    "name": {{ nad_name }},
+    "netAttachDefName": {{ net_attach_def_name }},
+    "Role": "secondary",
+    "topology": {{ topology }},
+    "subnets": {{ subnets }},
+    "mtu": {{ mtu }},{% if has_resource_name %}
+    "resourceName": {{ resource_name }},{% endif %}
+    "type": "ovn-k8s-cni-overlay",
+    "logFile": "/var/log/ovn-kubernetes/flowtest.log",
+    "logLevel": "5",
+    "logfile-maxsize": 100,
+    "logfile-maxbackups": 5,
+    "logfile-maxage": 5
+  }'
