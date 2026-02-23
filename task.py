@@ -1,4 +1,5 @@
 import enum
+import ipaddress
 import json
 import logging
 import os
@@ -785,6 +786,205 @@ class Task(ABC):
 
         return None
 
+    # EgressIP helper methods
+
+    def _get_dpu_node_for_host(self, host_node: str) -> str:
+        """Get the DPU node name corresponding to a host node."""
+        host_label = self.tc.dpu_node_host_label
+        if not host_label:
+            raise ValueError(
+                "dpu_node_host_label must be configured when running in DPU mode"
+            )
+
+        selector = f"{host_label}={host_node}"
+        result = self.tc.client_infra.oc(
+            f"get nodes -l {selector} -o jsonpath='{{.items[*].metadata.name}}'",
+            may_fail=True,
+        )
+
+        if not result.success or not result.out.strip().strip("'\""):
+            raise RuntimeError(f"No DPU node found with label {selector}")
+
+        dpu_nodes = result.out.strip().strip("'\"").split()
+        return dpu_nodes[0]
+
+    def _get_node_network_info(self, egress_node: str) -> tuple[str, str]:
+        """Get the node's primary IP and network CIDR.
+
+        Returns (node_ip, cidr) where cidr is like '192.168.1.0/24'.
+        """
+        is_dpu_mode = self.tc.mode == ClusterMode.DPU
+
+        # In DPU mode, query the DPU cluster for node info
+        if is_dpu_mode:
+            dpu_node = self._get_dpu_node_for_host(egress_node)
+            result = self.tc.client_infra.oc(
+                f"get node {dpu_node} -o jsonpath='{{.status.addresses[?(@.type==\"InternalIP\")].address}}'",
+                may_fail=True,
+            )
+        else:
+            result = self.tc.client_tenant.oc(
+                f"get node {egress_node} -o jsonpath='{{.status.addresses[?(@.type==\"InternalIP\")].address}}'",
+                may_fail=True,
+            )
+
+        if not result.success or not result.out.strip().strip("'\""):
+            raise RuntimeError(f"Failed to get InternalIP for node {egress_node}")
+
+        node_ip = result.out.strip().strip("'\"")
+
+        # Get the network CIDR by querying hostSubnet or using the node's annotations
+        # For OVN-Kubernetes, check annotations for network info
+        if is_dpu_mode:
+            result = self.tc.client_infra.oc(
+                f"get node {dpu_node} -o jsonpath='{{.metadata.annotations.k8s\\.ovn\\.org/node-primary-ifaddr}}'",
+                may_fail=True,
+            )
+        else:
+            result = self.tc.client_tenant.oc(
+                f"get node {egress_node} -o jsonpath='{{.metadata.annotations.k8s\\.ovn\\.org/node-primary-ifaddr}}'",
+                may_fail=True,
+            )
+
+        if result.success and result.out.strip().strip("'\""):
+            # Format: {"ipv4":"192.168.12.126/24","ipv6":"..."}
+            try:
+                ifaddr = json.loads(result.out.strip().strip("'\""))
+                if "ipv4" in ifaddr:
+                    # Extract CIDR from address like "192.168.12.126/24"
+                    addr_with_prefix = ifaddr["ipv4"]
+                    network = ipaddress.ip_network(addr_with_prefix, strict=False)
+                    return (node_ip, str(network))
+            except (json.JSONDecodeError, KeyError, ValueError) as e:
+                logger.warning(f"Failed to parse node-primary-ifaddr: {e}")
+
+        # Fallback: assume /24 network
+        try:
+            ip = ipaddress.ip_address(node_ip)
+            if isinstance(ip, ipaddress.IPv4Address):
+                network = ipaddress.ip_network(f"{node_ip}/24", strict=False)
+                return (node_ip, str(network))
+        except ValueError:
+            pass
+
+        raise RuntimeError(f"Could not determine network CIDR for node {egress_node}")
+
+    def _validate_egress_ip_in_subnet(self, egress_ip: str, egress_node: str) -> None:
+        """Validate that the egress IP is in the node's subnet."""
+        node_ip, network_cidr = self._get_node_network_info(egress_node)
+
+        try:
+            network = ipaddress.ip_network(network_cidr, strict=False)
+            egress_addr = ipaddress.ip_address(egress_ip)
+
+            if egress_addr not in network:
+                raise ValueError(
+                    f"EgressIP '{egress_ip}' is not in node's network '{network_cidr}'. "
+                    f"The egress IP must be in the same subnet as the egress node ({egress_node}, IP: {node_ip})."
+                )
+
+            logger.info(
+                f"Validated egress IP {egress_ip} is in node network {network_cidr}"
+            )
+        except ValueError as e:
+            raise ValueError(f"EgressIP validation failed: {e}")
+
+    def _validate_egress_ip_not_in_use(
+        self, egress_ip: str, egress_node: str, index: int
+    ) -> None:
+        """Validate that the egress IP is not responding to ping.
+
+        Skip validation if the EgressIP CRD already exists (e.g., from a
+        previous test run that hasn't been cleaned up yet).
+        """
+        # Check if EgressIP CRD already exists with this IP
+        egressip_name = f"egressip-{tftbase.str_sanitize(egress_node)}"
+        result = self.tc.client_tenant.oc(
+            f"get egressip {egressip_name}",
+            namespace=None,
+            may_fail=True,
+        )
+        if result.success:
+            logger.info(
+                f"EgressIP CRD {egressip_name} already exists, skipping ping check"
+            )
+            return
+
+        logger.info(f"Checking that egress IP {egress_ip} is not in use...")
+
+        # Ping with short timeout (1 second, 2 attempts)
+        result = host.local.run(
+            f"ping -c 2 -W 1 {egress_ip}",
+            check_success=lambda r: True,  # Don't fail on non-zero exit
+        )
+
+        if result.success and result.returncode == 0:
+            raise ValueError(
+                f"EgressIP '{egress_ip}' responded to ping! "
+                f"The egress IP must not be in use. Choose an unused IP in the node's subnet."
+            )
+
+        logger.info(
+            f"Verified egress IP {egress_ip} is not responding to ping (safe to use)"
+        )
+
+    def _label_egress_node(self, egress_node: str) -> None:
+        """Label the node as egress-assignable."""
+        is_dpu_mode = self.tc.mode == ClusterMode.DPU
+
+        # In DPU mode, label the DPU node, not the host node
+        if is_dpu_mode:
+            dpu_node = self._get_dpu_node_for_host(egress_node)
+            logger.info(
+                f"DPU mode: labeling DPU node {dpu_node} instead of host node {egress_node}"
+            )
+            self.tc.client_infra.oc(
+                f"label node {dpu_node} k8s.ovn.org/egress-assignable=true --overwrite",
+                namespace=None,
+                die_on_error=True,
+            )
+        else:
+            logger.info(f"Labeling node {egress_node} as egress-assignable")
+            self.tc.client_tenant.oc(
+                f"label node {egress_node} k8s.ovn.org/egress-assignable=true --overwrite",
+                namespace=None,
+                die_on_error=True,
+            )
+
+    def _create_egressip_crd(self, egress_ip: str, egress_node: str) -> None:
+        """Create the EgressIP CRD."""
+        namespace = self.get_namespace()
+        egressip_name = f"egressip-{tftbase.str_sanitize(egress_node)}"
+        egress_ips: tuple[str, ...] = (egress_ip,)
+
+        # Build the egress IPs YAML list
+        egress_ips_yaml = "\n".join(f"      - {ip}" for ip in egress_ips)
+
+        template_args = {
+            "egressip_name": f'"{egressip_name}"',
+            "label_tft_tests": f'"{self.index}"',
+            "egress_ips_yaml": egress_ips_yaml,
+            "name_space": f'"{namespace}"',
+        }
+
+        # Render the EgressIP CRD YAML
+        egressip_yaml_path = tftbase.get_manifest_renderpath(f"{egressip_name}.yaml")
+        egressip_template = tftbase.get_manifest("egressip.yaml.j2")
+        kjinja2.render_file(
+            egressip_template,
+            template_args,
+            out_file=egressip_yaml_path,
+        )
+        logger.info(f"EgressIP CRD YAML rendered to {egressip_yaml_path}")
+
+        # Apply the EgressIP CRD (cluster-scoped, so no namespace)
+        result = self.tc.client_tenant.oc(
+            f"apply -f {egressip_yaml_path}",
+            namespace=None,
+            die_on_error=True,
+        )
+        logger.info(f"EgressIP CRD created: {result.out}")
+
 
 class ServerTask(Task, ABC):
     def __init__(self, ts: TestSettings):
@@ -1069,6 +1269,21 @@ class ClientTask(Task, ABC):
         super().initialize()
         self.render_pod_file("Client Pod Yaml")
 
+        # Set up EgressIP if configured
+        if self.ts.has_egress_ip:
+            egress_ip = self.ts.egress_ip
+            egress_node = self.ts.egress_node
+            assert egress_ip is not None
+            logger.info(f"Setting up EgressIP: ip={egress_ip}, node={egress_node}")
+            # Validate egress IP is in node's subnet
+            self._validate_egress_ip_in_subnet(egress_ip, egress_node)
+            # Validate egress IP is not in use (doesn't respond to ping)
+            self._validate_egress_ip_not_in_use(egress_ip, egress_node, self.index)
+            # Label the egress node
+            self._label_egress_node(egress_node)
+            # Create the EgressIP CRD
+            self._create_egressip_crd(egress_ip, egress_node)
+
     def get_target_ip(self) -> str:
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
             logger.debug(
@@ -1081,6 +1296,12 @@ class ClientTask(Task, ABC):
             )
             return self.server.nodeport_ip_addr
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
+            external_server_ip = self.ts.external_server_ip
+            if external_server_ip is not None:
+                logger.debug(
+                    f"get_target_ip() External connection to configured server {external_server_ip}"
+                )
+                return external_server_ip
             # For port forwarding, connect to the host's IP, not the container's internal IP
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")

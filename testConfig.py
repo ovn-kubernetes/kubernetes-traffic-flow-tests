@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import datetime
+import ipaddress
 import json
 import logging
 import os
@@ -282,6 +283,51 @@ class ConfNodeClient(ConfNodeBase):
 
 @strict_dataclass
 @dataclass(frozen=True, kw_only=True)
+class ConfEgressIP(StructParseBase):
+    ip: str
+    node: Optional[str]
+
+    def serialize(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"ip": self.ip}
+        common.dict_add_optional(d, "node", self.node)
+        return d
+
+    @staticmethod
+    def parse(pctx: StructParseParseContext) -> "ConfEgressIP":
+        with pctx.with_strdict() as varg:
+
+            def _validate_ip(pctx2: StructParseParseContext) -> str:
+                ip_str = pctx2.arg
+                if not isinstance(ip_str, str):
+                    raise pctx2.value_error("ip must be a string")
+                try:
+                    ipaddress.ip_address(ip_str)
+                except ValueError as e:
+                    raise pctx2.value_error(
+                        f"ip '{ip_str}' is not a valid IP address: {e}"
+                    )
+                return ip_str
+
+            ip = common.structparse_pop_obj(
+                varg.for_key("ip"),
+                construct=_validate_ip,
+            )
+
+            node = common.structparse_pop_str(
+                varg.for_key("node"),
+                default=None,
+            )
+
+        return ConfEgressIP(
+            yamlidx=pctx.yamlidx,
+            yamlpath=pctx.yamlpath,
+            ip=ip,
+            node=node,
+        )
+
+
+@strict_dataclass
+@dataclass(frozen=True, kw_only=True)
 class ConfConnection(StructParseBaseNamed):
     test_type: TestType
     test_type_handler: TestTypeHandler
@@ -291,6 +337,12 @@ class ConfConnection(StructParseBaseNamed):
     plugins: tuple[ConfPlugin, ...]
     secondary_network_nad: Optional[str]
     resource_name: Optional[str]
+
+    # EgressIP configuration (nested object)
+    egress_ip: Optional[ConfEgressIP]
+
+    # External server IP for POD_TO_EXTERNAL_EGRESS test cases
+    external_server_ip: Optional[str]
 
     # This parameter is not expressed in YAML. It gets passed by the parent to
     # ConfConnection.parse()
@@ -308,12 +360,26 @@ class ConfConnection(StructParseBaseNamed):
     def tft(self) -> "ConfTest":
         return self._owner_reference.get(ConfTest)
 
+    @property
+    def has_egress_ip(self) -> bool:
+        """Returns True if egress_ip is configured."""
+        return self.egress_ip is not None
+
+    def get_effective_egress_node(self, client_node_name: str) -> str:
+        """Returns egress_node if configured, otherwise defaults to client node."""
+        if self.egress_ip is not None and self.egress_ip.node is not None:
+            return self.egress_ip.node
+        return client_node_name
+
     def serialize(self) -> dict[str, Any]:
         extra: dict[str, Any] = {}
         common.dict_add_optional(
             extra, "secondary_network_nad", self.secondary_network_nad
         )
         common.dict_add_optional(extra, "resource_name", self.resource_name)
+        if self.egress_ip is not None:
+            extra["egress_ip"] = self.egress_ip.serialize()
+        common.dict_add_optional(extra, "external_server_ip", self.external_server_ip)
         return {
             **super().serialize(),
             "type": self.test_type.name,
@@ -391,6 +457,33 @@ class ConfConnection(StructParseBaseNamed):
                 default=None,
             )
 
+            # EgressIP configuration (nested object)
+            egress_ip = common.structparse_pop_obj(
+                varg.for_key("egress_ip"),
+                construct=ConfEgressIP.parse,
+                default=None,
+            )
+
+            def _validate_external_server_ip(
+                pctx2: StructParseParseContext,
+            ) -> str:
+                ip_str = pctx2.arg
+                if not isinstance(ip_str, str):
+                    raise pctx2.value_error("external_server_ip must be a string")
+                try:
+                    ipaddress.ip_address(ip_str)
+                except ValueError as e:
+                    raise pctx2.value_error(
+                        f"external_server_ip '{ip_str}' is not a valid IP address: {e}"
+                    )
+                return ip_str
+
+            external_server_ip = common.structparse_pop_obj(
+                varg.for_key("external_server_ip"),
+                construct=_validate_external_server_ip,
+                default=None,
+            )
+
         if len(server) > 1:
             raise pctx.value_error(
                 "currently only one server entry is supported", key="server"
@@ -419,6 +512,8 @@ class ConfConnection(StructParseBaseNamed):
             plugins=plugins,
             secondary_network_nad=secondary_network_nad,
             resource_name=resource_name,
+            egress_ip=egress_ip,
+            external_server_ip=external_server_ip,
             namespace=namespace,
         )
 

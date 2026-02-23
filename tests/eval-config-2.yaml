@@ -130,6 +130,11 @@ IPERF_TCP:
     threshold: 10
   id: 26
 - Normal:
+    threshold: 20
+  Reverse:
+    threshold: 11
+  id: 30
+- Normal:
     threshold: 24
   Reverse:
     threshold: 34

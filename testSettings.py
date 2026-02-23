@@ -95,6 +95,26 @@ class TestSettings:
         return self.cfg_descr.get_connection()
 
     @property
+    def has_egress_ip(self) -> bool:
+        """Returns True if egress_ip is configured for this connection."""
+        return self.connection.has_egress_ip
+
+    @property
+    def egress_ip(self) -> typing.Optional[str]:
+        """Returns the configured egress IP, or None if not configured."""
+        return self.connection.egress_ip.ip if self.connection.egress_ip else None
+
+    @property
+    def egress_node(self) -> str:
+        """Returns the effective egress node (configured or default to client node)."""
+        return self.connection.get_effective_egress_node(self.node_client.name)
+
+    @property
+    def external_server_ip(self) -> typing.Optional[str]:
+        """Returns the configured external server IP, or None if not configured."""
+        return self.connection.external_server_ip
+
+    @property
     def test_case_id(self) -> tftbase.TestCaseType:
         return self.cfg_descr.get_test_case()
 

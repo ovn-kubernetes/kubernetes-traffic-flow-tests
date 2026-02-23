@@ -166,6 +166,11 @@ IPERF_TCP:
     Reverse:
       threshold_rx: 13.17192
       threshold_tx: 13.14536
+  - id: POD_TO_EXTERNAL_EGRESS
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
   - id: POD_TO_POD_2ND_INTERFACE_SAME_NODE
     Normal:
       threshold: 18
@@ -308,6 +313,11 @@ IPERF_UDP:
     Reverse:
       threshold: 5
   - id: HOST_TO_EXTERNAL
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_EXTERNAL_EGRESS
     Normal:
       threshold: 5
     Reverse:
