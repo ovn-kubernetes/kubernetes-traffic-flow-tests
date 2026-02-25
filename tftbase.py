@@ -324,7 +324,8 @@ class TestCaseType(Enum):
     HOST_TO_EXTERNAL = 26
     POD_TO_POD_2ND_INTERFACE_SAME_NODE = 27
     POD_TO_POD_2ND_INTERFACE_DIFF_NODE = 28
-    POD_TO_POD_MULTI_NETWORK_POLICY = 29
+    POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW = 29
+    POD_TO_POD_MULTI_NETWORK_POLICY_DENY = 30
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -336,8 +337,9 @@ class ConnectionMode(Enum):
     CLUSTER_IP = 2
     NODE_PORT_IP = 3
     EXTERNAL_IP = 4
-    MULTI_NETWORK = 5
-    MULTI_HOME = 6
+    MULTI_HOME = 5
+    MULTI_NETWORK_ALLOW = 6
+    MULTI_NETWORK_DENY = 7
 
 
 @strict_dataclass
@@ -984,8 +986,15 @@ _test_case_typ_infos = {
             is_client_hostbacked=False,
         ),
         TestCaseTypInfo(
-            test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY,
-            connection_mode=ConnectionMode.MULTI_NETWORK,
+            test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW,
+            connection_mode=ConnectionMode.MULTI_NETWORK_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY_DENY,
+            connection_mode=ConnectionMode.MULTI_NETWORK_DENY,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,

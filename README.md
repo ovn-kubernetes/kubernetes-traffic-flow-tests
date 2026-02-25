@@ -105,7 +105,8 @@ kubeconfig_infra: (20)
     | 26 | HOST_TO_EXTERNAL |
     | 27 | POD_TO_POD_2ND_INTERFACE_SAME_NODE |
     | 28 | POD_TO_POD_2ND_INTERFACE_DIFF_NODE |
-    | 29 | POD_TO_POD_MULTI_NETWORK_POLICY |
+    | 29 | POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW |
+    | 30 | POD_TO_POD_MULTI_NETWORK_POLICY_DENY |
 4. "duration" - The duration that each individual test will run for.
 5. "name" - This is the connection name. Any string value to identify the connection.
 6. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
@@ -124,7 +125,7 @@ kubeconfig_infra: (20)
     | measure_cpu      | Measure CPU Usage    |
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
-16. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-29, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-29 it defaults to "tft-secondary" if not set.
+16. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-30, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-30 it defaults to "tft-secondary" if not set.
 17. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
 tool will try to autopopulate resource_name based on the secondary+network_nad provided.
 18. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
