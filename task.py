@@ -714,6 +714,51 @@ class Task(ABC):
         )
         return r.out if r.success else None
 
+    def create_load_balancer_service(self) -> None:
+        in_file_template = tftbase.get_manifest("svc-loadbalancer.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"svc-loadbalancer-{self._svc_backend_label}.yaml"
+        )
+
+        template_args = {
+            **self.get_template_args(),
+            "svc_label": self._svc_backend_label,
+            "network_type": self._network_type,
+        }
+        self.render_file(
+            "LoadBalancer Service",
+            in_file_template,
+            out_file_yaml,
+            template_args,
+        )
+        self.run_oc(
+            f"apply -f {out_file_yaml}",
+            check_success=lambda r: r.success or "already exists" in r.err,
+            die_on_error=True,
+        )
+
+    def get_load_balancer_ip(self) -> Optional[str]:
+        svc_name = f"tft-loadbalancer-service-{self._svc_backend_label}"
+        r = self.run_oc(
+            f"get service {svc_name} -o=jsonpath='{{.status.loadBalancer.ingress[0].ip}}'",
+            may_fail=True,
+        )
+        return r.out if r.success and r.out else None
+
+    def wait_load_balancer_ip(self, timeout: int = 120) -> str:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            ip = self.get_load_balancer_ip()
+            if ip:
+                logger.debug(f"LoadBalancer IP assigned: {ip}")
+                return ip
+            logger.debug("Waiting for LoadBalancer IP to be assigned...")
+            time.sleep(5)
+        raise RuntimeError(
+            f"LoadBalancer IP not assigned within {timeout}s "
+            f"for service tft-loadbalancer-service-{self._svc_backend_label}"
+        )
+
     def _create_multi_network_policy(
         self, action: str, direction: str, port: int
     ) -> str:
@@ -1040,6 +1085,8 @@ class ServerTask(Task, ABC):
                 self.create_cluster_ip_service()
             if self.get_nodeport_ip() is None:
                 self.create_node_port_service()
+            if self.get_load_balancer_ip() is None:
+                self.create_load_balancer_service()
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:
@@ -1347,6 +1394,10 @@ class ClientTask(Task, ABC):
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")
             return host_ip
+        elif self.connection_mode == ConnectionMode.LOAD_BALANCER:
+            ip = self.server.wait_load_balancer_ip()
+            logger.debug(f"get_target_ip() LoadBalancer connection to {ip}")
+            return ip
         elif self.connection_mode in (
             ConnectionMode.MULTI_HOME,
             ConnectionMode.MULTI_NETWORK_ALLOW,
