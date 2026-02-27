@@ -225,6 +225,46 @@ IPERF_TCP:
       threshold: 18
     Reverse:
       threshold: 10
+  - id: POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
 IPERF_UDP:
   - id: POD_TO_POD_SAME_NODE
     Normal:
@@ -427,6 +467,46 @@ IPERF_UDP:
     Reverse:
       threshold: 5
   - id: UDN_SECONDARY_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE
     Normal:
       threshold: 5
     Reverse:

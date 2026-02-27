@@ -121,6 +121,14 @@ kubeconfig_infra: (22)
     | 39 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
     | 40 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
     | 41 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
+    | 42 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 43 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 44 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 45 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 46 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 47 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 48 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 49 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tft-loadbalancer-service-{{ svc_label }}
+  namespace: {{ name_space }}
+  labels:
+    tft-tests: {{ label_tft_tests }}
+spec:
+  type: LoadBalancer
+  ports:
+    - name: tft-loadbalancer-service-tcp-{{ port }}
+      protocol: TCP
+      port: {{ port }}
+    - name: tft-loadbalancer-service-udp-{{ port }}
+      protocol: UDP
+      port: {{ port }}
+  selector:
+    tft-port: "{{ port }}"
+    tft-network: {{ network_type }}
