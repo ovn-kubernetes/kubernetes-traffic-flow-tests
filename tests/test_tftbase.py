@@ -141,9 +141,19 @@ def test_test_case_typ_infos() -> None:
             and ti1.is_client_hostbacked == ti2.is_client_hostbacked
         )
 
+    # POD_TO_EXTERNAL_EGRESS intentionally shares the same topology as
+    # POD_TO_EXTERNAL (same connection_mode, node placement, hostbacking).
+    # The difference is that it applies an EgressIP, which is not captured
+    # in the TestCaseTypInfo fields checked here.
+    _allowed_identical_pairs = {
+        frozenset({TestCaseType.POD_TO_EXTERNAL, TestCaseType.POD_TO_EXTERNAL_EGRESS}),
+    }
+
     for idx1, ti1 in enumerate(test_case_typ_infos):
         for idx2, ti2 in enumerate(test_case_typ_infos[idx1 + 1 :]):
-            assert not _is_identical(ti1, ti2)
+            if _is_identical(ti1, ti2):
+                pair = frozenset({ti1.test_case_type, ti2.test_case_type})
+                assert pair in _allowed_identical_pairs
     for idx1, ti1 in enumerate(test_case_typ_infos):
         assert (
             ti1.test_case_type == (list(TestCaseType))[idx1]

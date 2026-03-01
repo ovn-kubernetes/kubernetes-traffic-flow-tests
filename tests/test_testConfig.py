@@ -267,3 +267,150 @@ tft:
     assert tc.config.tft[0].get_output_file() == pathlib.Path("/tmp/result2-000.json")
 
     _check_testConfig(tc)
+
+
+def test_egress_ip_config() -> None:
+    # Test basic egress_ip parsing with ip only
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-test
+      type: iperf-tcp
+      egress_ip:
+        ip: "10.0.0.100"
+      external_server_ip: "192.168.1.1"
+      server:
+        - name: server1
+      client:
+        - name: client1
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+    conn = tc.config.tft[0].connections[0]
+    assert conn.has_egress_ip is True
+    assert conn.egress_ip is not None
+    assert conn.egress_ip.ip == "10.0.0.100"
+    assert conn.egress_ip.node is None
+    assert conn.external_server_ip == "192.168.1.1"
+
+    # get_effective_egress_node defaults to client node when node is None
+    assert conn.get_effective_egress_node("client1") == "client1"
+
+    _check_testConfig(tc)
+
+
+def test_egress_ip_config_with_node() -> None:
+    # Test egress_ip parsing with explicit node
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-test
+      type: iperf-tcp
+      egress_ip:
+        ip: "10.0.0.100"
+        node: "egress-node-1"
+      server:
+        - name: server1
+      client:
+        - name: client1
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+    conn = tc.config.tft[0].connections[0]
+    assert conn.egress_ip is not None
+    assert conn.egress_ip.ip == "10.0.0.100"
+    assert conn.egress_ip.node == "egress-node-1"
+
+    # get_effective_egress_node uses configured node
+    assert conn.get_effective_egress_node("client1") == "egress-node-1"
+
+    _check_testConfig(tc)
+
+
+def test_egress_ip_not_configured() -> None:
+    # Test that egress_ip defaults to None when not specified
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: basic-test
+      server:
+        - name: server1
+      client:
+        - name: client1
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+    conn = tc.config.tft[0].connections[0]
+    assert conn.has_egress_ip is False
+    assert conn.egress_ip is None
+    assert conn.external_server_ip is None
+
+    _check_testConfig(tc)
+
+
+def test_egress_ip_invalid_ip() -> None:
+    # Test that invalid IP address is rejected
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-test
+      type: iperf-tcp
+      egress_ip:
+        ip: "not-an-ip"
+      server:
+        - name: server1
+      client:
+        - name: client1
+""")
+    with pytest.raises(ValueError, match="not a valid IP address"):
+        testConfig.TestConfig(
+            full_config=full_config,
+            kubeconfigs=testConfigKubeconfigsArgs1,
+        )
+
+
+def test_egress_ip_missing_ip() -> None:
+    # Test that egress_ip without ip field is rejected
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-test
+      type: iperf-tcp
+      egress_ip:
+        node: "some-node"
+      server:
+        - name: server1
+      client:
+        - name: client1
+""")
+    with pytest.raises(ValueError):
+        testConfig.TestConfig(
+            full_config=full_config,
+            kubeconfigs=testConfigKubeconfigsArgs1,
+        )
+
+
+def test_external_server_ip_invalid() -> None:
+    # Test that invalid external_server_ip is rejected
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-test
+      type: iperf-tcp
+      external_server_ip: "not-an-ip"
+      server:
+        - name: server1
+      client:
+        - name: client1
+""")
+    with pytest.raises(ValueError, match="not a valid IP address"):
+        testConfig.TestConfig(
+            full_config=full_config,
+            kubeconfigs=testConfigKubeconfigsArgs1,
+        )

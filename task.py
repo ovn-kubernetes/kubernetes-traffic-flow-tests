@@ -788,116 +788,97 @@ class Task(ABC):
 
     # EgressIP helper methods
 
-    def _get_dpu_node_for_host(self, host_node: str) -> str:
-        """Get the DPU node name corresponding to a host node."""
-        host_label = self.tc.dpu_node_host_label
-        if not host_label:
-            raise ValueError(
-                "dpu_node_host_label must be configured when running in DPU mode"
-            )
-
-        selector = f"{host_label}={host_node}"
-        result = self.tc.client_infra.oc(
-            f"get nodes -l {selector} -o jsonpath='{{.items[*].metadata.name}}'",
+    def _validate_egress_node_exists(self, egress_node: str) -> None:
+        """Validate that the egress node exists in the cluster."""
+        result = self.tc.client_tenant.oc(
+            f"get node {egress_node}",
             may_fail=True,
         )
-
-        if not result.success or not result.out.strip().strip("'\""):
-            raise RuntimeError(f"No DPU node found with label {selector}")
-
-        dpu_nodes = result.out.strip().strip("'\"").split()
-        return dpu_nodes[0]
+        if not result.success:
+            raise RuntimeError(
+                f"Egress node '{egress_node}' does not exist in the cluster"
+            )
 
     def _get_node_network_info(self, egress_node: str) -> tuple[str, str]:
         """Get the node's primary IP and network CIDR.
 
         Returns (node_ip, cidr) where cidr is like '192.168.1.0/24'.
-        """
-        is_dpu_mode = self.tc.mode == ClusterMode.DPU
 
-        # In DPU mode, query the DPU cluster for node info
-        if is_dpu_mode:
-            dpu_node = self._get_dpu_node_for_host(egress_node)
-            result = self.tc.client_infra.oc(
-                f"get node {dpu_node} -o jsonpath='{{.status.addresses[?(@.type==\"InternalIP\")].address}}'",
-                may_fail=True,
-            )
-        else:
-            result = self.tc.client_tenant.oc(
-                f"get node {egress_node} -o jsonpath='{{.status.addresses[?(@.type==\"InternalIP\")].address}}'",
-                may_fail=True,
-            )
+        EgressIP operates on the HOST node, which is the outward representation
+        of the node in the cluster. Even in DPU mode, we query the tenant
+        cluster for the host node info, not the DPU/infra cluster.
+        """
+        result = self.tc.client_tenant.oc(
+            f"get node {egress_node} -o jsonpath='{{.status.addresses[?(@.type==\"InternalIP\")].address}}'",
+            may_fail=True,
+        )
 
         if not result.success or not result.out.strip().strip("'\""):
             raise RuntimeError(f"Failed to get InternalIP for node {egress_node}")
 
         node_ip = result.out.strip().strip("'\"")
 
-        # Get the network CIDR by querying hostSubnet or using the node's annotations
-        # For OVN-Kubernetes, check annotations for network info
-        if is_dpu_mode:
-            result = self.tc.client_infra.oc(
-                f"get node {dpu_node} -o jsonpath='{{.metadata.annotations.k8s\\.ovn\\.org/node-primary-ifaddr}}'",
-                may_fail=True,
-            )
-        else:
-            result = self.tc.client_tenant.oc(
-                f"get node {egress_node} -o jsonpath='{{.metadata.annotations.k8s\\.ovn\\.org/node-primary-ifaddr}}'",
-                may_fail=True,
+        # Get the network CIDR from the node's OVN-Kubernetes annotations
+        result = self.tc.client_tenant.oc(
+            f"get node {egress_node} -o jsonpath='{{.metadata.annotations.k8s\\.ovn\\.org/node-primary-ifaddr}}'",
+            may_fail=True,
+        )
+
+        # OVN-Kubernetes clusters always have this annotation. If it's
+        # missing, something is fundamentally wrong and we should fail.
+        if not result.success or not result.out.strip().strip("'\""):
+            raise RuntimeError(
+                f"Node {egress_node} is missing the k8s.ovn.org/node-primary-ifaddr annotation"
             )
 
-        if result.success and result.out.strip().strip("'\""):
-            # Format: {"ipv4":"192.168.12.126/24","ipv6":"..."}
-            try:
-                ifaddr = json.loads(result.out.strip().strip("'\""))
-                if "ipv4" in ifaddr:
-                    # Extract CIDR from address like "192.168.12.126/24"
-                    addr_with_prefix = ifaddr["ipv4"]
-                    network = ipaddress.ip_network(addr_with_prefix, strict=False)
-                    return (node_ip, str(network))
-            except (json.JSONDecodeError, KeyError, ValueError) as e:
-                logger.warning(f"Failed to parse node-primary-ifaddr: {e}")
-
-        # Fallback: assume /24 network
+        # Format: {"ipv4":"192.168.12.126/24","ipv6":"..."}
         try:
-            ip = ipaddress.ip_address(node_ip)
-            if isinstance(ip, ipaddress.IPv4Address):
-                network = ipaddress.ip_network(f"{node_ip}/24", strict=False)
-                return (node_ip, str(network))
-        except ValueError:
-            pass
-
-        raise RuntimeError(f"Could not determine network CIDR for node {egress_node}")
+            ifaddr = json.loads(result.out.strip().strip("'\""))
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to parse node-primary-ifaddr annotation on node {egress_node}",
+                e.doc,
+                e.pos,
+            ) from e
+        if "ipv4" not in ifaddr:
+            raise RuntimeError(
+                f"Node {egress_node} has no ipv4 entry in node-primary-ifaddr annotation"
+            )
+        addr_with_prefix = ifaddr["ipv4"]
+        try:
+            network = ipaddress.ip_network(addr_with_prefix, strict=False)
+        except ValueError as e:
+            raise ValueError(
+                f"Failed to parse CIDR '{addr_with_prefix}' from node {egress_node}: {e}"
+            ) from e
+        return (node_ip, str(network))
 
     def _validate_egress_ip_in_subnet(self, egress_ip: str, egress_node: str) -> None:
         """Validate that the egress IP is in the node's subnet."""
         node_ip, network_cidr = self._get_node_network_info(egress_node)
 
-        try:
-            network = ipaddress.ip_network(network_cidr, strict=False)
-            egress_addr = ipaddress.ip_address(egress_ip)
+        network = ipaddress.ip_network(network_cidr, strict=False)
+        egress_addr = ipaddress.ip_address(egress_ip)
 
-            if egress_addr not in network:
-                raise ValueError(
-                    f"EgressIP '{egress_ip}' is not in node's network '{network_cidr}'. "
-                    f"The egress IP must be in the same subnet as the egress node ({egress_node}, IP: {node_ip})."
-                )
-
-            logger.info(
-                f"Validated egress IP {egress_ip} is in node network {network_cidr}"
+        if egress_addr not in network:
+            raise ValueError(
+                f"EgressIP '{egress_ip}' is not in node's network '{network_cidr}'. "
+                f"The egress IP must be in the same subnet as the egress node ({egress_node}, IP: {node_ip})."
             )
-        except ValueError as e:
-            raise ValueError(f"EgressIP validation failed: {e}")
+
+        logger.info(
+            f"Validated egress IP {egress_ip} is in node network {network_cidr}"
+        )
 
     def _validate_egress_ip_not_in_use(
         self, egress_ip: str, egress_node: str, index: int
     ) -> None:
         """Validate that the egress IP is not responding to ping.
 
-        Skip validation if the EgressIP CRD already exists (e.g., from a
+        Skip validation if the EgressIP CR already exists (e.g., from a
         previous test run that hasn't been cleaned up yet).
         """
-        # Check if EgressIP CRD already exists with this IP
+        # Check if EgressIP CR already exists with this IP
         egressip_name = f"egressip-{tftbase.str_sanitize(egress_node)}"
         result = self.tc.client_tenant.oc(
             f"get egressip {egressip_name}",
@@ -906,7 +887,7 @@ class Task(ABC):
         )
         if result.success:
             logger.info(
-                f"EgressIP CRD {egressip_name} already exists, skipping ping check"
+                f"EgressIP CR {egressip_name} already exists, skipping ping check"
             )
             return
 
@@ -929,30 +910,21 @@ class Task(ABC):
         )
 
     def _label_egress_node(self, egress_node: str) -> None:
-        """Label the node as egress-assignable."""
-        is_dpu_mode = self.tc.mode == ClusterMode.DPU
+        """Label the node as egress-assignable.
 
-        # In DPU mode, label the DPU node, not the host node
-        if is_dpu_mode:
-            dpu_node = self._get_dpu_node_for_host(egress_node)
-            logger.info(
-                f"DPU mode: labeling DPU node {dpu_node} instead of host node {egress_node}"
-            )
-            self.tc.client_infra.oc(
-                f"label node {dpu_node} k8s.ovn.org/egress-assignable=true --overwrite",
-                namespace=None,
-                die_on_error=True,
-            )
-        else:
-            logger.info(f"Labeling node {egress_node} as egress-assignable")
-            self.tc.client_tenant.oc(
-                f"label node {egress_node} k8s.ovn.org/egress-assignable=true --overwrite",
-                namespace=None,
-                die_on_error=True,
-            )
+        EgressIP operates on the HOST node, which is the outward representation
+        of the node in the cluster. Even in DPU mode, the label goes on the
+        host node in the tenant cluster, not on the DPU node.
+        """
+        logger.info(f"Labeling node {egress_node} as egress-assignable")
+        self.tc.client_tenant.oc(
+            f"label node {egress_node} k8s.ovn.org/egress-assignable=true --overwrite",
+            namespace=None,
+            die_on_error=True,
+        )
 
-    def _create_egressip_crd(self, egress_ip: str, egress_node: str) -> None:
-        """Create the EgressIP CRD."""
+    def _create_egressip_cr(self, egress_ip: str, egress_node: str) -> None:
+        """Create the EgressIP CR."""
         namespace = self.get_namespace()
         egressip_name = f"egressip-{tftbase.str_sanitize(egress_node)}"
         egress_ips: tuple[str, ...] = (egress_ip,)
@@ -967,7 +939,7 @@ class Task(ABC):
             "name_space": f'"{namespace}"',
         }
 
-        # Render the EgressIP CRD YAML
+        # Render the EgressIP CR YAML
         egressip_yaml_path = tftbase.get_manifest_renderpath(f"{egressip_name}.yaml")
         egressip_template = tftbase.get_manifest("egressip.yaml.j2")
         kjinja2.render_file(
@@ -975,15 +947,15 @@ class Task(ABC):
             template_args,
             out_file=egressip_yaml_path,
         )
-        logger.info(f"EgressIP CRD YAML rendered to {egressip_yaml_path}")
+        logger.info(f"EgressIP CR YAML rendered to {egressip_yaml_path}")
 
-        # Apply the EgressIP CRD (cluster-scoped, so no namespace)
+        # Apply the EgressIP CR (cluster-scoped, so no namespace)
         result = self.tc.client_tenant.oc(
             f"apply -f {egressip_yaml_path}",
             namespace=None,
             die_on_error=True,
         )
-        logger.info(f"EgressIP CRD created: {result.out}")
+        logger.info(f"EgressIP CR created: {result.out}")
 
 
 class ServerTask(Task, ABC):
@@ -1275,14 +1247,16 @@ class ClientTask(Task, ABC):
             egress_node = self.ts.egress_node
             assert egress_ip is not None
             logger.info(f"Setting up EgressIP: ip={egress_ip}, node={egress_node}")
+            # Validate egress node exists in the cluster
+            self._validate_egress_node_exists(egress_node)
             # Validate egress IP is in node's subnet
             self._validate_egress_ip_in_subnet(egress_ip, egress_node)
             # Validate egress IP is not in use (doesn't respond to ping)
             self._validate_egress_ip_not_in_use(egress_ip, egress_node, self.index)
             # Label the egress node
             self._label_egress_node(egress_node)
-            # Create the EgressIP CRD
-            self._create_egressip_crd(egress_ip, egress_node)
+            # Create the EgressIP CR
+            self._create_egressip_cr(egress_ip, egress_node)
 
     def get_target_ip(self) -> str:
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
