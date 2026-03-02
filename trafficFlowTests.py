@@ -1,3 +1,4 @@
+import json
 import logging
 import task
 
@@ -5,6 +6,7 @@ from pathlib import Path
 
 from ktoolbox import common
 from ktoolbox import host
+from ktoolbox import kjinja2
 
 import testConfig
 import tftbase
@@ -20,6 +22,9 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 
 class TrafficFlowTests:
+    def __init__(self) -> None:
+        self._created_secondary_nad: bool = False
+
     def _configure_namespace(self, cfg_descr: ConfigDescriptor) -> None:
         namespace = cfg_descr.get_tft().namespace
         logger.info(f"Configuring namespace {namespace}")
@@ -29,6 +34,60 @@ class TrafficFlowTests:
                                         security.openshift.io/scc.podSecurityLabelSync=false",
             die_on_error=True,
         )
+
+    def _setup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
+        tft = cfg_descr.get_tft()
+        if not any(
+            tc.info.connection_mode
+            in (tftbase.ConnectionMode.MULTI_HOME, tftbase.ConnectionMode.MULTI_NETWORK)
+            for tc in tft.test_cases
+        ):
+            return
+
+        namespace = tft.namespace
+        client = cfg_descr.tc.client_tenant
+        nad = cfg_descr.get_tft().connections[0].effective_secondary_network_nad
+        nad_name = nad.split("/")[-1]
+
+        existing = client.oc_get(
+            f"network-attachment-definition/{nad_name}",
+            namespace=namespace,
+            may_fail=True,
+        )
+        if existing is not None:
+            return
+
+        logger.info(f"Creating secondary NAD {nad} in namespace {namespace}")
+
+        _j = json.dumps
+        in_template = tftbase.get_manifest("secondary-nad.yaml.j2")
+        out_yaml = tftbase.get_manifest_renderpath("secondary-nad.yaml")
+        kjinja2.render_file(
+            in_template,
+            {
+                "nad_name": _j(nad_name),
+                "name_space": _j(namespace),
+                "net_attach_def_name": _j(nad),
+                "subnets": _j(tftbase.get_secondary_nad_subnets()),
+                "mtu": tftbase.get_secondary_nad_mtu(),
+                "topology": _j(tftbase.get_secondary_nad_topology()),
+            },
+            out_file=out_yaml,
+        )
+        client.oc(f"apply -f {out_yaml}", die_on_error=True)
+        self._created_secondary_nad = True
+
+    def _cleanup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
+        if not self._created_secondary_nad:
+            return
+        namespace = cfg_descr.get_tft().namespace
+        client = cfg_descr.tc.client_tenant
+        client.oc(
+            "delete network-attachment-definition -l tft-tests=secondary-nad",
+            namespace=namespace,
+            may_fail=True,
+        )
+        self._created_secondary_nad = False
 
     def _cleanup_previous_testspace(self, cfg_descr: ConfigDescriptor) -> None:
         namespace = cfg_descr.get_tft().namespace
@@ -159,6 +218,7 @@ class TrafficFlowTests:
     ) -> TftResults:
         test = cfg_descr.get_tft()
         self._configure_namespace(cfg_descr)
+        self._setup_secondary_nad(cfg_descr)
         self._cleanup_previous_testspace(cfg_descr)
 
         logger.info(f"Running test {test.name} for {test.duration} seconds")
@@ -169,6 +229,7 @@ class TrafficFlowTests:
 
         result_status = tft_results.get_pass_fail_status()
         result_status.log()
+        self._cleanup_secondary_nad(cfg_descr)
 
         log_file = self._create_log_paths_from_tests(test)
 
