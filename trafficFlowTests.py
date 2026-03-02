@@ -135,7 +135,7 @@ class TrafficFlowTests:
                         instance_index=instance_index,
                     )
                 )
-                if connection.test_type_handler.can_run_reverse():
+                if connection.test_type_handler.can_run_reverse(connection):
                     tft_results.append(
                         self._run_test_case_instance(
                             cfg_descr2,

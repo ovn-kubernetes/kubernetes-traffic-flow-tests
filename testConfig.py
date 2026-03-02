@@ -286,6 +286,7 @@ class ConfConnection(StructParseBaseNamed):
     test_type: TestType
     test_type_handler: TestTypeHandler
     instances: int
+    reverse: bool
     server: tuple[ConfNodeServer, ...]
     client: tuple[ConfNodeClient, ...]
     plugins: tuple[ConfPlugin, ...]
@@ -318,6 +319,7 @@ class ConfConnection(StructParseBaseNamed):
             **super().serialize(),
             "type": self.test_type.name,
             "instances": self.instances,
+            "reverse": self.reverse,
             "server": [s.serialize() for s in self.server],
             "client": [c.serialize() for c in self.client],
             "plugins": [p.serialize() for p in self.plugins],
@@ -364,6 +366,11 @@ class ConfConnection(StructParseBaseNamed):
                 varg.for_key("instances"),
                 default=1,
                 check=lambda val: val > 0,
+            )
+
+            reverse = common.structparse_pop_bool(
+                varg.for_key("reverse"),
+                default=True,
             )
 
             server = common.structparse_pop_objlist(
@@ -414,6 +421,7 @@ class ConfConnection(StructParseBaseNamed):
             test_type=test_type,
             test_type_handler=test_type_handler,
             instances=instances,
+            reverse=reverse,
             server=server,
             client=client,
             plugins=plugins,
