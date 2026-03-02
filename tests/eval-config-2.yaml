@@ -1,292 +1,302 @@
 IPERF_TCP:
-- Normal:
-    threshold: 32
-  Reverse:
-    threshold: 32
-  id: 1
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 2
-- Normal:
-    threshold: 21
-  Reverse:
-    threshold: 30
-  id: 3
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 21
-  id: 4
-- Normal:
-    threshold: 36
-  Reverse:
-    threshold: 34
-  id: 5
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 6
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 31
-  id: 7
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 21
-  id: 8
-- Normal:
-    threshold: 30
-  Reverse:
-    threshold: 32
-  id: 9
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 10
-- Normal:
-    threshold: 35
-  Reverse:
-    threshold: 36
-  id: 11
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 12
-- Normal:
-    threshold: 29
-  Reverse:
-    threshold: 29
-  id: 13
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 14
-- Normal:
-    threshold: 33
-  Reverse:
-    threshold: 30
-  id: 15
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 16
-- Normal:
-    threshold: 30
-  Reverse:
-    threshold: 34
-  id: 17
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 18
-- Normal:
-    threshold: 22
-  Reverse:
-    threshold: 34
-  id: 19
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 21
-  id: 20
-- Normal:
-    threshold: 34
-  Reverse:
-    threshold: 29
-  id: 21
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 20
-  id: 22
-- Normal:
-    threshold: 19
-  Reverse:
-    threshold: 34
-  id: 23
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 21
-  id: 24
-- Normal:
-    threshold: 20
-  Reverse:
-    threshold: 11
-  id: 25
-- Normal:
-    threshold: 21
-  Reverse:
-    threshold: 10
-  id: 26
-- Normal:
-    threshold: 24
-  Reverse:
-    threshold: 34
-  id: 27
-- Normal:
-    threshold: 9
-  Reverse:
-    threshold: 11
-  id: 28
-- Normal:
-    threshold: 7
-  Reverse:
-    threshold: 9
-  id: 29
+  - id: POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 32
+    Reverse:
+      threshold: 32
+  - id: POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: POD_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 21
+    Reverse:
+      threshold: 30
+  - id: POD_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 21
+  - id: POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 36
+    Reverse:
+      threshold: 34
+  - id: POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: POD_TO_CLUSTER_IP_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 31
+  - id: POD_TO_CLUSTER_IP_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 21
+  - id: POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 30
+    Reverse:
+      threshold: 32
+  - id: POD_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: POD_TO_NODE_PORT_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 35
+    Reverse:
+      threshold: 36
+  - id: POD_TO_NODE_PORT_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: HOST_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 29
+    Reverse:
+      threshold: 29
+  - id: HOST_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: HOST_TO_POD_SAME_NODE
+    Normal:
+      threshold: 33
+    Reverse:
+      threshold: 30
+  - id: HOST_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: HOST_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 30
+    Reverse:
+      threshold: 34
+  - id: HOST_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: HOST_TO_CLUSTER_IP_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 22
+    Reverse:
+      threshold: 34
+  - id: HOST_TO_CLUSTER_IP_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 21
+  - id: HOST_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 34
+    Reverse:
+      threshold: 29
+  - id: HOST_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 20
+  - id: HOST_TO_NODE_PORT_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 19
+    Reverse:
+      threshold: 34
+  - id: HOST_TO_NODE_PORT_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 21
+  - id: POD_TO_EXTERNAL
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 11
+  - id: HOST_TO_EXTERNAL
+    Normal:
+      threshold: 21
+    Reverse:
+      threshold: 10
+  - id: POD_TO_POD_2ND_INTERFACE_SAME_NODE
+    Normal:
+      threshold: 24
+    Reverse:
+      threshold: 34
+  - id: POD_TO_POD_2ND_INTERFACE_DIFF_NODE
+    Normal:
+      threshold: 9
+    Reverse:
+      threshold: 11
+  - id: POD_TO_POD_MULTI_NETWORK_POLICY
+    Normal:
+      threshold: 7
+    Reverse:
+      threshold: 9
+  - id: POD_TO_EXTERNAL_EGRESS
+    Normal:
+      threshold: 20
+    Reverse:
+      threshold: 11
 IPERF_UDP:
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 1
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 2
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 3
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 4
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 5
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 6
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 7
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 8
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 9
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 10
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 11
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 12
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 13
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 14
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 15
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 16
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 17
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 18
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 19
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 20
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 21
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 22
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 23
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 24
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 25
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 26
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 27
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 28
-- Normal:
-    threshold: 5
-  Reverse:
-    threshold: 5
-  id: 29
+  - id: POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_CLUSTER_IP_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_CLUSTER_IP_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_CLUSTER_IP_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_CLUSTER_IP_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_EXTERNAL
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_EXTERNAL
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_POD_2ND_INTERFACE_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_POD_2ND_INTERFACE_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_POD_MULTI_NETWORK_POLICY
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_EXTERNAL_EGRESS
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5

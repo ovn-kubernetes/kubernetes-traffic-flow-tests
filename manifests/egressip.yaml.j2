@@ -1,0 +1,12 @@
+apiVersion: k8s.ovn.org/v1
+kind: EgressIP
+metadata:
+  name: {{ egressip_name }}
+  labels:
+    tft-tests: {{ label_tft_tests }}
+spec:
+  egressIPs:
+{{ egress_ips_yaml }}
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ name_space }}

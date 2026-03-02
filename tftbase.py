@@ -325,6 +325,7 @@ class TestCaseType(Enum):
     POD_TO_POD_2ND_INTERFACE_SAME_NODE = 27
     POD_TO_POD_2ND_INTERFACE_DIFF_NODE = 28
     POD_TO_POD_MULTI_NETWORK_POLICY = 29
+    POD_TO_EXTERNAL_EGRESS = 30
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -986,6 +987,13 @@ _test_case_typ_infos = {
         TestCaseTypInfo(
             test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY,
             connection_mode=ConnectionMode.MULTI_NETWORK,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_EXTERNAL_EGRESS,
+            connection_mode=ConnectionMode.EXTERNAL_IP,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
