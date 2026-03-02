@@ -524,6 +524,7 @@ class Task(ABC):
         pod_ip = None
         try:
             if y:
+                pod_ip = y["status"]["podIP"]
                 if self.ts.connection.secondary_network_nad:
                     network_status_str = y["metadata"]["annotations"][
                         "k8s.v1.cni.cncf.io/network-status"
@@ -535,8 +536,6 @@ class Task(ABC):
                         if network["name"] == nad:
                             pod_ip = network["ips"][0]
                             break
-                else:
-                    pod_ip = y["status"]["podIP"]
         except Exception:
             pass
         if not isinstance(pod_ip, str):
