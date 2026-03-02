@@ -40,6 +40,14 @@ class TestSettings:
         self.test_case_id.info
         self._node_server
         self.node_client
+        self._validate_selected_nodes_available
+
+    @property
+    def _validate_selected_nodes_available(self) -> None:
+        self.cfg_descr.tc.validate_selected_nodes_available(
+            client_node_name=self.node_client.name,
+            server_node_name=self.node_server.name,
+        )
 
     @property
     def _node_server(self) -> testConfig.ConfNodeServer:
