@@ -113,7 +113,7 @@ class TestTypeHandlerRdma(TestTypeHandler):
         c = RdmaClient(ts=ts, server=s)
         return (s, c)
 
-    def can_run_reverse(self) -> bool:
+    def can_run_reverse(self, connection: Any) -> bool:
         return False
 
 

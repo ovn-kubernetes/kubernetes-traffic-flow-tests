@@ -50,24 +50,25 @@ tft:
       - name: "(5)"
         type: "(6)"
         instances: (7)
+        reverse: "(8)"
         server:
-          - name: "(8)"
-            persistent: "(9)"
-            sriov: "(10)"
-            default_network: "(11)"
+          - name: "(9)"
+            persistent: "(10)"
+            sriov: "(11)"
+            default_network: "(12)"
         client:
-          - name: "(12)"
-            sriov: "(13)"
-            default_network: "(14)"
+          - name: "(13)"
+            sriov: "(14)"
+            default_network: "(15)"
         plugins:
-          - name: (15)
-          - name: (15)
-        secondary_network_nad: "(16)"
-	resource_name: "(17)"
-    privileged_pod: (18)
-    capabilities_pod: (19)
-kubeconfig: (20)
-kubeconfig_infra: (20)
+          - name: (16)
+          - name: (16)
+        secondary_network_nad: "(17)"
+    resource_name: "(18)"
+    privileged_pod: (19)
+    capabilities_pod: (20)
+kubeconfig: (21)
+kubeconfig_infra: (21)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -111,29 +112,30 @@ kubeconfig_infra: (20)
 5. "name" - This is the connection name. Any string value to identify the connection.
 6. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
 7. "instances" - The number of instances that would be created. Default is "1"
-8. "name" - The node name of the server.
-9. "persistent" - Whether to have the server pod persist after the test. Takes in "true/false"
-10. "sriov" - Whether SRIOV should be used for the server pod. Takes in "true/false"
-11. "default_network" - (Optional) The name of the default network that the sriov pod would use.
-12. "name" - The node name of the client.
-13. "sriov" - Whether SRIOV should be used for the client pod. Takes in "true/false"
-14. "default_network" - (Optional) The name of the default network that the sriov pod would use.
-14a. "args" - (Optional) Extra command-line arguments to pass to the test tool (iperf3, simple-tcp-server-client). Supported for iperf-tcp, iperf-udp, and simple test types. Can be a string or list of strings.
-15. "name" - (Optional) list of plugin names
+8. "reverse" - (Optional) Whether reverse-direction test should run when supported. Defaults to true. Currently, reverse execution is only supported for iperf-tcp.
+9. "name" - The node name of the server.
+10. "persistent" - Whether to have the server pod persist after the test. Takes in "true/false"
+11. "sriov" - Whether SRIOV should be used for the server pod. Takes in "true/false"
+12. "default_network" - (Optional) The name of the default network that the sriov pod would use.
+13. "name" - The node name of the client.
+14. "sriov" - Whether SRIOV should be used for the client pod. Takes in "true/false"
+15. "default_network" - (Optional) The name of the default network that the sriov pod would use.
+15a. "args" - (Optional) Extra command-line arguments to pass to the test tool (iperf3, simple-tcp-server-client). Supported for iperf-tcp, iperf-udp, and simple test types. Can be a string or list of strings.
+16. "name" - (Optional) list of plugin names
     | Name             | Description          |
     | ---------------- | -------------------- |
     | measure_cpu      | Measure CPU Usage    |
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
-16. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-30, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-30 it defaults to "tft-secondary" if not set.
-17. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
+17. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-29, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-29 it defaults to "tft-secondary" if not set.
+18. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
 tool will try to autopopulate resource_name based on the secondary+network_nad provided.
-18. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
-19. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
-20. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+19. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
+20. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
+21. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-21. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+22. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 ## DPU Mode

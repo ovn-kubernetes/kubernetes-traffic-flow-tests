@@ -34,7 +34,7 @@ class TestTypeHandler(ABC):
     ) -> tuple["ServerTask", "ClientTask"]:
         pass
 
-    def can_run_reverse(self) -> bool:
+    def can_run_reverse(self, connection: "ConfConnection") -> bool:
         return False
 
     @staticmethod
@@ -63,6 +63,7 @@ class TestTypeHandler(ABC):
 
 
 if typing.TYPE_CHECKING:
+    from testConfig import ConfConnection
     from task import ClientTask
     from task import ServerTask
     from testSettings import TestSettings

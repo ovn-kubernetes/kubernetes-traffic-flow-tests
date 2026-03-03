@@ -98,8 +98,8 @@ class TestTypeHandlerIperf(TestTypeHandler):
         c = IperfClient(ts=ts, server=s)
         return (s, c)
 
-    def can_run_reverse(self) -> bool:
-        if self.test_type == TestType.IPERF_TCP:
+    def can_run_reverse(self, connection: Any) -> bool:
+        if self.test_type == TestType.IPERF_TCP and connection.reverse:
             return True
         return False
 
