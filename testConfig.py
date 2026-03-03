@@ -886,6 +886,61 @@ class TestConfig:
             f"configuration{msg_path} is invalid: {msg_source} fails because {fail_msg}"
         )
 
+    def _is_node_ready(self, node_data: dict[str, Any]) -> bool:
+        try:
+            conditions = node_data["status"]["conditions"]
+            if isinstance(conditions, list):
+                for cond in conditions:
+                    if (
+                        isinstance(cond, dict)
+                        and cond.get("type") == "Ready"
+                        and cond.get("status") == "True"
+                    ):
+                        return True
+        except Exception:
+            pass
+        return False
+
+    def validate_node_available(self, node_name: str, role: str) -> None:
+        node_data = self.client_tenant.oc_get(
+            f"node/{node_name}",
+            may_fail=True,
+        )
+        if not isinstance(node_data, dict):
+            raise RuntimeError(
+                f'{role} node "{node_name}" does not exist or cannot be queried'
+            )
+
+        is_ready = self._is_node_ready(node_data)
+        is_unschedulable = bool(node_data.get("spec", {}).get("unschedulable", False))
+
+        if not is_ready or is_unschedulable:
+            state: list[str] = []
+            if not is_ready:
+                state.append("NotReady")
+            if is_unschedulable:
+                state.append("SchedulingDisabled")
+            raise RuntimeError(
+                f'{role} node "{node_name}" is not available: {",".join(state)}'
+            )
+
+    def validate_selected_nodes_available(
+        self,
+        *,
+        client_node_name: str,
+        server_node_name: str,
+    ) -> None:
+        checked: set[str] = set()
+        nodes_to_check = (
+            ("Client", client_node_name),
+            ("Server", server_node_name),
+        )
+        for role, node_name in nodes_to_check:
+            if node_name in checked:
+                continue
+            checked.add(node_name)
+            self.validate_node_available(node_name, role)
+
     def system_check(self) -> None:
         self._system_check_kubeconfig(tenant=True)
         self._system_check_kubeconfig(tenant=False)
