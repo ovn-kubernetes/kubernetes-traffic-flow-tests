@@ -625,6 +625,63 @@ class Task(ABC):
             die_on_error=True,
         ).out
 
+    def create_admin_network_policy(self, action: str, priority: int, port: int) -> str:
+        anp_name = f"tft-anp-{self.index}"
+        in_file_template = tftbase.get_manifest("admin-network-policy.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(f"anp-{self.pod_name}.yaml")
+
+        template_args = {
+            **self.get_template_args(),
+            "anp_action": action,
+            "anp_priority": str(priority),
+            "anp_port": str(port),
+            "anp_name": anp_name,
+        }
+
+        self.render_file(
+            "Admin Network Policy",
+            in_file_template,
+            out_file_yaml,
+            template_args,
+        )
+        self.run_oc(
+            f"apply -f {out_file_yaml}",
+            namespace=None,  # ANP is cluster-scoped
+            check_success=lambda r: r.success or "already exists" in r.err,
+            die_on_error=True,
+        )
+        return self.run_oc(
+            f"get adminnetworkpolicies {anp_name}",
+            namespace=None,
+            die_on_error=True,
+        ).out
+
+    def create_network_policy(self, port: int) -> str:
+        np_name = f"tft-np-deny-{self.index}"
+        in_file_template = tftbase.get_manifest("network-policy-deny.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(f"np-{self.pod_name}.yaml")
+
+        template_args = {
+            **self.get_template_args(),
+            "np_name": np_name,
+        }
+
+        self.render_file(
+            "Network Policy Deny",
+            in_file_template,
+            out_file_yaml,
+            template_args,
+        )
+        self.run_oc(
+            f"apply -f {out_file_yaml}",
+            check_success=lambda r: r.success or "already exists" in r.err,
+            die_on_error=True,
+        )
+        return self.run_oc(
+            f"get networkpolicies {np_name}",
+            die_on_error=True,
+        ).out
+
     def start_setup(self) -> None:
         assert self._setup_operation is None
         self._setup_operation = self._create_setup_operation()
@@ -844,6 +901,14 @@ class ServerTask(Task, ABC):
             self._create_multi_network_policy(
                 MNP_ACTION_ALLOW, MNP_DIRECTION_EGRESS, self.port
             )
+
+        if self.connection_mode == ConnectionMode.ANP_ALLOW:
+            self.create_admin_network_policy("Allow", 50, self.port)
+        elif self.connection_mode == ConnectionMode.ANP_DENY:
+            self.create_admin_network_policy("Deny", 50, self.port)
+        elif self.connection_mode == ConnectionMode.ANP_PASS_NP_DENY:
+            self.create_admin_network_policy("Pass", 50, self.port)
+            self.create_network_policy(self.port)
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:

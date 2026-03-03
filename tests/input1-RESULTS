@@ -22,7 +22,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 10.131.1.179 -p 5201 --json -t 10",
         "result": {
@@ -447,7 +448,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 10.131.1.179 -p 5201 --json -t 10 -R",
         "result": {
@@ -812,7 +814,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 10.129.2.18 -p 5201 --json -t 10",
         "result": {
@@ -1237,7 +1240,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 10.129.2.18 -p 5201 --json -t 10 -R",
         "result": {
@@ -1602,7 +1606,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.76.3 -p 5201 --json -t 10",
         "result": {
@@ -2027,7 +2032,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.76.3 -p 5201 --json -t 10 -R",
         "result": {
@@ -2392,7 +2398,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.243.134 -p 5201 --json -t 10",
         "result": {
@@ -2817,7 +2824,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.243.134 -p 5201 --json -t 10 -R",
         "result": {
@@ -3182,7 +3190,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.74.186 -p 5201 --json -t 10",
         "result": {
@@ -3607,7 +3616,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.74.186 -p 5201 --json -t 10 -R",
         "result": {
@@ -3972,7 +3982,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.139.14 -p 5201 --json -t 10",
         "result": {
@@ -4397,7 +4408,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.139.14 -p 5201 --json -t 10 -R",
         "result": {
@@ -4762,7 +4774,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.32.96 -p 5201 --json -t 10",
         "result": {
@@ -5187,7 +5200,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.32.96 -p 5201 --json -t 10 -R",
         "result": {
@@ -5552,7 +5566,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.51.52 -p 5201 --json -t 10",
         "result": {
@@ -5977,7 +5992,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.51.52 -p 5201 --json -t 10 -R",
         "result": {
@@ -6342,7 +6358,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.87.166 -p 5201 --json -t 10",
         "result": {
@@ -6767,7 +6784,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.87.166 -p 5201 --json -t 10 -R",
         "result": {
@@ -7132,7 +7150,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.250.34 -p 5201 --json -t 10",
         "result": {
@@ -7557,7 +7576,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 172.30.250.34 -p 5201 --json -t 10 -R",
         "result": {
@@ -7922,7 +7942,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.3 -p 5201 --json -t 10",
         "result": {
@@ -8347,7 +8368,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.3 -p 5201 --json -t 10 -R",
         "result": {
@@ -8712,7 +8734,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.7 -p 5201 --json -t 10",
         "result": {
@@ -9137,7 +9160,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.7 -p 5201 --json -t 10 -R",
         "result": {
@@ -9502,7 +9526,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.108.164 -p 5201 --json -t 10",
         "result": {
@@ -9927,7 +9952,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.108.164 -p 5201 --json -t 10 -R",
         "result": {
@@ -10292,7 +10318,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.85.71 -p 5201 --json -t 10",
         "result": {
@@ -10717,7 +10744,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.85.71 -p 5201 --json -t 10 -R",
         "result": {
@@ -11082,7 +11110,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.16.61 -p 5201 --json -t 10",
         "result": {
@@ -11507,7 +11536,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.16.61 -p 5201 --json -t 10 -R",
         "result": {
@@ -11872,7 +11902,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.148.98 -p 5201 --json -t 10",
         "result": {
@@ -12297,7 +12328,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.148.98 -p 5201 --json -t 10 -R",
         "result": {
@@ -12662,7 +12694,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.187.145 -p 5201 --json -t 10",
         "result": {
@@ -13087,7 +13120,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.187.145 -p 5201 --json -t 10 -R",
         "result": {
@@ -13452,7 +13486,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.13.191 -p 5201 --json -t 10",
         "result": {
@@ -13877,7 +13912,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.13.191 -p 5201 --json -t 10 -R",
         "result": {
@@ -14242,7 +14278,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.206.242 -p 5201 --json -t 10",
         "result": {
@@ -14667,7 +14704,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.206.242 -p 5201 --json -t 10 -R",
         "result": {
@@ -15032,7 +15070,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.99.196 -p 5201 --json -t 10",
         "result": {
@@ -15457,7 +15496,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 172.30.99.196 -p 5201 --json -t 10 -R",
         "result": {
@@ -15822,7 +15862,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 10.88.0.5 -p 5201 --json -t 10",
         "result": {
@@ -16247,7 +16288,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t sriov-pod-worker-242-client-5201 -- iperf3 -c 10.88.0.5 -p 5201 --json -t 10 -R",
         "result": {
@@ -16612,7 +16654,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "exec -t host-pod-worker-242-client-5201 -- iperf3 -c 10.88.0.6 -p 5201 --json -t 10",
         "result": {
@@ -17037,7 +17080,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": " exec -t host-pod-worker-242-client-5201 -- iperf3 -c 10.88.0.6 -p 5201 --json -t 10 -R",
         "result": {
@@ -17402,7 +17446,8 @@
             "pod_type": "NORMAL",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.192.10.40 -p 5201 --json -t 1",
         "result": {
@@ -17566,7 +17611,8 @@
             "pod_type": "NORMAL",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.192.10.40 -p 5201 --json -t 1 -R",
         "result": {

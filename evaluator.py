@@ -43,7 +43,18 @@ class Evaluator:
 
         success = True
         msg: Optional[str] = None
-        if not flow_test.success:
+
+        # Handle expects_blocked case (e.g., ANP Deny tests)
+        if flow_test.tft_metadata.expects_blocked:
+            if flow_test.success:
+                # Traffic flowed when it should have been blocked
+                success = False
+                msg = f"Expected traffic to be blocked but it succeeded with {flow_test.bitrate_gbps}"
+            else:
+                # Traffic was blocked as expected
+                success = True
+                msg = None
+        elif not flow_test.success:
             success = False
             if flow_test.msg is not None:
                 msg = f"Run failed: {flow_test.msg}"
