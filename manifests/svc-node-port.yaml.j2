@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: tft-nodeport-service
+  name: tft-nodeport-service-{{ svc_label }}
   namespace: {{ name_space }}
   labels:
     tft-tests: {{ label_tft_tests }}
@@ -18,3 +18,4 @@ spec:
       nodePort: {{ nodeport_svc_port }}
   selector:
     tft-port: "{{ port }}"
+    tft-network: {{ network_type }}
