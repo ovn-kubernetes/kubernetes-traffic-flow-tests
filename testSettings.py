@@ -58,19 +58,18 @@ class TestSettings:
         return c_server
 
     @property
-    def node_client(self) -> testConfig.ConfNodeClient:
+    def node_client(self) -> testConfig.ConfNodeBase:
         # For now, only one server/client is supported and TestConfig already
         # enforces that. Do tuple-unpacking here, to further assert that there
         # is only one server/client.
         (c_client,) = self.connection.client
+        if self.test_case_id.info.is_same_node:
+            return self._node_server
         return c_client
 
     @property
     def node_server(self) -> testConfig.ConfNodeBase:
-        if self.test_case_id.info.is_same_node:
-            return self.node_client
-        else:
-            return self._node_server
+        return self._node_server
 
     @property
     def clmo_barrier(self) -> threading.Barrier:

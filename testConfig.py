@@ -437,6 +437,7 @@ class ConfTest(StructParseBaseNamed):
     namespace: str
     test_cases: tuple[TestCaseType, ...]
     duration: int
+    pre_provision: bool
     privileged_pod: bool
     capabilities_pod: Mapping[str, tuple[str, ...]]
     connections: tuple[ConfConnection, ...]
@@ -456,6 +457,7 @@ class ConfTest(StructParseBaseNamed):
             "namespace": self.namespace,
             "test_cases": [t.name for t in self.test_cases],
             "duration": self.duration,
+            "pre_provision": self.pre_provision,
             "privileged_pod": self.privileged_pod,
             "capabilities_pod": self.capabilities_pod,
             "connections": [c.serialize() for c in self.connections],
@@ -507,6 +509,11 @@ class ConfTest(StructParseBaseNamed):
             if duration == 0:
                 duration = 3600
 
+            pre_provision = common.structparse_pop_bool(
+                varg.for_key("pre_provision"),
+                default=False,
+            )
+
             privileged_pod = common.structparse_pop_bool(
                 varg.for_key("privileged_pod"),
                 default=False,
@@ -542,6 +549,7 @@ class ConfTest(StructParseBaseNamed):
             namespace=namespace,
             test_cases=tuple(test_cases),
             duration=duration,
+            pre_provision=pre_provision,
             privileged_pod=privileged_pod,
             capabilities_pod=capabilities_pod,
             connections=connections,
