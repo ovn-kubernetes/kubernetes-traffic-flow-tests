@@ -43,6 +43,12 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 EXTERNAL_PERF_SERVER = "external-perf-server"
 
+_SECONDARY_MODES = (
+    ConnectionMode.MULTI_HOME,
+    ConnectionMode.MULTI_NETWORK_DENY,
+    ConnectionMode.MULTI_NETWORK_ALLOW,
+)
+
 MNP_ACTION_ALLOW = "allow"
 MNP_ACTION_DENY = "deny"
 MNP_DIRECTION_INGRESS = "ingress"
@@ -436,6 +442,14 @@ class Task(ABC):
     def _get_template_args_args(self) -> list[str]:
         return []
 
+    @property
+    def _svc_backend_label(self) -> str:
+        return ""
+
+    @property
+    def _network_type(self) -> str:
+        return "secondary" if self.ts.connection_mode in _SECONDARY_MODES else "primary"
+
     def render_pod_file(self, log_info: str) -> None:
         self.render_file(
             log_info,
@@ -612,28 +626,45 @@ class Task(ABC):
         logger.info(f"Secondary IP: {ip_address}")
         return ip_address
 
-    def create_cluster_ip_service(self) -> str:
+    def create_cluster_ip_service(self) -> None:
         in_file_template = tftbase.get_manifest("svc-cluster-ip.yaml.j2")
-        out_file_yaml = tftbase.get_manifest_renderpath("svc-cluster-ip.yaml")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"svc-cluster-ip-{self._svc_backend_label}.yaml"
+        )
 
-        self.render_file("Cluster IP Service", in_file_template, out_file_yaml)
+        template_args = {
+            **self.get_template_args(),
+            "svc_label": self._svc_backend_label,
+            "network_type": self._network_type,
+        }
+        self.render_file(
+            "Cluster IP Service", in_file_template, out_file_yaml, template_args
+        )
         self.run_oc(
             f"apply -f {out_file_yaml}",
             check_success=lambda r: r.success or "already exists" in r.err,
             die_on_error=True,
         )
-        return self.run_oc(
-            "get service tft-clusterip-service -o=jsonpath='{.spec.clusterIP}'",
-            die_on_error=True,
-        ).out
 
-    def create_node_port_service(self, nodeport: int) -> str:
+    def get_cluster_ip(self) -> Optional[str]:
+        svc_name = f"tft-clusterip-service-{self._svc_backend_label}"
+        r = self.run_oc(
+            f"get service {svc_name} -o=jsonpath='{{.spec.clusterIP}}'",
+            may_fail=True,
+        )
+        return r.out if r.success else None
+
+    def create_node_port_service(self, nodeport: int) -> None:
         in_file_template = tftbase.get_manifest("svc-node-port.yaml.j2")
-        out_file_yaml = tftbase.get_manifest_renderpath("svc-node-port.yaml")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"svc-node-port-{self._svc_backend_label}.yaml"
+        )
 
         template_args = {
             **self.get_template_args(),
+            "svc_label": self._svc_backend_label,
             "nodeport_svc_port": _j(nodeport),
+            "network_type": self._network_type,
         }
 
         self.render_file(
@@ -644,10 +675,14 @@ class Task(ABC):
             check_success=lambda r: r.success or "already exists" in r.err,
             die_on_error=True,
         )
-        return self.run_oc(
-            "get service tft-nodeport-service -o=jsonpath='{.spec.clusterIP}'",
-            die_on_error=True,
-        ).out
+
+    def get_nodeport_ip(self) -> Optional[str]:
+        svc_name = f"tft-nodeport-service-{self._svc_backend_label}"
+        r = self.run_oc(
+            f"get service {svc_name} -o=jsonpath='{{.spec.clusterIP}}'",
+            may_fail=True,
+        )
+        return r.out if r.success else None
 
     def _create_multi_network_policy(
         self, action: str, direction: str, port: int
@@ -734,14 +769,21 @@ class Task(ABC):
             die_on_error=True,
         ).out
 
-    def start_setup(self) -> None:
+    def start_setup(
+        self, *, skip_pod_setup: bool = False, provisioning: bool = False
+    ) -> None:
         assert self._setup_operation is None
-        self._setup_operation = self._create_setup_operation()
+        self._setup_operation = self._create_setup_operation(
+            skip_pod_setup=skip_pod_setup, provisioning=provisioning
+        )
         if self._setup_operation is not None:
             self._setup_operation.start()
 
-    def _create_setup_operation(self) -> Optional[TaskOperation]:
-        self.setup_pod()
+    def _create_setup_operation(
+        self, *, skip_pod_setup: bool = False, provisioning: bool = False
+    ) -> Optional[TaskOperation]:
+        if not skip_pod_setup:
+            self.setup_pod()
         return None
 
     def finish_setup(self) -> None:
@@ -888,8 +930,13 @@ class ServerTask(Task, ABC):
 
         connection_mode = ts.connection_mode
         pod_type = ts.server_pod_type
-        node_location = self.node_location
-        port = 5201 + self.index
+        server_conf = ts.cfg_descr.get_server()
+        port_base = (
+            server_conf.host_port
+            if pod_type == PodType.HOSTBACKED
+            else server_conf.pod_port
+        )
+        port = port_base + self.index
 
         if connection_mode == ConnectionMode.EXTERNAL_IP:
             in_file_template = ""
@@ -900,16 +947,16 @@ class ServerTask(Task, ABC):
             ConnectionMode.MULTI_NETWORK_ALLOW,
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
-            pod_name = f"normal-pod-secondary-network-{node_location}-server-{port}"
+            pod_name = f"normal-pod-secondary-network-server-{port}"
         elif pod_type == PodType.SRIOV:
             in_file_template = "sriov-pod.yaml.j2"
-            pod_name = f"sriov-pod-{node_location}-server-{port}"
+            pod_name = f"sriov-pod-server-{port}"
         elif pod_type == PodType.NORMAL:
             in_file_template = "pod.yaml.j2"
-            pod_name = f"normal-pod-{node_location}-server-{port}"
+            pod_name = f"normal-pod-server-{port}"
         elif pod_type == PodType.HOSTBACKED:
             in_file_template = "host-pod.yaml.j2"
-            pod_name = f"host-pod-{node_location}-server-{port}"
+            pod_name = f"host-pod-server-{port}"
         else:
             raise ValueError("Invalid pod_type {pod_type}")
 
@@ -917,6 +964,7 @@ class ServerTask(Task, ABC):
             in_file_template = tftbase.get_manifest(in_file_template)
 
         self.exec_persistent = ts.node_server.is_persistent_server
+        self.pre_provisioning: bool = False
         self.port = port
         # external_port is discovered dynamically for EXTERNAL_IP mode
         self.external_port: int = 0
@@ -928,43 +976,26 @@ class ServerTask(Task, ABC):
     def _get_template_args_port(self) -> str:
         return str(self.port)
 
+    @property
+    def _svc_backend_label(self) -> str:
+        backend = "host" if self.pod_type == PodType.HOSTBACKED else "pod"
+        prefix = (
+            f"{self._network_type}-{backend}"
+            if self._network_type == "secondary"
+            else backend
+        )
+        return f"{prefix}-{self.port}"
+
     def initialize(self) -> None:
         super().initialize()
 
         if self.in_file_template != "":
             self.render_pod_file("Server Pod Yaml")
-
-            self.cluster_ip_addr = self.create_cluster_ip_service()
-            self.nodeport_ip_addr = self.create_node_port_service(self.port + 25000)
-
-        if self.connection_mode == ConnectionMode.MULTI_NETWORK_DENY:
-            self._create_multi_network_policy(
-                MNP_ACTION_DENY, MNP_DIRECTION_INGRESS, self.port
-            )
-            self._create_multi_network_policy(
-                MNP_ACTION_DENY, MNP_DIRECTION_EGRESS, self.port
-            )
-        elif self.connection_mode == ConnectionMode.MULTI_NETWORK_ALLOW:
-            self._create_multi_network_policy(
-                MNP_ACTION_ALLOW, MNP_DIRECTION_INGRESS, self.port
-            )
-            self._create_multi_network_policy(
-                MNP_ACTION_ALLOW, MNP_DIRECTION_EGRESS, self.port
-            )
-
-        if self.connection_mode == ConnectionMode.ANP_ALLOW:
-            self.create_admin_network_policy(
-                ANP_ACTION_ALLOW, ANP_DEFAULT_PRIORITY, self.port
-            )
-        elif self.connection_mode == ConnectionMode.ANP_DENY:
-            self.create_admin_network_policy(
-                ANP_ACTION_DENY, ANP_DEFAULT_PRIORITY, self.port
-            )
-        elif self.connection_mode == ConnectionMode.ANP_PASS_NP_DENY:
-            self.create_admin_network_policy(
-                ANP_ACTION_PASS, ANP_DEFAULT_PRIORITY, self.port
-            )
-            self.create_network_policy(self.port)
+            if self.get_cluster_ip() is None:
+                self.create_cluster_ip_service()
+            if self.get_nodeport_ip() is None:
+                nodeport_offset = 26000 if self._network_type == "secondary" else 25000
+                self.create_node_port_service(self.port + nodeport_offset)
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:
@@ -991,7 +1022,8 @@ class ServerTask(Task, ABC):
             logger.error(f"Failed to start server {self.pod_name}: {r.err}")
             raise RuntimeError(f"Failed to start server {self.pod_name}: {r.err}")
 
-        self._wait_for_server_listening()
+        if not self.pre_provisioning:
+            self._wait_for_server_listening()
         self.ts.event_server_alive.set()
 
     # Override in subclasses to specify protocol (tcp/udp) to check.
@@ -1029,7 +1061,6 @@ class ServerTask(Task, ABC):
         logger.info(f"Waiting for server to be ready (max {max_wait_time}s)")
 
         while time.monotonic() - start_time < max_wait_time:
-            time.sleep(0.5)
 
             # For EXTERNAL_IP, first discover the port if not yet known
             if is_external and self.external_port == 0:
@@ -1057,6 +1088,8 @@ class ServerTask(Task, ABC):
                 )
                 return
 
+            time.sleep(0.5)
+
         # Timeout - determine appropriate error message
         if is_external and self.external_port == 0:
             error_msg = f"Failed to discover podman port within {max_wait_time}s"
@@ -1077,9 +1110,13 @@ class ServerTask(Task, ABC):
     def _create_setup_operation_get_cancel_action_cmd(self) -> str:
         pass
 
-    def _create_setup_operation(self) -> Optional[TaskOperation]:
+    def _create_setup_operation(
+        self, *, skip_pod_setup: bool = False, provisioning: bool = False
+    ) -> Optional[TaskOperation]:
         # We don't chain up super()._create_setup_operation(). Depending on
         # the connection_mode we call setup_pod().
+
+        self.pre_provisioning = provisioning
 
         th_cmd = self._create_setup_operation_get_thread_action_cmd()
 
@@ -1095,12 +1132,43 @@ class ServerTask(Task, ABC):
             cmd = f"podman run -it --replace --rm -p {self.port} --name={self.pod_name}{pull_policy} {test_image} {th_cmd}"
             cancel_cmd = f"podman rm --force {self.pod_name}"
         else:
-            self.setup_pod()
+            if not skip_pod_setup:
+                self.setup_pod()
             ca_cmd = self._create_setup_operation_get_cancel_action_cmd()
             cmd = f"{th_cmd}"
             cancel_cmd = f"{ca_cmd}"
 
-        logger.info(f"Running {cmd}")
+        if not provisioning:
+            # Create network policies per-test (never during global provisioning,
+            # because a deny policy would block traffic for tests that run before
+            # this one)
+            if self.connection_mode == ConnectionMode.MULTI_NETWORK_DENY:
+                self._create_multi_network_policy(
+                    MNP_ACTION_DENY, MNP_DIRECTION_INGRESS, self.port
+                )
+                self._create_multi_network_policy(
+                    MNP_ACTION_DENY, MNP_DIRECTION_EGRESS, self.port
+                )
+            elif self.connection_mode == ConnectionMode.MULTI_NETWORK_ALLOW:
+                self._create_multi_network_policy(
+                    MNP_ACTION_ALLOW, MNP_DIRECTION_INGRESS, self.port
+                )
+                self._create_multi_network_policy(
+                    MNP_ACTION_ALLOW, MNP_DIRECTION_EGRESS, self.port
+                )
+            elif self.connection_mode == ConnectionMode.ANP_ALLOW:
+                self.create_admin_network_policy(
+                    ANP_ACTION_ALLOW, ANP_DEFAULT_PRIORITY, self.port
+                )
+            elif self.connection_mode == ConnectionMode.ANP_DENY:
+                self.create_admin_network_policy(
+                    ANP_ACTION_DENY, ANP_DEFAULT_PRIORITY, self.port
+                )
+            elif self.connection_mode == ConnectionMode.ANP_PASS_NP_DENY:
+                self.create_admin_network_policy(
+                    ANP_ACTION_PASS, ANP_DEFAULT_PRIORITY, self.port
+                )
+                self.create_network_policy(self.port)
 
         def _run_cmd(cmd: str) -> BaseOutput:
             # We ignore the exit code of the command, that is because this is
@@ -1112,14 +1180,23 @@ class ServerTask(Task, ABC):
             may_fail = True
 
             if self.connection_mode == ConnectionMode.EXTERNAL_IP:
+                logger.info(f"Running {cmd}")
                 res = self.lh.run(
                     cmd,
                     log_level_fail=logging.DEBUG if may_fail else logging.ERROR,
                 )
             elif self.exec_persistent:
                 return BaseOutput(msg="Server is persistent")
+            elif self.pre_provisioning:
+                return BaseOutput(msg="Pre-provisioning")
             else:
+                logger.info(f"Running {cmd}")
                 res = self.run_oc_exec(cmd, may_fail=may_fail)
+                if not res.success:
+                    logger.debug(
+                        f"oc exec '{cmd}' exited {res.returncode}"
+                        + (f": {res.err.strip()}" if res.err.strip() else "")
+                    )
 
             return BaseOutput.from_cmd(res, success=True if may_fail else None)
 
@@ -1188,15 +1265,21 @@ class ClientTask(Task, ABC):
 
     def get_target_ip(self) -> str:
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
-            logger.debug(
-                f"get_target_ip() ClusterIP connection to {self.server.cluster_ip_addr}"
-            )
-            return self.server.cluster_ip_addr
+            ip = self.server.get_cluster_ip()
+            if ip is None:
+                raise RuntimeError(
+                    f"ClusterIP service not found for server {self.server.pod_name}"
+                )
+            logger.debug(f"get_target_ip() ClusterIP connection to {ip}")
+            return ip
         elif self.connection_mode == ConnectionMode.NODE_PORT_IP:
-            logger.debug(
-                f"get_target_ip() NodePortIP connection to {self.server.nodeport_ip_addr}"
-            )
-            return self.server.nodeport_ip_addr
+            ip = self.server.get_nodeport_ip()
+            if ip is None:
+                raise RuntimeError(
+                    f"NodePort service not found for server {self.server.pod_name}"
+                )
+            logger.debug(f"get_target_ip() NodePortIP connection to {ip}")
+            return ip
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
             # For port forwarding, connect to the host's IP, not the container's internal IP
             host_ip = self.get_host_ip()

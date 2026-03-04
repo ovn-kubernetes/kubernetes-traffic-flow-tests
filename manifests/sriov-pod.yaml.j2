@@ -9,6 +9,7 @@ metadata:
   labels:
     tft-tests: {{ label_tft_tests }}
     tft-port: "{{ port }}"
+    tft-network: primary
 spec:
   nodeSelector:
     kubernetes.io/hostname: {{ node_name }}

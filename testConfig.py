@@ -198,7 +198,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
                 default=None,
             )
 
-            type_specific_kwargs = {}
+            type_specific_kwargs: dict[str, Any] = {}
 
             if conf_type == ConfNodeServer:
                 persistent = common.structparse_pop_bool(
@@ -206,6 +206,22 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
                     default=False,
                 )
                 type_specific_kwargs["persistent"] = persistent
+
+                pod_port = common.structparse_pop_int(
+                    varg.for_key("pod_port"),
+                    default=5201,
+                    check=lambda val: 1 <= val <= 65535,
+                    description="port number for server pod to bind to (1-65535)",
+                )
+                type_specific_kwargs["pod_port"] = pod_port
+
+                host_port = common.structparse_pop_int(
+                    varg.for_key("host_port"),
+                    default=5301,
+                    check=lambda val: 1 <= val <= 65535,
+                    description="port number for server host to bind to (1-65535)",
+                )
+                type_specific_kwargs["host_port"] = host_port
 
         result = conf_type(
             yamlidx=pctx.yamlidx,
@@ -283,6 +299,8 @@ class ConfPlugin(_ConfBaseConnectionItem):
 @dataclass(frozen=True, kw_only=True)
 class ConfNodeServer(ConfNodeBase):
     persistent: bool
+    pod_port: int
+    host_port: int
 
     @property
     def is_persistent_server(self) -> bool:
@@ -292,6 +310,8 @@ class ConfNodeServer(ConfNodeBase):
         return {
             **super().serialize(),
             "persistent": self.persistent,
+            "pod_port": self.pod_port,
+            "host_port": self.host_port,
         }
 
     @staticmethod
@@ -464,6 +484,7 @@ class ConfTest(StructParseBaseNamed):
     namespace: str
     test_cases: tuple[TestCaseType, ...]
     duration: int
+    pre_provision: bool
     privileged_pod: bool
     capabilities_pod: Mapping[str, tuple[str, ...]]
     connections: tuple[ConfConnection, ...]
@@ -483,6 +504,7 @@ class ConfTest(StructParseBaseNamed):
             "namespace": self.namespace,
             "test_cases": [t.name for t in self.test_cases],
             "duration": self.duration,
+            "pre_provision": self.pre_provision,
             "privileged_pod": self.privileged_pod,
             "capabilities_pod": self.capabilities_pod,
             "connections": [c.serialize() for c in self.connections],
@@ -519,6 +541,11 @@ class ConfTest(StructParseBaseNamed):
             if duration == 0:
                 duration = 3600
 
+            pre_provision = common.structparse_pop_bool(
+                varg.for_key("pre_provision"),
+                default=False,
+            )
+
             privileged_pod = common.structparse_pop_bool(
                 varg.for_key("privileged_pod"),
                 default=False,
@@ -554,6 +581,7 @@ class ConfTest(StructParseBaseNamed):
             namespace=namespace,
             test_cases=tuple(test_cases),
             duration=duration,
+            pre_provision=pre_provision,
             privileged_pod=privileged_pod,
             capabilities_pod=capabilities_pod,
             connections=connections,
