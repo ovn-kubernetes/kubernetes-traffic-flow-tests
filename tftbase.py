@@ -1,6 +1,7 @@
 import dataclasses
 import functools
 import json
+import logging
 import math
 import os
 import re
@@ -32,6 +33,8 @@ ENV_TFT_TEST_IMAGE_DEFAULT = (
 
 ENV_TFT_MANIFESTS_OVERRIDES = "TFT_MANIFESTS_OVERRIDES"
 ENV_TFT_MANIFESTS_YAMLS = "TFT_MANIFESTS_YAMLS"
+
+ENV_TFT_CONTAINER_RUNTIME = "TFT_CONTAINER_RUNTIME"
 
 
 def get_environ(name: str) -> Optional[str]:
@@ -160,6 +163,23 @@ def get_tft_manifests_yamls() -> str:
 
     logger.info(f"env: {ENV_TFT_MANIFESTS_YAMLS}={shlex.quote(path)}")
     return path
+
+
+@functools.cache
+def get_container_runtime() -> str:
+    s = get_environ(ENV_TFT_CONTAINER_RUNTIME)
+    if s:
+        logger.info(f"env: {ENV_TFT_CONTAINER_RUNTIME}={shlex.quote(s)}")
+        return s
+    for candidate in ("podman", "docker"):
+        r = host.local.run(f"which {candidate}", log_level_fail=logging.DEBUG)
+        if r.success:
+            logger.info(f"env: {ENV_TFT_CONTAINER_RUNTIME}={candidate} (auto-detected)")
+            return candidate
+    raise RuntimeError(
+        f"No container runtime found. Install podman or docker, "
+        f"or set {ENV_TFT_CONTAINER_RUNTIME}."
+    )
 
 
 TFT_TESTS = "tft-tests"

@@ -49,8 +49,9 @@ class TrafficFlowTests:
         logger.info(
             f"Cleaning external containers {task.EXTERNAL_PERF_SERVER} (if present)"
         )
+        runtime = tftbase.get_container_runtime()
         host.local.run(
-            f"podman rm --force {task.EXTERNAL_PERF_SERVER}",
+            f"{runtime} rm --force {task.EXTERNAL_PERF_SERVER}",
             log_level_fail=logging.WARN,
             check_success=lambda r: (
                 r.success
