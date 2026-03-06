@@ -48,6 +48,11 @@ MNP_ACTION_DENY = "deny"
 MNP_DIRECTION_INGRESS = "ingress"
 MNP_DIRECTION_EGRESS = "egress"
 
+ANP_ACTION_ALLOW = "Allow"
+ANP_ACTION_DENY = "Deny"
+ANP_ACTION_PASS = "Pass"
+ANP_DEFAULT_PRIORITY = 50
+
 
 T = TypeVar("T")
 
@@ -903,11 +908,17 @@ class ServerTask(Task, ABC):
             )
 
         if self.connection_mode == ConnectionMode.ANP_ALLOW:
-            self.create_admin_network_policy("Allow", 50, self.port)
+            self.create_admin_network_policy(
+                ANP_ACTION_ALLOW, ANP_DEFAULT_PRIORITY, self.port
+            )
         elif self.connection_mode == ConnectionMode.ANP_DENY:
-            self.create_admin_network_policy("Deny", 50, self.port)
+            self.create_admin_network_policy(
+                ANP_ACTION_DENY, ANP_DEFAULT_PRIORITY, self.port
+            )
         elif self.connection_mode == ConnectionMode.ANP_PASS_NP_DENY:
-            self.create_admin_network_policy("Pass", 50, self.port)
+            self.create_admin_network_policy(
+                ANP_ACTION_PASS, ANP_DEFAULT_PRIORITY, self.port
+            )
             self.create_network_policy(self.port)
 
     def _get_template_args_args(self) -> list[str]:

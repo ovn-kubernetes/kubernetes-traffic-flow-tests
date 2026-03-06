@@ -228,13 +228,11 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
 @dataclass(frozen=True, kw_only=True)
 class ConfPlugin(_ConfBaseConnectionItem):
     plugin: Plugin
-    params: Mapping[str, Any] = dataclasses.field(default_factory=dict)
 
     @staticmethod
     def parse(pctx: StructParseParseContext) -> "ConfPlugin":
 
         is_plain_name = isinstance(pctx.arg, str)
-        params: dict[str, Any] = {}
 
         if is_plain_name:
             # For convenience, we allow that the entry is a plain string instead
@@ -243,17 +241,6 @@ class ConfPlugin(_ConfBaseConnectionItem):
         else:
             with pctx.with_strdict() as varg:
                 name = common.structparse_pop_str_name(varg.for_name())
-                params_val = common.structparse_pop_obj(
-                    varg.for_key("params"),
-                    construct=lambda x: x.arg,
-                    default=None,
-                )
-                if params_val is not None:
-                    if not isinstance(params_val, dict):
-                        raise ValueError(
-                            f"'{pctx.yamlpath}': 'params' must be a dictionary"
-                        )
-                    params = params_val
 
         plugin = _check_plugin_name(pctx, name, is_plain_name)
 
@@ -262,7 +249,6 @@ class ConfPlugin(_ConfBaseConnectionItem):
             yamlpath=pctx.yamlpath,
             name=name,
             plugin=plugin,
-            params=params,
         )
 
 
