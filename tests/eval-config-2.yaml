@@ -149,6 +149,21 @@ IPERF_TCP:
   Reverse:
     threshold: 9
   id: 30
+- Normal:
+    threshold: 18
+  Reverse:
+    threshold: 10
+  id: 31
+- Normal:
+    threshold: 18
+  Reverse:
+    threshold: 10
+  id: 32
+- Normal:
+    threshold: 18
+  Reverse:
+    threshold: 10
+  id: 33
 IPERF_UDP:
 - Normal:
     threshold: 5
@@ -300,3 +315,18 @@ IPERF_UDP:
   Reverse:
     threshold: 5
   id: 30
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 31
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 32
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 33

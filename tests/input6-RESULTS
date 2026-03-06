@@ -22,7 +22,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.131.0.16 -p 5201 --json -t 30",
         "result": {
@@ -1164,7 +1165,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.131.0.16 -p 5201 --json -t 30 -R",
         "result": {
@@ -2126,7 +2128,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.128.2.7 -p 5201 --json -t 30",
         "result": {
@@ -3268,7 +3271,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.128.2.7 -p 5201 --json -t 30 -R",
         "result": {
@@ -4230,7 +4234,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.194.190 -p 5201 --json -t 30",
         "result": {
@@ -5372,7 +5377,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.194.190 -p 5201 --json -t 30 -R",
         "result": {
@@ -6334,7 +6340,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.198.127 -p 5201 --json -t 30",
         "result": {
@@ -7476,7 +7483,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.198.127 -p 5201 --json -t 30 -R",
         "result": {
@@ -8438,7 +8446,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.245.46 -p 5201 --json -t 30",
         "result": {
@@ -9561,7 +9570,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.245.46 -p 5201 --json -t 30 -R",
         "result": {
@@ -10504,7 +10514,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.176.250 -p 5201 --json -t 30",
         "result": {
@@ -11627,7 +11638,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.176.250 -p 5201 --json -t 30 -R",
         "result": {
@@ -12570,7 +12582,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.132.135 -p 5201 --json -t 30",
         "result": {
@@ -13712,7 +13725,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.132.135 -p 5201 --json -t 30 -R",
         "result": {
@@ -14674,7 +14688,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.106.84 -p 5201 --json -t 30",
         "result": {
@@ -15816,7 +15831,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.106.84 -p 5201 --json -t 30 -R",
         "result": {
@@ -16778,7 +16794,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.196.105 -p 5201 --json -t 30",
         "result": {
@@ -17920,7 +17937,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.196.105 -p 5201 --json -t 30 -R",
         "result": {
@@ -18882,7 +18900,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.189.1 -p 5201 --json -t 30",
         "result": {
@@ -20024,7 +20043,8 @@
             "pod_type": "SRIOV",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.189.1 -p 5201 --json -t 30 -R",
         "result": {
@@ -20986,7 +21006,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.3 -p 5201 --json -t 10",
         "result": {
@@ -21411,7 +21432,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.3 -p 5201 --json -t 10 -R",
         "result": {
@@ -21776,7 +21798,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.7 -p 5201 --json -t 10",
         "result": {
@@ -22201,7 +22224,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.18.0.7 -p 5201 --json -t 10 -R",
         "result": {
@@ -22566,7 +22590,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.131.51 -p 5201 --json -t 30",
         "result": {
@@ -23689,7 +23714,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.131.51 -p 5201 --json -t 30 -R",
         "result": {
@@ -24632,7 +24658,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.132.174 -p 5201 --json -t 30",
         "result": {
@@ -25755,7 +25782,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.132.174 -p 5201 --json -t 30 -R",
         "result": {
@@ -26698,7 +26726,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.97.235 -p 5201 --json -t 30",
         "result": {
@@ -27802,7 +27831,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.97.235 -p 5201 --json -t 30 -R",
         "result": {
@@ -28726,7 +28756,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.54.85 -p 5201 --json -t 30",
         "result": {
@@ -29830,7 +29861,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.54.85 -p 5201 --json -t 30 -R",
         "result": {
@@ -30754,7 +30786,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.47.250 -p 5201 --json -t 30",
         "result": {
@@ -31877,7 +31910,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.47.250 -p 5201 --json -t 30 -R",
         "result": {
@@ -32820,7 +32854,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.149.127 -p 5201 --json -t 30",
         "result": {
@@ -33943,7 +33978,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.149.127 -p 5201 --json -t 30 -R",
         "result": {
@@ -34886,7 +34922,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.181.68 -p 5201 --json -t 30",
         "result": {
@@ -35990,7 +36027,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.181.68 -p 5201 --json -t 30 -R",
         "result": {
@@ -36914,7 +36952,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.226.236 -p 5201 --json -t 30",
         "result": {
@@ -38018,7 +38057,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 172.30.226.236 -p 5201 --json -t 30 -R",
         "result": {
@@ -38942,7 +38982,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.88.0.134 -p 5201 --json -t 30",
         "result": {
@@ -40046,7 +40087,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.88.0.135 -p 5201 --json -t 30 -R",
         "result": {
@@ -40970,7 +41012,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.88.0.136 -p 5201 --json -t 30",
         "result": {
@@ -42074,7 +42117,8 @@
             "pod_type": "HOSTBACKED",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.88.0.137 -p 5201 --json -t 30 -R",
         "result": {
@@ -42998,7 +43042,8 @@
             "pod_type": "NORMAL",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.192.10.40 -p 5201 --json -t 1",
         "result": {
@@ -43162,7 +43207,8 @@
             "pod_type": "NORMAL",
             "is_tenant": true,
             "index": 0
-          }
+          },
+          "expects_blocked": false
         },
         "command": "iperf3 -c 10.192.10.40 -p 5201 --json -t 1 -R",
         "result": {

@@ -11,6 +11,7 @@ import tftbase  # noqa: E402
 from tftbase import FlowTestOutput  # noqa: E402
 from tftbase import PodInfo  # noqa: E402
 from tftbase import PodType  # noqa: E402
+from tftbase import ConnectionMode  # noqa: E402
 from tftbase import TestCaseTypInfo  # noqa: E402
 from tftbase import TestCaseType  # noqa: E402
 from tftbase import TestMetadata  # noqa: E402
@@ -128,7 +129,7 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 30
+    assert list(TestCaseType)[-1].value == 33
     list_numeric = list(range(1, list(TestCaseType)[-1].value + 1))
     assert list_numeric == [typ.value for typ in tftbase.TestCaseType]
 
@@ -139,6 +140,7 @@ def test_test_case_typ_infos() -> None:
             and ti1.is_same_node == ti2.is_same_node
             and ti1.is_server_hostbacked == ti2.is_server_hostbacked
             and ti1.is_client_hostbacked == ti2.is_client_hostbacked
+            and ti1.expects_blocked == ti2.expects_blocked
         )
 
     for idx1, ti1 in enumerate(test_case_typ_infos):
@@ -148,6 +150,27 @@ def test_test_case_typ_infos() -> None:
         assert (
             ti1.test_case_type == (list(TestCaseType))[idx1]
         ), 'We expect that "_test_case_typ_infos" follows the same order as the values in the enum'
+
+
+def test_anp_test_case_info() -> None:
+    ti = TestCaseType.POD_TO_POD_ANP_ALLOW.info
+    assert ti.connection_mode == ConnectionMode.ANP_ALLOW
+    assert ti.is_same_node is False
+    assert ti.is_server_hostbacked is False
+    assert ti.is_client_hostbacked is False
+    assert ti.expects_blocked is False
+    assert ti.get_server_pod_type(PodType.NORMAL) == PodType.NORMAL
+    assert ti.get_client_pod_type(PodType.NORMAL) == PodType.NORMAL
+
+    ti = TestCaseType.POD_TO_POD_ANP_DENY.info
+    assert ti.connection_mode == ConnectionMode.ANP_DENY
+    assert ti.is_same_node is False
+    assert ti.expects_blocked is True
+
+    ti = TestCaseType.POD_TO_POD_ANP_PASS_NP_DENY.info
+    assert ti.connection_mode == ConnectionMode.ANP_PASS_NP_DENY
+    assert ti.is_same_node is False
+    assert ti.expects_blocked is True
 
 
 def test_eval_binary_opt_in() -> None:
