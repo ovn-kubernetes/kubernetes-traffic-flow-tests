@@ -20,14 +20,31 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 
 class TrafficFlowTests:
-    def _configure_namespace(self, cfg_descr: ConfigDescriptor) -> None:
+    def _configure_namespace(self, cfg_descr: ConfigDescriptor) -> bool:
         namespace = cfg_descr.get_tft().namespace
+        client = cfg_descr.tc.client_tenant
+
+        existing = client.oc_get(
+            f"namespace/{namespace}", may_fail=True, namespace=None
+        )
+        if not existing:
+            logger.info(f"Namespace {namespace} not found, creating it")
+            client.oc(f"create ns {namespace}", die_on_error=True, namespace=None)
+
         logger.info(f"Configuring namespace {namespace}")
-        cfg_descr.tc.client_tenant.oc(
+        client.oc(
             f"label ns --overwrite {namespace} pod-security.kubernetes.io/enforce=privileged \
                                         pod-security.kubernetes.io/enforce-version=v1.24 \
                                         security.openshift.io/scc.podSecurityLabelSync=false",
             die_on_error=True,
+        )
+        return not existing
+
+    def _cleanup_namespace(self, cfg_descr: ConfigDescriptor) -> None:
+        namespace = cfg_descr.get_tft().namespace
+        logger.info(f"Deleting namespace {namespace} (created by this run)")
+        cfg_descr.tc.client_tenant.oc(
+            f"delete ns {namespace}", may_fail=True, namespace=None
         )
 
     def _cleanup_previous_testspace(self, cfg_descr: ConfigDescriptor) -> None:
@@ -158,7 +175,7 @@ class TrafficFlowTests:
         evaluator: Evaluator,
     ) -> TftResults:
         test = cfg_descr.get_tft()
-        self._configure_namespace(cfg_descr)
+        ns_created = self._configure_namespace(cfg_descr)
         self._cleanup_previous_testspace(cfg_descr)
 
         logger.info(f"Running test {test.name} for {test.duration} seconds")
@@ -182,6 +199,9 @@ class TrafficFlowTests:
 
         if not result_status.result:
             logger.error(f"Failure detected in {cfg_descr.get_tft().name} results")
+
+        if ns_created:
+            self._cleanup_namespace(cfg_descr)
 
         return TftResults(
             lst=tft_results.lst,
