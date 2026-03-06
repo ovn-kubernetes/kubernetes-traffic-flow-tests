@@ -24,7 +24,6 @@ class TestTypeHandler(ABC):
     def create_server_client(
         self, ts: "TestSettings"
     ) -> tuple["ServerTask", "ClientTask"]:
-        logger.info(f"Starting test {ts.get_test_info()}")
         assert ts.connection.test_type == self.test_type
         return self._create_server_client(ts)
 
