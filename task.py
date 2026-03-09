@@ -332,8 +332,8 @@ class Task(ABC):
         return self.node.name
 
     @property
-    def node_name_sanitized(self) -> str:
-        return tftbase.str_sanitize(self.node_name)
+    def node_location(self) -> str:
+        return "same-node" if self.ts.test_case_id.info.is_same_node else "diff-node"
 
     def get_namespace(self) -> str:
         return self.ts.cfg_descr.get_tft().namespace
@@ -841,7 +841,7 @@ class ServerTask(Task, ABC):
 
         connection_mode = ts.connection_mode
         pod_type = ts.server_pod_type
-        node_name_sanitized = self.node_name_sanitized
+        node_location = self.node_location
         port = 5201 + self.index
 
         if connection_mode == ConnectionMode.EXTERNAL_IP:
@@ -853,18 +853,16 @@ class ServerTask(Task, ABC):
             ConnectionMode.MULTI_NETWORK_ALLOW,
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
-            pod_name = (
-                f"normal-pod-secondary-network-{node_name_sanitized}-server-{port}"
-            )
+            pod_name = f"normal-pod-secondary-network-{node_location}-server-{port}"
         elif pod_type == PodType.SRIOV:
             in_file_template = "sriov-pod.yaml.j2"
-            pod_name = f"sriov-pod-{node_name_sanitized}-server-{port}"
+            pod_name = f"sriov-pod-{node_location}-server-{port}"
         elif pod_type == PodType.NORMAL:
             in_file_template = "pod.yaml.j2"
-            pod_name = f"normal-pod-{node_name_sanitized}-server-{port}"
+            pod_name = f"normal-pod-{node_location}-server-{port}"
         elif pod_type == PodType.HOSTBACKED:
             in_file_template = "host-pod.yaml.j2"
-            pod_name = f"host-pod-{node_name_sanitized}-server-{port}"
+            pod_name = f"host-pod-{node_location}-server-{port}"
         else:
             raise ValueError("Invalid pod_type {pod_type}")
 
@@ -1102,7 +1100,7 @@ class ClientTask(Task, ABC):
         )
 
         pod_type = ts.client_pod_type
-        node_name_sanitized = self.node_name_sanitized
+        node_location = self.node_location
         port = server.port
         connection_mode = ts.connection_mode
 
@@ -1112,18 +1110,16 @@ class ClientTask(Task, ABC):
             ConnectionMode.MULTI_NETWORK_ALLOW,
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
-            pod_name = (
-                f"normal-pod-secondary-network-{node_name_sanitized}-client-{port}"
-            )
+            pod_name = f"normal-pod-secondary-network-{node_location}-client-{port}"
         elif pod_type == PodType.SRIOV:
             in_file_template = "sriov-pod.yaml.j2"
-            pod_name = f"sriov-pod-{node_name_sanitized}-client-{port}"
+            pod_name = f"sriov-pod-{node_location}-client-{port}"
         elif pod_type == PodType.NORMAL:
             in_file_template = "pod.yaml.j2"
-            pod_name = f"normal-pod-{node_name_sanitized}-client-{port}"
+            pod_name = f"normal-pod-{node_location}-client-{port}"
         elif pod_type == PodType.HOSTBACKED:
             in_file_template = "host-pod.yaml.j2"
-            pod_name = f"host-pod-{node_name_sanitized}-client-{port}"
+            pod_name = f"host-pod-{node_location}-client-{port}"
         else:
             raise ValueError("Invalid pod_type {pod_type}")
 
