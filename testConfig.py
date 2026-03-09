@@ -52,6 +52,20 @@ def _check_plugin_name(
         ) from None
 
 
+def _construct_test_cases(
+    pctx: StructParseParseContext,
+) -> tuple[TestCaseType, ...]:
+    arg = pctx.arg
+    if arg is None or (isinstance(arg, str) and arg == ""):
+        # By default, all test case are run.
+        arg = "*"
+    try:
+        lst = common.enum_convert_list(TestCaseType, arg)
+    except Exception:
+        raise pctx.value_error("value is not a valid list of test cases") from None
+    return tuple(lst)
+
+
 def _construct_capabilities_pod(
     pctx: StructParseParseContext,
 ) -> Mapping[str, tuple[str, ...]]:
@@ -228,6 +242,11 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
 @dataclass(frozen=True, kw_only=True)
 class ConfPlugin(_ConfBaseConnectionItem):
     plugin: Plugin
+    test_cases: Optional[tuple[TestCaseType, ...]]
+
+    def applies_to_test_case(self, test_case: TestCaseType) -> bool:
+        # If test_cases is None, the plugin runs for all test cases.
+        return self.test_cases is None or test_case in self.test_cases
 
     @staticmethod
     def parse(pctx: StructParseParseContext) -> "ConfPlugin":
@@ -238,9 +257,16 @@ class ConfPlugin(_ConfBaseConnectionItem):
             # For convenience, we allow that the entry is a plain string instead
             # of a dictionary with "name" entry.
             name = pctx.arg
+            test_cases = None
         else:
             with pctx.with_strdict() as varg:
                 name = common.structparse_pop_str_name(varg.for_name())
+                test_cases_raw = common.structparse_pop_obj(
+                    varg.for_key("test_cases"),
+                    construct=_construct_test_cases,
+                    default=None,
+                )
+                test_cases = test_cases_raw
 
         plugin = _check_plugin_name(pctx, name, is_plain_name)
 
@@ -249,6 +275,7 @@ class ConfPlugin(_ConfBaseConnectionItem):
             yamlpath=pctx.yamlpath,
             name=name,
             plugin=plugin,
+            test_cases=test_cases,
         )
 
 
@@ -476,21 +503,6 @@ class ConfTest(StructParseBaseNamed):
                 varg.for_key("namespace"),
                 default="default",
             )
-
-            def _construct_test_cases(
-                pctx2: StructParseParseContext,
-            ) -> tuple[TestCaseType, ...]:
-                arg = pctx2.arg
-                if arg is None or (isinstance(arg, str) and arg == ""):
-                    # By default, all test case are run.
-                    arg = "*"
-                try:
-                    lst = common.enum_convert_list(TestCaseType, arg)
-                except Exception:
-                    raise pctx2.value_error(
-                        "value is not a valid list of test cases"
-                    ) from None
-                return tuple(lst)
 
             test_cases = common.structparse_pop_obj(
                 varg.for_key("test_cases"),

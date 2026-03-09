@@ -97,7 +97,10 @@ class TrafficFlowTests:
         s, c = connection.test_type_handler.create_server_client(ts)
         servers.append(s)
         clients.append(c)
+        current_test_case = cfg_descr.get_test_case()
         for plugin in connection.plugins:
+            if not plugin.applies_to_test_case(current_test_case):
+                continue
             m = plugin.plugin.enable(
                 ts=ts,
                 perf_server=servers[-1],
