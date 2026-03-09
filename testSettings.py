@@ -174,4 +174,5 @@ class TestSettings:
                 is_tenant=self.client_is_tenant,
                 index=self.client_index,
             ),
+            expects_blocked=self.test_case_id.info.expects_blocked,
         )

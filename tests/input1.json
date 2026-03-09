@@ -17349,6 +17349,150 @@
         }
       },
       "plugins": []
+    },
+    {
+      "flow_test": {
+        "tft_metadata": {
+          "tft_idx": 0,
+          "test_cases_idx": 0,
+          "connections_idx": 0,
+          "test_case_id": "POD_TO_POD_ANP_DENY",
+          "test_type": "IPERF_TCP",
+          "reverse": false,
+          "server": {
+            "name": "worker-242",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 0
+          },
+          "client": {
+            "name": "worker-243",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 0
+          },
+          "expects_blocked": true
+        },
+        "command": "exec -t normal-pod-worker-243-client-5201 -- iperf3 -c 10.131.1.50 -p 5201 --json -t 10",
+        "result": {},
+        "bitrate_gbps": {
+          "tx": null,
+          "rx": null
+        }
+      },
+      "plugins": []
+    },
+    {
+      "flow_test": {
+        "tft_metadata": {
+          "tft_idx": 0,
+          "test_cases_idx": 0,
+          "connections_idx": 0,
+          "test_case_id": "POD_TO_POD_ANP_PASS_NP_DENY",
+          "test_type": "IPERF_TCP",
+          "reverse": false,
+          "server": {
+            "name": "worker-242",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 0
+          },
+          "client": {
+            "name": "worker-243",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 0
+          },
+          "expects_blocked": true
+        },
+        "command": "exec -t normal-pod-worker-243-client-5201 -- iperf3 -c 10.131.1.50 -p 5201 --json -t 10",
+        "result": {},
+        "bitrate_gbps": {
+          "tx": null,
+          "rx": null
+        }
+      },
+      "plugins": []
+    },
+    {
+      "flow_test": {
+        "tft_metadata": {
+          "tft_idx": 0,
+          "test_cases_idx": 0,
+          "connections_idx": 0,
+          "test_case_id": "POD_TO_POD_ANP_DENY",
+          "test_type": "IPERF_TCP",
+          "reverse": false,
+          "server": {
+            "name": "worker-242",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 1
+          },
+          "client": {
+            "name": "worker-243",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 1
+          },
+          "expects_blocked": true
+        },
+        "command": "exec -t normal-pod-worker-243-client-5201 -- iperf3 -c 10.131.1.50 -p 5201 --json -t 10",
+        "result": {},
+        "bitrate_gbps": {
+          "tx": 25.5,
+          "rx": 24.8
+        }
+      },
+      "plugins": []
+    },
+    {
+      "flow_test": {
+        "tft_metadata": {
+          "tft_idx": 0,
+          "test_cases_idx": 0,
+          "connections_idx": 0,
+          "test_case_id": "POD_TO_POD_ANP_ALLOW",
+          "test_type": "IPERF_TCP",
+          "reverse": false,
+          "server": {
+            "name": "worker-242",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 0
+          },
+          "client": {
+            "name": "worker-243",
+            "pod_type": "NORMAL",
+            "is_tenant": true,
+            "index": 0
+          },
+          "expects_blocked": false
+        },
+        "command": "exec -t normal-pod-worker-243-client-5201 -- iperf3 -c 10.131.1.50 -p 5201 --json -t 10",
+        "result": {
+          "start": {
+            "tcp_mss_default": 1348
+          },
+          "end": {
+            "sum_sent": {
+              "bytes": 28991029248,
+              "bits_per_second": 24500000000.0,
+              "seconds": 10.0
+            },
+            "sum_received": {
+              "bytes": 28800000000,
+              "bits_per_second": 24200000000.0,
+              "seconds": 10.0
+            }
+          }
+        },
+        "bitrate_gbps": {
+          "tx": 24.5,
+          "rx": 24.2
+        }
+      },
+      "plugins": []
     }
   ]
 }

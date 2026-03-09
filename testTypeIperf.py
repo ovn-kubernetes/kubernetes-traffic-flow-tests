@@ -199,6 +199,12 @@ class IperfClient(task.ClientTask):
                     success = False
                     msg = f'Output of "{cmd}" does not contain expected data: {r.debug_msg()}'
 
+            # For deny tests, iperf3 failing to connect is the expected outcome
+            test_metadata = self.ts.get_test_metadata()
+            if not success and test_metadata.expects_blocked:
+                success = True
+                msg = "Traffic was blocked as expected (deny policy active)"
+
             return FlowTestOutput(
                 success=success,
                 msg=msg,
@@ -218,6 +224,9 @@ class IperfClient(task.ClientTask):
         result: tftbase.AggregatableOutput,
     ) -> None:
         assert isinstance(result, FlowTestOutput)
+        if result.tft_metadata.expects_blocked:
+            logger.info("Traffic was blocked as expected, no iperf3 results to log")
+            return
         if self.test_type == TestType.IPERF_TCP:
             ResultTcp(result.result).log()
         else:
