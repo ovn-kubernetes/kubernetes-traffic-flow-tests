@@ -1,0 +1,46 @@
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: {{ anp_name }}
+  labels:
+    tft-tests: {{ label_tft_tests }}
+spec:
+  priority: {{ anp_priority }}
+  subject:
+    pods:
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: {{ name_space }}
+      podSelector:
+        matchLabels:
+          tft-tests: {{ label_tft_tests }}
+  ingress:
+    - name: tft-ingress-rule
+      action: {{ anp_action }}
+      from:
+        - pods:
+            namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: {{ name_space }}
+            podSelector:
+              matchLabels:
+                tft-tests: {{ label_tft_tests }}
+      ports:
+        - portNumber:
+            port: {{ anp_port }}
+            protocol: TCP
+  egress:
+    - name: tft-egress-rule
+      action: {{ anp_action }}
+      to:
+        - pods:
+            namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: {{ name_space }}
+            podSelector:
+              matchLabels:
+                tft-tests: {{ label_tft_tests }}
+      ports:
+        - portNumber:
+            port: {{ anp_port }}
+            protocol: TCP

@@ -108,6 +108,9 @@ kubeconfig_infra: (21)
     | 28 | POD_TO_POD_2ND_INTERFACE_DIFF_NODE |
     | 29 | POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW |
     | 30 | POD_TO_POD_MULTI_NETWORK_POLICY_DENY |
+    | 31 | POD_TO_POD_ANP_ALLOW |
+    | 32 | POD_TO_POD_ANP_DENY |
+    | 33 | POD_TO_POD_ANP_PASS_NP_DENY |
 4. "duration" - The duration that each individual test will run for.
 5. "name" - This is the connection name. Any string value to identify the connection.
 6. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
@@ -137,7 +140,6 @@ tool will try to autopopulate resource_name based on the secondary+network_nad p
   are detected based on the files we find at /root/kubeconfig.*.
 22. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
-
 ## DPU Mode
 
 When running with a DPU (Data Processing Unit) cluster, the `validate_offload` plugin needs
@@ -225,6 +227,60 @@ Or as a list:
               - "10G"
               - "--parallel"
               - "4"
+```
+
+## AdminNetworkPolicy Tests
+
+[AdminNetworkPolicy](https://network-policy-api.sigs.k8s.io/api-overview/#adminnetworkpolicy) (ANP)
+is a cluster-scoped policy that allows cluster administrators to enforce network traffic rules
+before namespace-scoped NetworkPolicies are evaluated. ANP rules can Allow, Deny, or Pass
+traffic. Pass delegates the decision to NetworkPolicies in the namespace.
+
+Three test cases validate ANP behavior, each with the action baked into the test case type:
+
+| ID | Test Case | ANP Action | Expected Result |
+| -- | --------- | ---------- | --------------- |
+| 31 | `POD_TO_POD_ANP_ALLOW` | Allow | Traffic flows |
+| 32 | `POD_TO_POD_ANP_DENY` | Deny | Traffic blocked |
+| 33 | `POD_TO_POD_ANP_PASS_NP_DENY` | Pass (delegates to NP Deny) | Traffic blocked |
+
+Each test creates an AdminNetworkPolicy (priority 50) with ingress and egress rules targeting
+test pods in the namespace. For `POD_TO_POD_ANP_PASS_NP_DENY`, a deny-all NetworkPolicy is
+also created to block traffic after ANP delegates. Tests that expect blocked traffic pass when
+the connection fails, and fail if traffic flows unexpectedly.
+
+### Examples
+
+Allow and deny tests can run in the same test suite:
+
+```yaml
+tft:
+  - name: "ANP Allow Test"
+    test_cases: POD_TO_POD_ANP_ALLOW
+    connections:
+      - name: "anp-allow"
+        server:
+          - name: "worker-1"
+        client:
+          - name: "worker-2"
+
+  - name: "ANP Deny Test"
+    test_cases: POD_TO_POD_ANP_DENY
+    connections:
+      - name: "anp-deny"
+        server:
+          - name: "worker-1"
+        client:
+          - name: "worker-2"
+
+  - name: "ANP Pass with NP Deny"
+    test_cases: POD_TO_POD_ANP_PASS_NP_DENY
+    connections:
+      - name: "anp-pass-np-deny"
+        server:
+          - name: "worker-1"
+        client:
+          - name: "worker-2"
 ```
 
 ## Environment variables

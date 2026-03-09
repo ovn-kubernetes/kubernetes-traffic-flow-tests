@@ -326,6 +326,9 @@ class TestCaseType(Enum):
     POD_TO_POD_2ND_INTERFACE_DIFF_NODE = 28
     POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW = 29
     POD_TO_POD_MULTI_NETWORK_POLICY_DENY = 30
+    POD_TO_POD_ANP_ALLOW = 31
+    POD_TO_POD_ANP_DENY = 32
+    POD_TO_POD_ANP_PASS_NP_DENY = 33
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -340,6 +343,9 @@ class ConnectionMode(Enum):
     MULTI_HOME = 5
     MULTI_NETWORK_ALLOW = 6
     MULTI_NETWORK_DENY = 7
+    ANP_ALLOW = 8
+    ANP_DENY = 9
+    ANP_PASS_NP_DENY = 10
 
 
 @strict_dataclass
@@ -436,6 +442,7 @@ class TestMetadata:
     reverse: bool
     server: PodInfo
     client: PodInfo
+    expects_blocked: bool = False
 
 
 @strict_dataclass
@@ -504,15 +511,19 @@ class FlowTestOutput(AggregatableOutput):
 
     @property
     def eval_msg(self) -> Optional[str]:
+        # Check eval_result first - it has the final evaluation decision
+        if self.eval_result is not None:
+            if self.eval_result.success:
+                return None
+            if self.eval_result.msg is not None:
+                return self.eval_result.msg
+            return "evaluation failed"
+        # Fallback if no eval_result (shouldn't happen after evaluation)
         if not self.success:
             if self.msg is not None:
                 return self.msg
-        elif self.eval_result is not None and not self.eval_result.success:
-            if self.eval_result.msg is not None:
-                return self.eval_result.msg
-        else:
-            return None
-        return "unspecified failure"
+            return "unspecified failure"
+        return None
 
 
 @strict_dataclass
@@ -764,6 +775,7 @@ class TestCaseTypInfo:
     is_same_node: bool
     is_server_hostbacked: bool
     is_client_hostbacked: bool
+    expects_blocked: bool = False
 
     @property
     def node_location(self) -> str:
@@ -998,6 +1010,29 @@ _test_case_typ_infos = {
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_ANP_ALLOW,
+            connection_mode=ConnectionMode.ANP_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_ANP_DENY,
+            connection_mode=ConnectionMode.ANP_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_ANP_PASS_NP_DENY,
+            connection_mode=ConnectionMode.ANP_PASS_NP_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
         ),
     )
 }

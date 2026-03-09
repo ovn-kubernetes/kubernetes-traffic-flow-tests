@@ -34,7 +34,7 @@ class TrafficFlowTests:
         namespace = cfg_descr.get_tft().namespace
         client = cfg_descr.tc.client_tenant
         logger.info(
-            f"Cleaning pods, services and multi-networkpolicies with label tft-tests in namespace {namespace}"
+            f"Cleaning pods, services, multi-networkpolicies, admin-networkpolicies with label tft-tests in namespace {namespace}"
         )
         client.oc("delete pods -l tft-tests", namespace=namespace)
         client.oc("delete services -l tft-tests", namespace=namespace)
@@ -43,6 +43,19 @@ class TrafficFlowTests:
             namespace=namespace,
             check_success=client.check_success_delete_ignore_noexist(
                 "multi-networkpolicies"
+            ),
+        )
+        client.oc(
+            "delete networkpolicies -l tft-tests",
+            namespace=namespace,
+            check_success=client.check_success_delete_ignore_noexist("networkpolicies"),
+        )
+
+        client.oc(
+            "delete adminnetworkpolicies -l tft-tests",
+            namespace=None,
+            check_success=client.check_success_delete_ignore_noexist(
+                "adminnetworkpolicies"
             ),
         )
 

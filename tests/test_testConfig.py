@@ -143,6 +143,31 @@ def test_config1() -> None:
     _check_testConfig(tc)
 
 
+def test_anp_config() -> None:
+    for test_case_name in (
+        "POD_TO_POD_ANP_ALLOW",
+        "POD_TO_POD_ANP_DENY",
+        "POD_TO_POD_ANP_PASS_NP_DENY",
+    ):
+        full_config = yaml.safe_load(f"""
+tft:
+  - test_cases:
+      - {test_case_name}
+    connections:
+    - name: test-conn
+      server:
+        - name: server-node
+      client:
+        - name: client-node
+""")
+        tc = testConfig.TestConfig(
+            full_config=full_config,
+            kubeconfigs=testConfigKubeconfigsArgs1,
+        )
+        assert tc.config.tft[0].test_cases[0] == TestCaseType[test_case_name]
+        _check_testConfig(tc)
+
+
 def test_config2() -> None:
     full_config_str = """
 tft:
