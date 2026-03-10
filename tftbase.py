@@ -329,6 +329,7 @@ class TestCaseType(Enum):
     POD_TO_POD_ANP_ALLOW = 31
     POD_TO_POD_ANP_DENY = 32
     POD_TO_POD_ANP_PASS_NP_DENY = 33
+    POD_TO_EXTERNAL_EGRESS = 34
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -1033,6 +1034,13 @@ _test_case_typ_infos = {
             is_server_hostbacked=False,
             is_client_hostbacked=False,
             expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_EXTERNAL_EGRESS,
+            connection_mode=ConnectionMode.EXTERNAL_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
         ),
     )
 }
