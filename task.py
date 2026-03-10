@@ -1,4 +1,5 @@
 import enum
+import ipaddress
 import json
 import logging
 import os
@@ -829,6 +830,63 @@ class Task(ABC):
 
         return None
 
+    def create_egressip(self, egress_ip: str, egress_node: str) -> str:
+        """Set up EgressIP: validate, label node, and create EgressIP CR.
+
+        Validates the egress node exists and the IP is in its subnet,
+        labels the node as egress-assignable, and applies the EgressIP CR.
+        """
+        # Validate egress node exists
+        self.run_oc(f"get node {egress_node}", namespace=None, die_on_error=True)
+
+        # Validate egress IP is in the node's subnet
+        result = self.run_oc(
+            f"get node {egress_node} -o jsonpath='{{.metadata.annotations.k8s\\.ovn\\.org/node-primary-ifaddr}}'",
+            namespace=None,
+            die_on_error=True,
+        )
+        ifaddr = json.loads(result.out.strip().strip("'\""))
+        if "ipv4" not in ifaddr:
+            raise RuntimeError(
+                f"Node {egress_node} has no ipv4 entry in node-primary-ifaddr annotation"
+            )
+        network = ipaddress.ip_network(ifaddr["ipv4"], strict=False)
+        if ipaddress.ip_address(egress_ip) not in network:
+            raise ValueError(
+                f"EgressIP '{egress_ip}' is not in node network '{network}'"
+            )
+        logger.info(f"Validated egress IP {egress_ip} is in node network {network}")
+
+        # Label the node as egress-assignable
+        self.run_oc(
+            f"label node {egress_node} k8s.ovn.org/egress-assignable=true --overwrite",
+            namespace=None,
+            die_on_error=True,
+        )
+
+        # Render and apply the EgressIP CR
+        egressip_name = f"egressip-{tftbase.str_sanitize(egress_node)}"
+        in_file_template = tftbase.get_manifest("egressip.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(f"{egressip_name}.yaml")
+
+        template_args = {
+            **self.get_template_args(),
+            "egressip_name": f'"{egressip_name}"',
+            "egress_ips_yaml": f"      - {egress_ip}",
+        }
+
+        self.render_file("EgressIP CR", in_file_template, out_file_yaml, template_args)
+        self.run_oc(
+            f"apply -f {out_file_yaml}",
+            namespace=None,
+            die_on_error=True,
+        )
+        return self.run_oc(
+            f"get egressip {egressip_name}",
+            namespace=None,
+            die_on_error=True,
+        ).out
+
 
 class ServerTask(Task, ABC):
     def __init__(self, ts: TestSettings):
@@ -1139,6 +1197,15 @@ class ClientTask(Task, ABC):
         super().initialize()
         self.render_pod_file("Client Pod Yaml")
 
+        # Set up EgressIP if configured
+        conn = self.ts.connection
+        if conn.has_egress_ip:
+            assert conn.egress_ip is not None
+            self.create_egressip(
+                conn.egress_ip.ip,
+                conn.get_effective_egress_node(self.ts.node_client.name),
+            )
+
     def get_target_ip(self) -> str:
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
             logger.debug(
@@ -1151,6 +1218,12 @@ class ClientTask(Task, ABC):
             )
             return self.server.nodeport_ip_addr
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
+            external_server_ip = self.ts.connection.external_server_ip
+            if external_server_ip is not None:
+                logger.debug(
+                    f"get_target_ip() External connection to configured server {external_server_ip}"
+                )
+                return external_server_ip
             # For port forwarding, connect to the host's IP, not the container's internal IP
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")

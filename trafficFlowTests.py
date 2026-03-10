@@ -76,6 +76,28 @@ class TrafficFlowTests:
             ),
         )
 
+        # Clean up EgressIP CRs with tft-tests label (cluster-scoped)
+        client.oc(
+            "delete egressip -l tft-tests",
+            namespace=None,
+            check_success=client.check_success_delete_ignore_noexist("egressip"),
+        )
+
+        # Remove egress-assignable label from any nodes that have it
+        result = client.oc(
+            "get nodes -l k8s.ovn.org/egress-assignable -o jsonpath='{.items[*].metadata.name}'",
+            namespace=None,
+            may_fail=True,
+        )
+        if result.success and result.out.strip().strip("'\""):
+            for node_name in result.out.strip().strip("'\"").split():
+                logger.info(f"Removing egress-assignable label from node {node_name}")
+                client.oc(
+                    f"label node {node_name} k8s.ovn.org/egress-assignable-",
+                    namespace=None,
+                    may_fail=True,
+                )
+
         logger.info(
             f"Cleaning external containers {task.EXTERNAL_PERF_SERVER} (if present)"
         )
