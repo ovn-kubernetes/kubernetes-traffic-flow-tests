@@ -141,6 +141,9 @@ class IperfClient(task.ClientTask):
         target_port = self.get_target_port()
         cmd = f"{IPERF_EXE} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
 
+        if self.ts.test_case_id.info.expects_blocked:
+            cmd += " --connect-timeout 5000"
+
         if self.test_type == TestType.IPERF_UDP:
             cmd += f" {IPERF_UDP_OPT}"
 
