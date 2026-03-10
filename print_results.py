@@ -67,6 +67,38 @@ def print_tft_results(
         print_tft_result(tft_result, log=log)
 
 
+def log_test_summary(
+    tft_results: tftbase.TftResults,
+    *,
+    log: typing.Callable[[str], None] = print,
+) -> None:
+    log("=== Test Case Summary ===")
+    for result in tft_results:
+        log("")
+        ft = result.flow_test
+        if ft is not None:
+            meta = ft.tft_metadata
+            tc_id = meta.test_case_id
+            test_type = meta.test_type.name
+            reverse = ", reverse" if meta.reverse else ""
+            if ft.eval_success:
+                status = "\033[32mSuccess\033[0m"
+            else:
+                status = "\033[31mFail\033[0m"
+            label = f"[{tc_id.value}] {tc_id.name} ({test_type}{reverse})"
+            log(f"  {label:<60} {status}")
+        for plugin in result.plugins:
+            plugin_name = plugin.plugin_metadata.plugin_name
+            role = plugin.plugin_metadata.task_role
+            if plugin.eval_success:
+                plugin_status = "\033[32mSuccess\033[0m"
+            else:
+                plugin_status = "\033[31mFail\033[0m"
+            role_str = f" ({role})" if role else ""
+            plugin_label = f"plugin: {plugin_name}{role_str}"
+            log(f"    {plugin_label:<58} {plugin_status}")
+
+
 def process_results(
     tft_results: tftbase.TftResults,
     *,
