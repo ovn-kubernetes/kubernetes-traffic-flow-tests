@@ -1027,7 +1027,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -1052,7 +1053,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -1065,7 +1067,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -1078,7 +1081,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -1108,7 +1112,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -1138,7 +1143,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -1990,7 +1996,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -2015,7 +2022,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -2028,7 +2036,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -2041,7 +2050,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -2071,7 +2081,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -2101,7 +2112,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -3133,7 +3145,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -3158,7 +3171,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -3171,7 +3185,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -3184,7 +3199,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -3214,7 +3230,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -3244,7 +3261,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -4096,7 +4114,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -4121,7 +4140,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -4134,7 +4154,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -4147,7 +4168,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -4177,7 +4199,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -4207,7 +4230,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -5239,7 +5263,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -5264,7 +5289,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -5277,7 +5303,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -5290,7 +5317,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -5320,7 +5348,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -5350,7 +5379,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -6202,7 +6232,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -6227,7 +6258,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -6240,7 +6272,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -6253,7 +6286,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -6283,7 +6317,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -6313,7 +6348,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -7345,7 +7381,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -7370,7 +7407,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -7383,7 +7421,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -7396,7 +7435,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -7426,7 +7466,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -7456,7 +7497,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -8308,7 +8350,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -8333,7 +8376,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -8346,7 +8390,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -8359,7 +8404,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -8389,7 +8435,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -8419,7 +8466,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -9451,7 +9499,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -9476,7 +9525,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -9489,7 +9539,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -9502,7 +9553,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -9513,7 +9565,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -9543,7 +9596,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -10395,7 +10449,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -10420,7 +10475,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -10433,7 +10489,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -10446,7 +10503,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -10457,7 +10515,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -10487,7 +10546,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -11519,7 +11579,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -11544,7 +11605,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -11557,7 +11619,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -11570,7 +11633,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -11581,7 +11645,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -11611,7 +11676,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -12463,7 +12529,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -12488,7 +12555,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -12501,7 +12569,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -12514,7 +12583,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -12525,7 +12595,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -12555,7 +12626,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -13587,7 +13659,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -13612,7 +13685,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -13625,7 +13699,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -13638,7 +13713,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -13668,7 +13744,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -13698,7 +13775,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -14550,7 +14628,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -14575,7 +14654,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -14588,7 +14668,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -14601,7 +14682,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -14631,7 +14713,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -14661,7 +14744,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -15693,7 +15777,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -15718,7 +15803,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -15731,7 +15817,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -15744,7 +15831,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -15774,7 +15862,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -15804,7 +15893,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -16656,7 +16746,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -16681,7 +16772,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -16694,7 +16786,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -16707,7 +16800,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -16737,7 +16831,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -16767,7 +16862,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -17799,7 +17895,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -17824,7 +17921,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -17837,7 +17935,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -17850,7 +17949,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -17880,7 +17980,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -17910,7 +18011,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -18762,7 +18864,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -18787,7 +18890,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -18800,7 +18904,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -18813,7 +18918,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -18843,7 +18949,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -18873,7 +18980,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -19905,7 +20013,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -19930,7 +20039,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -19943,7 +20053,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -19956,7 +20067,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -19986,7 +20098,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -20016,7 +20129,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -20868,7 +20982,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -20893,7 +21008,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -20906,7 +21022,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -20919,7 +21036,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -20949,7 +21067,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -20979,7 +21098,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -23595,7 +23715,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -23620,7 +23741,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -23633,7 +23755,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -23646,7 +23769,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -23676,7 +23800,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -23687,7 +23812,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -24539,7 +24665,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -24564,7 +24691,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -24577,7 +24705,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -24590,7 +24719,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -24620,7 +24750,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -24631,7 +24762,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -25663,7 +25795,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -25688,7 +25821,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -25701,7 +25835,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -25714,7 +25849,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -25744,7 +25880,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -25755,7 +25892,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -26607,7 +26745,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -26632,7 +26771,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -26645,7 +26785,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -26658,7 +26799,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -26688,7 +26830,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -26699,7 +26842,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -27731,7 +27875,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -27756,7 +27901,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -27769,7 +27915,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -27782,7 +27929,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -27793,7 +27941,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -27804,7 +27953,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -28656,7 +28806,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -28681,7 +28832,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -28694,7 +28846,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -28707,7 +28860,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -28718,7 +28872,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -28729,7 +28884,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -29761,7 +29917,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -29786,7 +29943,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -29799,7 +29957,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -29812,7 +29971,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -29823,7 +29983,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -29834,7 +29995,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -30686,7 +30848,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -30711,7 +30874,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -30724,7 +30888,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -30737,7 +30902,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -30748,7 +30914,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -30759,7 +30926,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -31791,7 +31959,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -31816,7 +31985,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -31829,7 +31999,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -31842,7 +32013,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -31872,7 +32044,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -31883,7 +32056,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -32735,7 +32909,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -32760,7 +32935,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -32773,7 +32949,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -32786,7 +32963,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -32816,7 +32994,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -32827,7 +33006,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -33859,7 +34039,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -33884,7 +34065,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -33897,7 +34079,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -33910,7 +34093,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -33940,7 +34124,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -33951,7 +34136,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -34803,7 +34989,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -34828,7 +35015,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -34841,7 +35029,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -34854,7 +35043,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -34884,7 +35074,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -34895,7 +35086,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -35927,7 +36119,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -35952,7 +36145,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -35965,7 +36159,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -35978,7 +36173,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -35989,7 +36185,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -36000,7 +36197,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -36852,7 +37050,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -36877,7 +37076,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -36890,7 +37090,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -36903,7 +37104,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -36914,7 +37116,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -36925,7 +37128,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -37957,7 +38161,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -37982,7 +38187,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -37995,7 +38201,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -38008,7 +38215,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -38019,7 +38227,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -38030,7 +38239,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -38882,7 +39092,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -38907,7 +39118,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -38920,7 +39132,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -38933,7 +39146,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -38944,7 +39158,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -38955,7 +39170,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -39987,7 +40203,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -40012,7 +40229,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -40025,7 +40243,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -40038,7 +40257,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -40049,7 +40269,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -40060,7 +40281,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -40912,7 +41134,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -40937,7 +41160,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -40950,7 +41174,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -40963,7 +41188,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -40974,7 +41200,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -40985,7 +41212,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -42017,7 +42245,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -42042,7 +42271,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -42055,7 +42285,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -42068,7 +42299,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -42079,7 +42311,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -42090,7 +42323,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
@@ -42942,7 +43176,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -42967,7 +43202,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -42980,7 +43216,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-measure-cpu"
+            "pod_name": "tools-pod-worker-225-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -42993,7 +43230,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-measure-cpu"
+            "pod_name": "tools-pod-worker-226-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -43004,7 +43242,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-225",
-            "pod_name": "tools-pod-worker-225-validate-offload"
+            "pod_name": "tools-pod-worker-225-validate-offload",
+            "plugin_role": "server"
           }
         },
         {
@@ -43015,7 +43254,8 @@
           "plugin_metadata": {
             "plugin_name": "validate_offload",
             "node_name": "worker-226",
-            "pod_name": "tools-pod-worker-226-validate-offload"
+            "pod_name": "tools-pod-worker-226-validate-offload",
+            "plugin_role": "client"
           }
         }
       ]
