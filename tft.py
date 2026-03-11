@@ -179,6 +179,9 @@ def main() -> int:
         f"test completed with {'success' if exit_code == 0 else 'failure'} (duration: {common.format_duration(duration)})"
     )
 
+    for tft_results in tft_results_lst:
+        print_results.log_test_summary(tft_results, log=logger.info)
+
     if not args_check:
         return 0
     return exit_code

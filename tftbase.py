@@ -429,6 +429,7 @@ class PluginMetadata:
     plugin_name: str
     node_name: str
     pod_name: str
+    task_role: str = ""
 
 
 @strict_dataclass
