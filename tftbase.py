@@ -324,11 +324,14 @@ class TestCaseType(Enum):
     HOST_TO_EXTERNAL = 26
     POD_TO_POD_2ND_INTERFACE_SAME_NODE = 27
     POD_TO_POD_2ND_INTERFACE_DIFF_NODE = 28
-    POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW = 29
-    POD_TO_POD_MULTI_NETWORK_POLICY_DENY = 30
-    POD_TO_POD_ANP_ALLOW = 31
-    POD_TO_POD_ANP_DENY = 32
-    POD_TO_POD_ANP_PASS_NP_DENY = 33
+    POD_TO_POD_2ND_INTERFACE_MNP_ALLOW = 29
+    POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND = 30
+    POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND = 31
+    POD_TO_POD_ANP_ALLOW = 32
+    POD_TO_POD_ANP_DENY = 33
+    POD_TO_POD_ANP_PASS_NP_DENY = 34
+    POD_TO_POD_NP_DENY = 35
+    POD_TO_POD_NP_ALLOW = 36
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -341,11 +344,14 @@ class ConnectionMode(Enum):
     NODE_PORT_IP = 3
     EXTERNAL_IP = 4
     MULTI_HOME = 5
-    MULTI_NETWORK_ALLOW = 6
-    MULTI_NETWORK_DENY = 7
-    ANP_ALLOW = 8
-    ANP_DENY = 9
-    ANP_PASS_NP_DENY = 10
+    MNP_2ND_ALLOW = 6
+    MNP_2ND_DENY = 7
+    MNP_PRIMARY_DENY = 8
+    ANP_ALLOW = 9
+    ANP_DENY = 10
+    ANP_PASS_NP_DENY = 11
+    NP_DENY = 12
+    NP_ALLOW = 13
 
 
 @strict_dataclass
@@ -998,15 +1004,23 @@ _test_case_typ_infos = {
             is_client_hostbacked=False,
         ),
         TestCaseTypInfo(
-            test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW,
-            connection_mode=ConnectionMode.MULTI_NETWORK_ALLOW,
+            test_case_type=TestCaseType.POD_TO_POD_2ND_INTERFACE_MNP_ALLOW,
+            connection_mode=ConnectionMode.MNP_2ND_ALLOW,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
         ),
         TestCaseTypInfo(
-            test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY_DENY,
-            connection_mode=ConnectionMode.MULTI_NETWORK_DENY,
+            test_case_type=TestCaseType.POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND,
+            connection_mode=ConnectionMode.MNP_2ND_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND,
+            connection_mode=ConnectionMode.MNP_PRIMARY_DENY,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
@@ -1033,6 +1047,21 @@ _test_case_typ_infos = {
             is_server_hostbacked=False,
             is_client_hostbacked=False,
             expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_NP_DENY,
+            connection_mode=ConnectionMode.NP_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_NP_ALLOW,
+            connection_mode=ConnectionMode.NP_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
         ),
     )
 }

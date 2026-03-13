@@ -43,14 +43,9 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 EXTERNAL_PERF_SERVER = "external-perf-server"
 
-MNP_ACTION_ALLOW = "allow"
-MNP_ACTION_DENY = "deny"
-MNP_DIRECTION_INGRESS = "ingress"
-MNP_DIRECTION_EGRESS = "egress"
-
-ANP_ACTION_ALLOW = "Allow"
-ANP_ACTION_DENY = "Deny"
-ANP_ACTION_PASS = "Pass"
+NP_ACTION_ALLOW = "Allow"
+NP_ACTION_DENY = "Deny"
+NP_ACTION_PASS = "Pass"
 ANP_DEFAULT_PRIORITY = 50
 
 
@@ -552,6 +547,15 @@ class Task(ABC):
             raise RuntimeError("Failure to get static.podIP for {self.pod_name}")
         return pod_ip
 
+    def get_primary_ip(self) -> str:
+        y = self.run_oc_get(f"pod/{self.pod_name}", die_on_error=True)
+        pod_ip = None
+        if y:
+            pod_ip = y["status"]["podIP"]
+        if not isinstance(pod_ip, str):
+            raise RuntimeError(f"Failure to get podIP for {self.pod_name}")
+        return pod_ip
+
     def get_secondary_ip(self) -> str:
         jsonpath = "{.metadata.annotations.k8s\\.ovn\\.org\\/pod-networks}"
         r = self.run_oc(
@@ -602,20 +606,23 @@ class Task(ABC):
             die_on_error=True,
         ).out
 
-    def _create_multi_network_policy(
-        self, action: str, direction: str, port: int
-    ) -> str:
-        name = f"{action}-{direction}-mnp"
-        in_file_template = tftbase.get_manifest(f"{name}.yaml.j2")
-        out_file_yaml = tftbase.get_manifest_renderpath(f"{name}.yaml")
+    def _create_multi_network_policy(self, action: str, port: int) -> str:
+        action = action.lower()
+        mnp_name = f"{action}-mnp"
+        in_file_template = tftbase.get_manifest("multi-network-policy.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"mnp-{self.pod_name}-{action}.yaml"
+        )
 
         template_args = {
             **self.get_template_args(),
-            f"{direction}_port": _j(port),
+            "mnp_name": _j(mnp_name),
+            "mnp_action": action,
+            "mnp_port": _j(port),
         }
 
         self.render_file(
-            f"{action.title()} {direction.title()} Multi Network Policy",
+            f"{action.title()} Multi Network Policy",
             in_file_template,
             out_file_yaml,
             template_args,
@@ -626,7 +633,7 @@ class Task(ABC):
             die_on_error=True,
         )
         return self.run_oc(
-            f"get multi-networkpolicies {name}",
+            f"get multi-networkpolicies {mnp_name}",
             die_on_error=True,
         ).out
 
@@ -644,7 +651,7 @@ class Task(ABC):
         }
 
         self.render_file(
-            "Admin Network Policy",
+            f"{action.title()} Admin Network Policy",
             in_file_template,
             out_file_yaml,
             template_args,
@@ -661,18 +668,23 @@ class Task(ABC):
             die_on_error=True,
         ).out
 
-    def create_network_policy(self, port: int) -> str:
-        np_name = f"tft-np-deny-{self.index}"
-        in_file_template = tftbase.get_manifest("network-policy-deny.yaml.j2")
-        out_file_yaml = tftbase.get_manifest_renderpath(f"np-{self.pod_name}.yaml")
+    def create_network_policy(self, port: int, action: str = NP_ACTION_DENY) -> str:
+        action = action.lower()
+        np_name = f"tft-np-{action}-{self.index}"
+        in_file_template = tftbase.get_manifest("network-policy.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"np-{self.pod_name}-{action}.yaml"
+        )
 
         template_args = {
             **self.get_template_args(),
             "np_name": np_name,
+            "np_action": action,
+            "np_port": _j(port),
         }
 
         self.render_file(
-            "Network Policy Deny",
+            f"{action.title()} Network Policy",
             in_file_template,
             out_file_yaml,
             template_args,
@@ -849,8 +861,9 @@ class ServerTask(Task, ABC):
             pod_name = EXTERNAL_PERF_SERVER
         elif connection_mode in (
             ConnectionMode.MULTI_HOME,
-            ConnectionMode.MULTI_NETWORK_DENY,
-            ConnectionMode.MULTI_NETWORK_ALLOW,
+            ConnectionMode.MNP_2ND_DENY,
+            ConnectionMode.MNP_2ND_ALLOW,
+            ConnectionMode.MNP_PRIMARY_DENY,
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-network-{node_location}-server-{port}"
@@ -890,34 +903,32 @@ class ServerTask(Task, ABC):
             self.cluster_ip_addr = self.create_cluster_ip_service()
             self.nodeport_ip_addr = self.create_node_port_service(self.port + 25000)
 
-        if self.connection_mode == ConnectionMode.MULTI_NETWORK_DENY:
-            self._create_multi_network_policy(
-                MNP_ACTION_DENY, MNP_DIRECTION_INGRESS, self.port
-            )
-            self._create_multi_network_policy(
-                MNP_ACTION_DENY, MNP_DIRECTION_EGRESS, self.port
-            )
-        elif self.connection_mode == ConnectionMode.MULTI_NETWORK_ALLOW:
-            self._create_multi_network_policy(
-                MNP_ACTION_ALLOW, MNP_DIRECTION_INGRESS, self.port
-            )
-            self._create_multi_network_policy(
-                MNP_ACTION_ALLOW, MNP_DIRECTION_EGRESS, self.port
-            )
-
+        if self.connection_mode in (
+            ConnectionMode.MNP_2ND_DENY,
+            ConnectionMode.MNP_PRIMARY_DENY,
+        ):
+            self._create_multi_network_policy(NP_ACTION_DENY, self.port)
+        elif self.connection_mode == ConnectionMode.MNP_2ND_ALLOW:
+            self._create_multi_network_policy(NP_ACTION_DENY, self.port)
+            self._create_multi_network_policy(NP_ACTION_ALLOW, self.port)
         if self.connection_mode == ConnectionMode.ANP_ALLOW:
             self.create_admin_network_policy(
-                ANP_ACTION_ALLOW, ANP_DEFAULT_PRIORITY, self.port
+                NP_ACTION_ALLOW, ANP_DEFAULT_PRIORITY, self.port
             )
         elif self.connection_mode == ConnectionMode.ANP_DENY:
             self.create_admin_network_policy(
-                ANP_ACTION_DENY, ANP_DEFAULT_PRIORITY, self.port
+                NP_ACTION_DENY, ANP_DEFAULT_PRIORITY, self.port
             )
         elif self.connection_mode == ConnectionMode.ANP_PASS_NP_DENY:
             self.create_admin_network_policy(
-                ANP_ACTION_PASS, ANP_DEFAULT_PRIORITY, self.port
+                NP_ACTION_PASS, ANP_DEFAULT_PRIORITY, self.port
             )
-            self.create_network_policy(self.port)
+            self.create_network_policy(self.port, NP_ACTION_DENY)
+        elif self.connection_mode == ConnectionMode.NP_DENY:
+            self.create_network_policy(self.port, NP_ACTION_DENY)
+        elif self.connection_mode == ConnectionMode.NP_ALLOW:
+            self.create_network_policy(self.port, NP_ACTION_DENY)
+            self.create_network_policy(self.port, NP_ACTION_ALLOW)
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:
@@ -1106,8 +1117,9 @@ class ClientTask(Task, ABC):
 
         if connection_mode in (
             ConnectionMode.MULTI_HOME,
-            ConnectionMode.MULTI_NETWORK_DENY,
-            ConnectionMode.MULTI_NETWORK_ALLOW,
+            ConnectionMode.MNP_2ND_DENY,
+            ConnectionMode.MNP_2ND_ALLOW,
+            ConnectionMode.MNP_PRIMARY_DENY,
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-network-{node_location}-client-{port}"
@@ -1157,10 +1169,14 @@ class ClientTask(Task, ABC):
             return host_ip
         elif self.connection_mode in (
             ConnectionMode.MULTI_HOME,
-            ConnectionMode.MULTI_NETWORK_ALLOW,
+            ConnectionMode.MNP_2ND_DENY,
+            ConnectionMode.MNP_2ND_ALLOW,
         ):
-            server_ip2 = self.server.get_secondary_ip()
-            return server_ip2
+            server_ip = self.server.get_secondary_ip()
+            return server_ip
+        elif self.connection_mode == ConnectionMode.MNP_PRIMARY_DENY:
+            server_ip = self.server.get_primary_ip()
+            return server_ip
         server_ip = self.server.get_pod_ip()
         logger.debug(f"get_target_ip() Connection to server at {server_ip}")
         return server_ip

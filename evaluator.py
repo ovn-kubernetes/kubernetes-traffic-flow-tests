@@ -13,6 +13,7 @@ import evalConfig
 import tftbase
 
 from tftbase import FlowTestOutput
+from tftbase import TestType
 from tftbase import TftResult
 from tftbase import TftResults
 
@@ -45,7 +46,10 @@ class Evaluator:
         msg: Optional[str] = None
 
         # Handle expects_blocked case (e.g., ANP Deny tests)
-        if flow_test.tft_metadata.expects_blocked:
+        if (
+            flow_test.tft_metadata.expects_blocked
+            and flow_test.tft_metadata.test_type != TestType.HTTP
+        ):
             if not flow_test.bitrate_gbps.is_na and (
                 (
                     flow_test.bitrate_gbps.tx is not None
