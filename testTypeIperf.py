@@ -201,9 +201,13 @@ class IperfClient(task.ClientTask):
 
             # For deny tests, iperf3 failing to connect is the expected outcome
             test_metadata = self.ts.get_test_metadata()
-            if not success and test_metadata.expects_blocked:
-                success = True
-                msg = "Traffic was blocked as expected (deny policy active)"
+            if test_metadata.expects_blocked:
+                if success:
+                    success = False
+                    msg = f"Expected traffic to be blocked but got throughput {bitrate_gbps}"
+                else:
+                    success = True
+                    msg = "Traffic was blocked as expected (deny policy active)"
 
             return FlowTestOutput(
                 success=success,
