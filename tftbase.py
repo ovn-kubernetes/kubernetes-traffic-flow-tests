@@ -164,6 +164,23 @@ def get_tft_manifests_yamls() -> str:
 
 TFT_TESTS = "tft-tests"
 
+ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
+ENV_TFT_UDN_SECONDARY_CIDR = "TFT_UDN_SECONDARY_CIDR"
+
+
+@functools.cache
+def get_udn_primary_cidr() -> str:
+    s = get_environ(ENV_TFT_UDN_PRIMARY_CIDR) or "15.1.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_PRIMARY_CIDR}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_udn_secondary_cidr() -> str:
+    s = get_environ(ENV_TFT_UDN_SECONDARY_CIDR) or "15.2.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_SECONDARY_CIDR}={shlex.quote(s)}")
+    return s
+
 
 T = typing.TypeVar("T")
 
@@ -329,6 +346,26 @@ class TestCaseType(Enum):
     POD_TO_POD_ANP_ALLOW = 31
     POD_TO_POD_ANP_DENY = 32
     POD_TO_POD_ANP_PASS_NP_DENY = 33
+    UDN_PRIMARY_POD_TO_POD_SAME_NODE = 34
+    UDN_PRIMARY_POD_TO_POD_DIFF_NODE = 35
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 36
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 37
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 38
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 39
+    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 40
+    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 41
+
+    @property
+    def is_udn(self) -> bool:
+        return self.name.startswith("UDN_")
+
+    @property
+    def is_udn_primary(self) -> bool:
+        return self.name.startswith("UDN_PRIMARY_")
+
+    @property
+    def is_udn_secondary(self) -> bool:
+        return self.name.startswith("UDN_SECONDARY_")
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -1033,6 +1070,62 @@ _test_case_typ_infos = {
             is_server_hostbacked=False,
             is_client_hostbacked=False,
             expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
         ),
     )
 }

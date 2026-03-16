@@ -1,0 +1,14 @@
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: primary
+  namespace: {{ name_space }}
+  labels:
+    tft-tests: "udn"
+spec:
+  topology: Layer3
+  layer3:
+    role: Primary
+    subnets:
+    - cidr: {{ primary_cidr }}
+      hostSubnet: 24

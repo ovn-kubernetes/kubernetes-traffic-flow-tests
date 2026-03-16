@@ -201,6 +201,46 @@ IPERF_TCP:
       threshold: 0
     Reverse:
       threshold: 0
+  - id: UDN_PRIMARY_POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_PRIMARY_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_SECONDARY_POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_SECONDARY_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
 IPERF_UDP:
   - id: POD_TO_POD_SAME_NODE
     Normal:
@@ -367,3 +407,43 @@ IPERF_UDP:
       threshold: 0
     Reverse:
       threshold: 0
+  - id: UDN_PRIMARY_POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_PRIMARY_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_SECONDARY_POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_SECONDARY_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
