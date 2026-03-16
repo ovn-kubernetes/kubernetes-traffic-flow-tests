@@ -157,11 +157,6 @@ class TrafficFlowTests:
             f"Found existing UDN namespace {udn_ns} from a previous run, cleaning up"
         )
         client.oc(f"delete userdefinednetwork --all -n {udn_ns}", may_fail=True)
-        client.oc(f"delete namespace {udn_ns}", may_fail=True)
-        client.oc(
-            f"wait --for=delete namespace/{udn_ns} --timeout=120s",
-            may_fail=True,
-        )
 
     def _cleanup_previous_testspace(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
@@ -192,8 +187,9 @@ class TrafficFlowTests:
             return
         udn_ns = self._udn_ns
         client = cfg_descr.tc.client_tenant
-        client.oc(f"delete userdefinednetwork --all -n {udn_ns}", may_fail=True)
+        client.oc(f"delete userdefinednetwork -l tft-tests -n {udn_ns}", may_fail=True)
         if self._udn_ns_created:
+            logger.info(f"Deleting UDN namespace {udn_ns}")
             client.oc(f"delete namespace {udn_ns}", may_fail=True)
         self._udn_ns = None
         self._udn_ns_created = False
@@ -336,8 +332,10 @@ class TrafficFlowTests:
                 filename=str(log_file),
             )
         finally:
+            self._cleanup_previous_testspace(cfg_descr)
             self._cleanup_udn(cfg_descr)
             if ns_created:
+                logger.info(f"Deleting namespace {cfg_descr.get_tft().namespace}")
                 cfg_descr.tc.client_tenant.oc(
                     f"delete ns {cfg_descr.get_tft().namespace}",
                     may_fail=True,

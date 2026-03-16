@@ -384,8 +384,8 @@ class Task(ABC):
     def _get_effective_secondary_network_nad(self) -> str:
         nad = self.ts.connection.effective_secondary_network_nad
         if self.ts.test_case_id.is_udn:
-            nad_name = nad.split("/")[-1]
-            nad = f"{self.get_namespace()}/{nad_name}"
+            # NAD name for UDN is hard coded in manifests/udn-secondary.yaml.j2 as tft-secondary
+            nad = f"{self.get_namespace()}/tft-secondary"
         return nad
 
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
@@ -545,6 +545,7 @@ class Task(ABC):
         pod_ip = None
         try:
             if y:
+                pod_ip = y["status"]["podIP"]
                 if self.ts.test_case_id.is_udn_primary:
                     pod_networks_str = y["metadata"]["annotations"].get(
                         "k8s.ovn.org/pod-networks", ""
@@ -574,8 +575,6 @@ class Task(ABC):
                         if network["name"] == nad:
                             pod_ip = network["ips"][0]
                             break
-                else:
-                    pod_ip = y["status"]["podIP"]
         except Exception as e:
             logger.error(f"Error retrieving pod IP for {self.pod_name}: {e}")
         if not isinstance(pod_ip, str):
