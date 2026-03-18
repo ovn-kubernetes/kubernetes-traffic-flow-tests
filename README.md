@@ -327,6 +327,9 @@ tft:
      defaults to "manifests/yamls".
 - `TFT_KUBECONFIG`, `TFT_KUBECONFIG_INFRA` to overwrite the kubeconfigs from the configuration
      file. See also the "--kubeconfig" and "--kubeconfig-infra" command line options.
+- `TFT_CONTAINER_RUNTIME` the OCI container runtime used for EXTERNAL_IP test cases (25, 26).
+     If not set, auto-detected by checking for `podman` then `docker`. Set to `podman` or
+     `docker` to force a specific runtime.
 
 ## File Transfer via magic-wormhole
 

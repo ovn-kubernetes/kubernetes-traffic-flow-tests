@@ -973,11 +973,11 @@ class ServerTask(Task, ABC):
 
     def confirm_server_alive(self) -> None:
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
-            # Podman scenario
+            runtime = tftbase.get_container_runtime()
             end_time = time.monotonic() + 60
             while time.monotonic() < end_time:
                 r = self.lh.run(
-                    f"podman ps --filter status=running --filter name={self.pod_name} --format '{{{{.Names}}}}'"
+                    f"{runtime} ps --filter status=running --filter name={self.pod_name} --format '{{{{.Names}}}}'"
                 )
                 if self.pod_name in r.out:
                     break
@@ -998,21 +998,20 @@ class ServerTask(Task, ABC):
     def _get_server_listen_protocol(self) -> Optional[str]:
         return None
 
-    def _discover_podman_port(self) -> int:
-        """Query podman to find the auto-assigned host port for EXTERNAL_IP mode."""
-        # Use podman inspect with JSON output for reliable parsing
+    def _discover_container_port(self) -> int:
+        """Query the container runtime to find the auto-assigned host port for EXTERNAL_IP mode."""
+        runtime = tftbase.get_container_runtime()
         r = self.lh.run(
-            f"podman inspect --format '{{{{json .NetworkSettings.Ports}}}}' {self.pod_name}",
+            f"{runtime} port {self.pod_name} {self.port}",
             log_level_fail=logging.DEBUG,
         )
         if r.success and r.out.strip():
             try:
-                # Output format: {"5201/tcp":[{"HostIp":"0.0.0.0","HostPort":"12345"}]}
-                ports = json.loads(r.out.strip())
-                port_key = f"{self.port}/tcp"
-                if port_key in ports and ports[port_key]:
-                    return int(ports[port_key][0]["HostPort"])
-            except (json.JSONDecodeError, KeyError, IndexError, ValueError):
+                # Output format: "0.0.0.0:32768" or "0.0.0.0:32768\n:::32768"
+                first_line = r.out.strip().splitlines()[0]
+                host_port = first_line.rsplit(":", 1)[1]
+                return int(host_port)
+            except (IndexError, ValueError):
                 pass
         return 0
 
@@ -1033,7 +1032,7 @@ class ServerTask(Task, ABC):
 
             # For EXTERNAL_IP, first discover the port if not yet known
             if is_external and self.external_port == 0:
-                self.external_port = self._discover_podman_port()
+                self.external_port = self._discover_container_port()
                 if self.external_port > 0:
                     logger.info(f"Discovered external port: {self.external_port}")
 
@@ -1059,7 +1058,7 @@ class ServerTask(Task, ABC):
 
         # Timeout - determine appropriate error message
         if is_external and self.external_port == 0:
-            error_msg = f"Failed to discover podman port within {max_wait_time}s"
+            error_msg = f"Failed to discover container port within {max_wait_time}s"
         else:
             check_port = self.external_port if is_external else self.port
             error_msg = f"Server failed to start listening on port {check_port} within {max_wait_time}s"
@@ -1084,16 +1083,20 @@ class ServerTask(Task, ABC):
         th_cmd = self._create_setup_operation_get_thread_action_cmd()
 
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
+            runtime = tftbase.get_container_runtime()
             pull_policy = ""
             if tftbase.get_tft_image_pull_policy() == "Always":
                 pull_policy = " --pull=always"
 
-            # Use -p {port} to let podman auto-assign a free host port
             test_image = tftbase.get_tft_test_image_for_type(
                 self.ts.connection.test_type
             )
-            cmd = f"podman run -it --replace --rm -p {self.port} --name={self.pod_name}{pull_policy} {test_image} {th_cmd}"
-            cancel_cmd = f"podman rm --force {self.pod_name}"
+            self.lh.run(
+                f"{runtime} rm --force {self.pod_name}",
+                log_level_fail=logging.DEBUG,
+            )
+            cmd = f"{runtime} run --rm -p {self.port} --name={self.pod_name}{pull_policy} {test_image} {th_cmd}"
+            cancel_cmd = f"{runtime} rm --force {self.pod_name}"
         else:
             self.setup_pod()
             ca_cmd = self._create_setup_operation_get_cancel_action_cmd()
@@ -1233,21 +1236,22 @@ class ClientTask(Task, ABC):
                 pass
         raise RuntimeError("Failed to get host IP address from default route")
 
-    def get_podman_ip(self, pod_name: str) -> str:
-        cmd = "podman inspect --format '{{.NetworkSettings.IPAddress}}' " + pod_name
+    def get_container_ip(self, pod_name: str) -> str:
+        runtime = tftbase.get_container_runtime()
+        cmd = f"{runtime} inspect --format '{{{{.NetworkSettings.IPAddress}}}}' {pod_name}"
 
         for _ in range(5):
             ret = self.lh.run(cmd)
             if ret.success:
                 ip_address = ret.out.strip()
                 if ip_address:
-                    logger.debug(f"get_podman_ip({pod_name}) found: {ip_address}")
+                    logger.debug(f"get_container_ip({pod_name}) found: {ip_address}")
                     return ip_address
 
             time.sleep(2)
 
         raise Exception(
-            f"get_podman_ip(): failed to get {pod_name} ip after 5 attempts"
+            f"get_container_ip(): failed to get {pod_name} ip after 5 attempts"
         )
 
 
