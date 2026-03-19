@@ -57,6 +57,10 @@ MNP_DIRECTION_EGRESS = "egress"
 ANP_ACTION_ALLOW = "Allow"
 ANP_ACTION_DENY = "Deny"
 ANP_ACTION_PASS = "Pass"
+
+NP_ACTION_ALLOW = "Allow"
+NP_ACTION_DENY = "Deny"
+NP_ACTION_PASS = "Pass"
 ANP_DEFAULT_PRIORITY = 50
 
 
@@ -743,18 +747,23 @@ class Task(ABC):
             die_on_error=True,
         ).out
 
-    def create_network_policy(self, port: int) -> str:
-        np_name = f"tft-np-deny-{self.index}"
-        in_file_template = tftbase.get_manifest("network-policy-deny.yaml.j2")
-        out_file_yaml = tftbase.get_manifest_renderpath(f"np-{self.pod_name}.yaml")
+    def create_network_policy(self, port: int, action: str = NP_ACTION_DENY) -> str:
+        action = action.lower()
+        np_name = f"tft-np-{action}-{self.index}"
+        in_file_template = tftbase.get_manifest("network-policy.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"np-{self.pod_name}-{action}.yaml"
+        )
 
         template_args = {
             **self.get_template_args(),
             "np_name": np_name,
+            "np_action": action,
+            "np_port": _j(port),
         }
 
         self.render_file(
-            "Network Policy Deny",
+            f"{action.title()} Network Policy",
             in_file_template,
             out_file_yaml,
             template_args,
@@ -1168,7 +1177,12 @@ class ServerTask(Task, ABC):
                 self.create_admin_network_policy(
                     ANP_ACTION_PASS, ANP_DEFAULT_PRIORITY, self.port
                 )
-                self.create_network_policy(self.port)
+                self.create_network_policy(self.port, NP_ACTION_DENY)
+            elif self.connection_mode == ConnectionMode.NP_DENY:
+                self.create_network_policy(self.port, NP_ACTION_DENY)
+            elif self.connection_mode == ConnectionMode.NP_ALLOW:
+                self.create_network_policy(self.port, NP_ACTION_DENY)
+                self.create_network_policy(self.port, NP_ACTION_ALLOW)
 
         def _run_cmd(cmd: str) -> BaseOutput:
             # We ignore the exit code of the command, that is because this is

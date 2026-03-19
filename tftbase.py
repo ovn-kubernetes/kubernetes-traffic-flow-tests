@@ -346,14 +346,16 @@ class TestCaseType(Enum):
     POD_TO_POD_ANP_ALLOW = 31
     POD_TO_POD_ANP_DENY = 32
     POD_TO_POD_ANP_PASS_NP_DENY = 33
-    UDN_PRIMARY_POD_TO_POD_SAME_NODE = 34
-    UDN_PRIMARY_POD_TO_POD_DIFF_NODE = 35
-    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 36
-    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 37
-    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 38
-    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 39
-    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 40
-    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 41
+    POD_TO_POD_NP_DENY = 34
+    POD_TO_POD_NP_ALLOW = 35
+    UDN_PRIMARY_POD_TO_POD_SAME_NODE = 36
+    UDN_PRIMARY_POD_TO_POD_DIFF_NODE = 37
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 38
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 39
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 40
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 41
+    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 42
+    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 43
 
     @property
     def is_udn(self) -> bool:
@@ -383,6 +385,8 @@ class ConnectionMode(Enum):
     ANP_ALLOW = 8
     ANP_DENY = 9
     ANP_PASS_NP_DENY = 10
+    NP_DENY = 11
+    NP_ALLOW = 12
 
 
 @strict_dataclass
@@ -1071,6 +1075,21 @@ _test_case_typ_infos = {
             is_server_hostbacked=False,
             is_client_hostbacked=False,
             expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_NP_DENY,
+            connection_mode=ConnectionMode.NP_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_NP_ALLOW,
+            connection_mode=ConnectionMode.NP_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
         ),
         TestCaseTypInfo(
             test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_POD_SAME_NODE,
