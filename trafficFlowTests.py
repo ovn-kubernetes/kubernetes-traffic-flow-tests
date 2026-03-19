@@ -216,6 +216,8 @@ class TrafficFlowTests:
                 ConnectionMode.ANP_ALLOW,
                 ConnectionMode.ANP_DENY,
                 ConnectionMode.ANP_PASS_NP_DENY,
+                ConnectionMode.NP_DENY,
+                ConnectionMode.NP_ALLOW,
             ):
                 self._cleanup_multi_network_policies(cfg_descr)
 
