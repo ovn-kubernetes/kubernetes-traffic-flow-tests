@@ -358,29 +358,30 @@ class TestCaseType(Enum):
     HOST_TO_EXTERNAL = 26
     POD_TO_POD_2ND_INTERFACE_SAME_NODE = 27
     POD_TO_POD_2ND_INTERFACE_DIFF_NODE = 28
-    POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW = 29
-    POD_TO_POD_MULTI_NETWORK_POLICY_DENY = 30
-    POD_TO_POD_ANP_ALLOW = 31
-    POD_TO_POD_ANP_DENY = 32
-    POD_TO_POD_ANP_PASS_NP_DENY = 33
-    POD_TO_POD_NP_DENY = 34
-    POD_TO_POD_NP_ALLOW = 35
-    UDN_PRIMARY_POD_TO_POD_SAME_NODE = 36
-    UDN_PRIMARY_POD_TO_POD_DIFF_NODE = 37
-    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 38
-    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 39
-    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 40
-    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 41
-    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 42
-    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 43
-    POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 44
-    POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 45
-    POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 46
-    POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 47
-    HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 48
-    HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 49
-    HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 50
-    HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 51
+    POD_TO_POD_2ND_INTERFACE_MNP_ALLOW_2ND = 29
+    POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND = 30
+    POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND = 31
+    POD_TO_POD_ANP_ALLOW = 32
+    POD_TO_POD_ANP_DENY = 33
+    POD_TO_POD_ANP_PASS_NP_DENY = 34
+    POD_TO_POD_NP_DENY = 35
+    POD_TO_POD_NP_ALLOW = 36
+    UDN_PRIMARY_POD_TO_POD_SAME_NODE = 37
+    UDN_PRIMARY_POD_TO_POD_DIFF_NODE = 38
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 39
+    UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 40
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 41
+    UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 42
+    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 43
+    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 44
+    POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 45
+    POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 46
+    POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 47
+    POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 48
+    HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 49
+    HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 50
+    HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 51
+    HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 52
 
     @property
     def is_udn(self) -> bool:
@@ -405,14 +406,15 @@ class ConnectionMode(Enum):
     NODE_PORT_IP = 3
     EXTERNAL_IP = 4
     MULTI_HOME = 5
-    MULTI_NETWORK_ALLOW = 6
-    MULTI_NETWORK_DENY = 7
-    ANP_ALLOW = 8
-    ANP_DENY = 9
-    ANP_PASS_NP_DENY = 10
-    NP_DENY = 11
-    NP_ALLOW = 12
-    LOAD_BALANCER = 13
+    MNP_2ND_ALLOW = 6
+    MNP_2ND_DENY = 7
+    MNP_PRIMARY_DENY = 8
+    ANP_ALLOW = 9
+    ANP_DENY = 10
+    ANP_PASS_NP_DENY = 11
+    NP_DENY = 12
+    NP_ALLOW = 13
+    LOAD_BALANCER = 14
 
 
 @strict_dataclass
@@ -1066,15 +1068,23 @@ _test_case_typ_infos = {
             is_client_hostbacked=False,
         ),
         TestCaseTypInfo(
-            test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW,
-            connection_mode=ConnectionMode.MULTI_NETWORK_ALLOW,
+            test_case_type=TestCaseType.POD_TO_POD_2ND_INTERFACE_MNP_ALLOW_2ND,
+            connection_mode=ConnectionMode.MNP_2ND_ALLOW,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
         ),
         TestCaseTypInfo(
-            test_case_type=TestCaseType.POD_TO_POD_MULTI_NETWORK_POLICY_DENY,
-            connection_mode=ConnectionMode.MULTI_NETWORK_DENY,
+            test_case_type=TestCaseType.POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND,
+            connection_mode=ConnectionMode.MNP_2ND_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND,
+            connection_mode=ConnectionMode.MNP_PRIMARY_DENY,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
