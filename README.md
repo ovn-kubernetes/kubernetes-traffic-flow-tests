@@ -108,19 +108,20 @@ kubeconfig_infra: (22)
     | 26 | HOST_TO_EXTERNAL |
     | 27 | POD_TO_POD_2ND_INTERFACE_SAME_NODE |
     | 28 | POD_TO_POD_2ND_INTERFACE_DIFF_NODE |
-    | 29 | POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW |
-    | 30 | POD_TO_POD_MULTI_NETWORK_POLICY_DENY |
-    | 31 | POD_TO_POD_ANP_ALLOW |
-    | 32 | POD_TO_POD_ANP_DENY |
-    | 33 | POD_TO_POD_ANP_PASS_NP_DENY |
-    | 34 | UDN_PRIMARY_POD_TO_POD_SAME_NODE |
-    | 35 | UDN_PRIMARY_POD_TO_POD_DIFF_NODE |
-    | 36 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 37 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 38 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 39 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 40 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
-    | 41 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
+    | 29 | POD_TO_POD_2ND_INTERFACE_MNP_ALLOW |
+    | 30 | POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND |
+    | 31 | POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND |
+    | 32 | POD_TO_POD_ANP_ALLOW |
+    | 33 | POD_TO_POD_ANP_DENY |
+    | 34 | POD_TO_POD_ANP_PASS_NP_DENY |
+    | 35 | UDN_PRIMARY_POD_TO_POD_SAME_NODE |
+    | 36 | UDN_PRIMARY_POD_TO_POD_DIFF_NODE |
+    | 37 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 38 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 39 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 40 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 41 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
+    | 42 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -144,7 +145,7 @@ kubeconfig_infra: (22)
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
 17a. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-18. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-30, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-29 it defaults to "tft-secondary" if not set.
+18. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-31, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-31 it defaults to "tft-secondary" if not set.
 19. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
 tool will try to autopopulate resource_name based on the secondary+network_nad provided.
 20. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
@@ -267,9 +268,9 @@ Three test cases validate ANP behavior, each with the action baked into the test
 
 | ID | Test Case | ANP Action | Expected Result |
 | -- | --------- | ---------- | --------------- |
-| 31 | `POD_TO_POD_ANP_ALLOW` | Allow | Traffic flows |
-| 32 | `POD_TO_POD_ANP_DENY` | Deny | Traffic blocked |
-| 33 | `POD_TO_POD_ANP_PASS_NP_DENY` | Pass (delegates to NP Deny) | Traffic blocked |
+| 32 | `POD_TO_POD_ANP_ALLOW` | Allow | Traffic flows |
+| 33 | `POD_TO_POD_ANP_DENY` | Deny | Traffic blocked |
+| 34 | `POD_TO_POD_ANP_PASS_NP_DENY` | Pass (delegates to NP Deny) | Traffic blocked |
 
 Each test creates an AdminNetworkPolicy (priority 50) with ingress and egress rules targeting
 test pods in the namespace. For `POD_TO_POD_ANP_PASS_NP_DENY`, a deny-all NetworkPolicy is

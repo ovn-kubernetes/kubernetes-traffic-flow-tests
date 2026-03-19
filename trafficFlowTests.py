@@ -195,8 +195,9 @@ class TrafficFlowTests:
         else:
             connection_mode = cfg_descr.get_test_case().info.connection_mode
             if connection_mode in (
-                ConnectionMode.MULTI_NETWORK_DENY,
-                ConnectionMode.MULTI_NETWORK_ALLOW,
+                ConnectionMode.MNP_2ND_DENY,
+                ConnectionMode.MNP_2ND_ALLOW,
+                ConnectionMode.MNP_PRIMARY_DENY,
                 ConnectionMode.ANP_ALLOW,
                 ConnectionMode.ANP_DENY,
                 ConnectionMode.ANP_PASS_NP_DENY,
