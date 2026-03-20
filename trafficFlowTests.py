@@ -15,6 +15,7 @@ from evaluator import Evaluator
 from task import Task
 from testConfig import ConfigDescriptor
 from testSettings import TestSettings
+from tftbase import ConnectionMode
 from tftbase import TftResult
 from tftbase import TftResults
 
@@ -116,16 +117,14 @@ class TrafficFlowTests:
             client.oc(f"apply -f {out_yaml}", die_on_error=True)
 
         self._configure_namespace(cfg_descr, namespace=udn_ns)
-        self._cleanup_namespace(cfg_descr, udn_ns)
         self._udn_setup_done = True
 
-    def _cleanup_namespace(self, cfg_descr: ConfigDescriptor, namespace: str) -> None:
+    def _cleanup_multi_network_policies(self, cfg_descr: ConfigDescriptor) -> None:
+        namespace = cfg_descr.get_tft().namespace
         client = cfg_descr.tc.client_tenant
         logger.info(
-            f"Cleaning pods, services, multi-networkpolicies, admin-networkpolicies with label tft-tests in namespace {namespace}"
+            f"Cleaning multi-networkpolicies and admin-networkpolicies with label tft-tests in namespace {namespace}"
         )
-        client.oc("delete pods -l tft-tests", namespace=namespace)
-        client.oc("delete services -l tft-tests", namespace=namespace)
         client.oc(
             "delete multi-networkpolicies -l tft-tests",
             namespace=namespace,
@@ -156,31 +155,53 @@ class TrafficFlowTests:
         logger.info(
             f"Found existing UDN namespace {udn_ns} from a previous run, cleaning up"
         )
-        client.oc(f"delete userdefinednetwork --all -n {udn_ns}", may_fail=True)
-
-    def _cleanup_previous_testspace(self, cfg_descr: ConfigDescriptor) -> None:
-        tft = cfg_descr.get_tft()
-        namespace = tft.namespace
-        self._cleanup_namespace(cfg_descr, namespace)
-        udn_ns = f"{namespace}-udn"
-        if (
-            self._udn_setup_done
-            or cfg_descr.tc.client_tenant.oc_get(f"namespace/{udn_ns}", may_fail=True)
-            is not None
-        ):
-            self._cleanup_namespace(cfg_descr, udn_ns)
-
-        logger.info(
-            f"Cleaning external containers {task.EXTERNAL_PERF_SERVER} (if present)"
+        client.oc(f"delete userdefinednetwork -l tft-tests -n {udn_ns}", may_fail=True)
+        client.oc(f"delete namespace {udn_ns}", may_fail=True)
+        client.oc(
+            f"wait --for=delete namespace/{udn_ns} --timeout=120s",
+            may_fail=True,
         )
-        host.local.run(
-            f"podman rm --force {task.EXTERNAL_PERF_SERVER}",
-            log_level_fail=logging.WARN,
-            check_success=lambda r: (
-                r.success
-                or (r.returncode == 1 and "no container with name or ID" in r.err)
-            ),
-        )
+
+    def _cleanup_previous_testspace(
+        self, cfg_descr: ConfigDescriptor, force_cleanup: bool = False
+    ) -> None:
+        pre_provision = cfg_descr.get_tft().pre_provision
+        namespace = cfg_descr.get_tft().namespace
+        client = cfg_descr.tc.client_tenant
+        if not pre_provision or force_cleanup:
+            logger.info(
+                f"Cleaning pods and services with label tft-tests in namespace {namespace}"
+            )
+            client.oc("delete pods -l tft-tests", namespace=namespace)
+            client.oc("delete services -l tft-tests", namespace=namespace)
+            self._cleanup_multi_network_policies(cfg_descr)
+
+            if self._udn_setup_done:
+                udn_ns = f"{namespace}-udn"
+                client.oc("delete pods -l tft-tests", namespace=udn_ns)
+                client.oc("delete services -l tft-tests", namespace=udn_ns)
+
+            logger.info(
+                f"Cleaning external containers {task.EXTERNAL_PERF_SERVER} (if present)"
+            )
+            host.local.run(
+                f"podman rm --force {task.EXTERNAL_PERF_SERVER}",
+                log_level_fail=logging.WARN,
+                check_success=lambda r: (
+                    r.success
+                    or (r.returncode == 1 and "no container with name or ID" in r.err)
+                ),
+            )
+        else:
+            connection_mode = cfg_descr.get_test_case().info.connection_mode
+            if connection_mode in (
+                ConnectionMode.MULTI_NETWORK_DENY,
+                ConnectionMode.MULTI_NETWORK_ALLOW,
+                ConnectionMode.ANP_ALLOW,
+                ConnectionMode.ANP_DENY,
+                ConnectionMode.ANP_PASS_NP_DENY,
+            ):
+                self._cleanup_multi_network_policies(cfg_descr)
 
     def _cleanup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         if self._udn_ns is None:
@@ -218,6 +239,7 @@ class TrafficFlowTests:
             instance_index=instance_index,
             reverse=reverse,
         )
+        logger.info(f"Starting test {ts.get_test_info()}")
         s, c = connection.test_type_handler.create_server_client(ts)
         servers.append(s)
         clients.append(c)
@@ -233,13 +255,13 @@ class TrafficFlowTests:
             )
             monitors.extend(m)
 
-        for t in servers + clients + monitors:
-            t.initialize()
-
         ts.initialize_clmo_barrier(len(clients) + len(monitors))
 
+        pre_provision = cfg_descr.get_tft().pre_provision
         for tasks in servers + clients + monitors:
-            tasks.start_setup()
+            if not pre_provision:
+                tasks.initialize()
+            tasks.start_setup(skip_pod_setup=pre_provision)
 
         ts.event_server_alive.wait()
 
@@ -260,6 +282,44 @@ class TrafficFlowTests:
             tasks.aggregate_output(tft_result_builder)
 
         return tft_result_builder.build()
+
+    def _provision_all_resources(self, cfg_descr: ConfigDescriptor) -> None:
+        logger.info("Pre-provisioning all pods and services for the test run")
+
+        seen_server_pods: set[str] = set()
+        seen_client_pods: set[str] = set()
+        seen_monitor_pods: set[str] = set()
+
+        for cfg_descr2 in cfg_descr.describe_all_test_cases():
+            for cfg_descr3 in cfg_descr2.describe_all_connections():
+                connection = cfg_descr3.get_connection()
+                for instance_index in range(connection.instances):
+                    ts = TestSettings(
+                        cfg_descr=cfg_descr3,
+                        instance_index=instance_index,
+                        reverse=False,
+                    )
+                    s, c = connection.test_type_handler.create_server_client(ts)
+
+                    # EXTERNAL_IP runs via podman; leave those per-test.
+                    if s.pod_name not in seen_server_pods:
+                        seen_server_pods.add(s.pod_name)
+                        s.initialize()
+                        s.start_setup(provisioning=True)
+
+                    if c.pod_name not in seen_client_pods:
+                        seen_client_pods.add(c.pod_name)
+                        c.initialize()
+                        c.start_setup(provisioning=True)
+
+                    for plugin in connection.plugins:
+                        for m in plugin.plugin.enable(
+                            ts=ts, perf_server=s, perf_client=c, tenant=True
+                        ):
+                            if m.pod_name not in seen_monitor_pods:
+                                seen_monitor_pods.add(m.pod_name)
+                                m.initialize()
+                                m.start_setup(provisioning=True)
 
     def _run_test_case(self, cfg_descr: ConfigDescriptor) -> list[TftResult]:
         # TODO Allow for multiple connections / instances to run simultaneously
@@ -302,7 +362,9 @@ class TrafficFlowTests:
         test = cfg_descr.get_tft()
         ns_created = self._configure_namespace(cfg_descr)
         self._cleanup_stale_udn(cfg_descr)
-        self._cleanup_previous_testspace(cfg_descr)
+        self._cleanup_previous_testspace(cfg_descr, force_cleanup=True)
+        if test.pre_provision:
+            self._provision_all_resources(cfg_descr)
 
         try:
             logger.info(f"Running test {test.name} for {test.duration} seconds")
@@ -332,7 +394,7 @@ class TrafficFlowTests:
                 filename=str(log_file),
             )
         finally:
-            self._cleanup_previous_testspace(cfg_descr)
+            self._cleanup_previous_testspace(cfg_descr, force_cleanup=True)
             self._cleanup_udn(cfg_descr)
             if ns_created:
                 logger.info(f"Deleting namespace {cfg_descr.get_tft().namespace}")
