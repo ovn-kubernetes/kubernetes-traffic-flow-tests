@@ -684,6 +684,37 @@ class Task(ABC):
         )
         return r.out if r.success else None
 
+    def create_load_balancer_service(self) -> None:
+        in_file_template = tftbase.get_manifest("svc-loadbalancer.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"svc-loadbalancer-{self._svc_backend_label}.yaml"
+        )
+
+        template_args = {
+            **self.get_template_args(),
+            "svc_label": self._svc_backend_label,
+            "network_type": self._network_type,
+        }
+        self.render_file(
+            "LoadBalancer Service",
+            in_file_template,
+            out_file_yaml,
+            template_args,
+        )
+        self.run_oc(
+            f"apply -f {out_file_yaml}",
+            check_success=lambda r: r.success or "already exists" in r.err,
+            die_on_error=True,
+        )
+
+    def get_load_balancer_ip(self) -> Optional[str]:
+        svc_name = f"tft-loadbalancer-service-{self._svc_backend_label}"
+        r = self.run_oc(
+            f"get service {svc_name} -o=jsonpath='{{.status.loadBalancer.ingress[0].ip}}'",
+            may_fail=True,
+        )
+        return r.out if r.success and r.out else None
+
     def _create_multi_network_policy(
         self, action: str, direction: str, port: int
     ) -> str:
@@ -996,6 +1027,37 @@ class ServerTask(Task, ABC):
             if self.get_nodeport_ip() is None:
                 nodeport_offset = 26000 if self._network_type == "secondary" else 25000
                 self.create_node_port_service(self.port + nodeport_offset)
+            if self.get_load_balancer_ip() is None:
+                self.create_load_balancer_service()
+
+        if self.connection_mode == ConnectionMode.MULTI_NETWORK_DENY:
+            self._create_multi_network_policy(
+                MNP_ACTION_DENY, MNP_DIRECTION_INGRESS, self.port
+            )
+            self._create_multi_network_policy(
+                MNP_ACTION_DENY, MNP_DIRECTION_EGRESS, self.port
+            )
+        elif self.connection_mode == ConnectionMode.MULTI_NETWORK_ALLOW:
+            self._create_multi_network_policy(
+                MNP_ACTION_ALLOW, MNP_DIRECTION_INGRESS, self.port
+            )
+            self._create_multi_network_policy(
+                MNP_ACTION_ALLOW, MNP_DIRECTION_EGRESS, self.port
+            )
+
+        if self.connection_mode == ConnectionMode.ANP_ALLOW:
+            self.create_admin_network_policy(
+                ANP_ACTION_ALLOW, ANP_DEFAULT_PRIORITY, self.port
+            )
+        elif self.connection_mode == ConnectionMode.ANP_DENY:
+            self.create_admin_network_policy(
+                ANP_ACTION_DENY, ANP_DEFAULT_PRIORITY, self.port
+            )
+        elif self.connection_mode == ConnectionMode.ANP_PASS_NP_DENY:
+            self.create_admin_network_policy(
+                ANP_ACTION_PASS, ANP_DEFAULT_PRIORITY, self.port
+            )
+            self.create_network_policy(self.port)
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:
@@ -1285,6 +1347,14 @@ class ClientTask(Task, ABC):
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")
             return host_ip
+        elif self.connection_mode == ConnectionMode.LOAD_BALANCER:
+            ip = self.server.get_load_balancer_ip()
+            if ip is None:
+                raise RuntimeError(
+                    f"LoadBalancer service not found for server {self.server.pod_name}"
+                )
+            logger.debug(f"get_target_ip() LoadBalancer connection to {ip}")
+            return ip
         elif self.connection_mode in (
             ConnectionMode.MULTI_HOME,
             ConnectionMode.MULTI_NETWORK_ALLOW,

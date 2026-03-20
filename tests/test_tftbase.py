@@ -129,7 +129,7 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 41
+    assert list(TestCaseType)[-1].value == 49
     list_numeric = list(range(1, list(TestCaseType)[-1].value + 1))
     assert list_numeric == [typ.value for typ in tftbase.TestCaseType]
 

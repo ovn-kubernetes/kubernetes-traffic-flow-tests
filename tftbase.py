@@ -354,6 +354,14 @@ class TestCaseType(Enum):
     UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 39
     UDN_SECONDARY_POD_TO_POD_SAME_NODE = 40
     UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 41
+    POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 42
+    POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 43
+    POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 44
+    POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 45
+    HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 46
+    HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 47
+    HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 48
+    HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 49
 
     @property
     def is_udn(self) -> bool:
@@ -383,6 +391,7 @@ class ConnectionMode(Enum):
     ANP_ALLOW = 8
     ANP_DENY = 9
     ANP_PASS_NP_DENY = 10
+    LOAD_BALANCER = 11
 
 
 @strict_dataclass
@@ -1127,6 +1136,62 @@ _test_case_typ_infos = {
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=True,
+            is_server_hostbacked=True,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=False,
+            is_server_hostbacked=True,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=True,
+            is_server_hostbacked=True,
+            is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=False,
+            is_server_hostbacked=True,
+            is_client_hostbacked=True,
         ),
     )
 }

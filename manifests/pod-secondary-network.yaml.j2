@@ -4,6 +4,7 @@ metadata:
   namespace: {{ name_space }}
   name: {{ pod_name }}
   labels:
+    pod-name: {{ pod_name }}
     tft-tests: {{ label_tft_tests }}
     tft-port: "{{ port }}"
     tft-network: secondary
