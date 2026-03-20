@@ -1345,4 +1345,5 @@ class PluginTask(Task, ABC):
             plugin_name=self.plugin.PLUGIN_NAME,
             node_name=self.node_name,
             pod_name=self.pod_name,
+            plugin_role=self.task_role.name.lower(),
         )

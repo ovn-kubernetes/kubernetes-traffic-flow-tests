@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
+import sys
 import typing
 
 from collections.abc import Iterable
@@ -12,6 +14,22 @@ import tftbase
 
 EXIT_CODE_VALIDATION = 1
 
+_force_no_color: bool = False
+
+
+def _color_enabled() -> bool:
+    return (
+        not _force_no_color and not os.environ.get("NO_COLOR") and sys.stdout.isatty()
+    )
+
+
+def _green(text: str) -> str:
+    return f"\033[32m{text}\033[0m" if _color_enabled() else text
+
+
+def _red(text: str) -> str:
+    return f"\033[31m{text}\033[0m" if _color_enabled() else text
+
 
 def print_flow_test_output(
     test_output: Optional[tftbase.FlowTestOutput],
@@ -22,9 +40,9 @@ def print_flow_test_output(
         log("Test ID: Unknown test")
         return
     if not test_output.eval_success:
-        msg = f"failed: {test_output.eval_msg}"
+        msg = _red(f"failed: {test_output.eval_msg}")
     else:
-        msg = "succeeded"
+        msg = _green("succeeded")
     log(
         f"Test ID: {test_output.tft_metadata.test_case_id.name}, "
         f"Test Type: {test_output.tft_metadata.test_type.name}, "
@@ -40,12 +58,13 @@ def print_plugin_output(
     *,
     log: typing.Callable[[str], None] = print,
 ) -> None:
-    msg = f"failed: {plugin_output.eval_msg}"
     if not plugin_output.eval_success:
-        msg = f"failed: {plugin_output.eval_msg}"
+        msg = _red(f"failed: {plugin_output.eval_msg}")
     else:
-        msg = "succeeded"
-    log("     " f"plugin {plugin_output.plugin_metadata.plugin_name}, " f"{msg}")
+        msg = _green("succeeded")
+    role = plugin_output.plugin_metadata.plugin_role
+    role_str = f" ({role})" if role else ""
+    log(f"     plugin {plugin_output.plugin_metadata.plugin_name}{role_str}, {msg}")
 
 
 def print_tft_result(
@@ -75,14 +94,14 @@ def process_results(
 
     group_success, group_fail = tft_results.group_by_success()
 
-    log(
-        f"There are {len(group_success)} passing flows{tft_results.log_detail}.{' Details:' if group_success else ''}"
-    )
-    print_tft_results(group_success, log=log)
+    log("====== Test Case Summary ======")
+    log("")
 
-    log(
-        f"There are {len(group_fail)} failing flows{tft_results.log_detail}.{' Details:' if group_fail else ''}"
-    )
+    log(f"--- Passing Flows ({len(group_success)}{tft_results.log_detail}) ---")
+    print_tft_results(group_success, log=log)
+    log("")
+
+    log(f"--- Failing Flows ({len(group_fail)}{tft_results.log_detail}) ---")
     print_tft_results(group_fail, log=log)
 
     log("")
@@ -118,6 +137,12 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         help="The JSON result file(s) from TFT Flow test.",
     )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        default=False,
+        help="Disable color codes in output.",
+    )
     common.log_argparse_add_argument_verbose(parser)
 
     args = parser.parse_args()
@@ -128,7 +153,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    global _force_no_color
     args = parse_args()
+    _force_no_color = args.no_color
     success = process_results_all(
         tftbase.TftResults.parse_from_file(file) for file in args.result
     )

@@ -466,6 +466,7 @@ class PluginMetadata:
     plugin_name: str
     node_name: str
     pod_name: str
+    plugin_role: str = ""
 
 
 @strict_dataclass

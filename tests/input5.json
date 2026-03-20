@@ -1020,7 +1020,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-246",
-            "pod_name": "tools-pod-worker-246-measure-cpu"
+            "pod_name": "tools-pod-worker-246-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -1045,7 +1046,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-247",
-            "pod_name": "tools-pod-worker-247-measure-cpu"
+            "pod_name": "tools-pod-worker-247-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -1058,7 +1060,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-246",
-            "pod_name": "tools-pod-worker-246-measure-cpu"
+            "pod_name": "tools-pod-worker-246-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -1071,7 +1074,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-247",
-            "pod_name": "tools-pod-worker-247-measure-cpu"
+            "pod_name": "tools-pod-worker-247-measure-cpu",
+            "plugin_role": "client"
           }
         }
       ]
@@ -1916,7 +1920,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-246",
-            "pod_name": "tools-pod-worker-246-measure-cpu"
+            "pod_name": "tools-pod-worker-246-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -1941,7 +1946,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_cpu",
             "node_name": "worker-247",
-            "pod_name": "tools-pod-worker-247-measure-cpu"
+            "pod_name": "tools-pod-worker-247-measure-cpu",
+            "plugin_role": "client"
           }
         },
         {
@@ -1954,7 +1960,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-246",
-            "pod_name": "tools-pod-worker-246-measure-cpu"
+            "pod_name": "tools-pod-worker-246-measure-cpu",
+            "plugin_role": "server"
           }
         },
         {
@@ -1967,7 +1974,8 @@
           "plugin_metadata": {
             "plugin_name": "measure_power",
             "node_name": "worker-247",
-            "pod_name": "tools-pod-worker-247-measure-cpu"
+            "pod_name": "tools-pod-worker-247-measure-cpu",
+            "plugin_role": "client"
           }
         }
       ]
