@@ -113,6 +113,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     default_network: str
     privileged_pod: Optional[bool]
     capabilities_pod: Optional[Mapping[str, tuple[str, ...]]]
+    secondary_network_nad: Optional[str]
 
     # Extra arguments for the client/server. Their actual meaning depend on the
     # "type". These might be command line arguments passed to the tool.
@@ -122,10 +123,21 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     def is_persistent_server(self) -> bool:
         return False
 
+    @property
+    def effective_secondary_network_nad(self) -> Optional[str]:
+        nad = self.secondary_network_nad
+        if nad is None:
+            return None
+        namespace = self.connection.namespace
+        if "/" not in nad:
+            nad = f"{namespace}/{nad}"
+        return nad
+
     def serialize(self) -> dict[str, Any]:
         d: dict[str, Any] = {}
         common.dict_add_optional(d, "privileged_pod", self.privileged_pod)
         common.dict_add_optional(d, "capabilities_pod", self.capabilities_pod)
+        common.dict_add_optional(d, "secondary_network_nad", self.secondary_network_nad)
         if self.args is not None:
             d["args"] = list(self.args)
         return {
@@ -198,6 +210,11 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
                 default=None,
             )
 
+            secondary_network_nad = common.structparse_pop_str(
+                varg.for_key("secondary_network_nad"),
+                default=None,
+            )
+
             type_specific_kwargs: dict[str, Any] = {}
 
             if conf_type == ConfNodeServer:
@@ -232,6 +249,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
             default_network=default_network,
             privileged_pod=privileged_pod,
             capabilities_pod=capabilities_pod,
+            secondary_network_nad=secondary_network_nad,
             args=args,
             **type_specific_kwargs,
         )
