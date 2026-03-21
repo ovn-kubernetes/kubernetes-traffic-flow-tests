@@ -361,12 +361,15 @@ class Task(ABC):
             if self._resource_name is not None:
                 return self._resource_name
         resource_name_config = self.ts.connection.resource_name
+        nad_for_detection = (
+            self.node.secondary_network_nad or self.ts.connection.secondary_network_nad
+        )
         resource_name = (
             resource_name_config
             or _detect_default_resource_name(
                 self.client,
                 self.get_namespace(),
-                self.ts.connection.secondary_network_nad,
+                nad_for_detection,
             )
             or ""
         )
@@ -388,11 +391,12 @@ class Task(ABC):
         return tftbase.get_tft_test_image_for_type(self.ts.connection.test_type)
 
     def _get_effective_secondary_network_nad(self) -> str:
-        nad = self.ts.connection.effective_secondary_network_nad
         if self.ts.test_case_id.is_udn:
-            # NAD name for UDN is hard coded in manifests/udn-secondary.yaml.j2 as tft-secondary
-            nad = f"{self.get_namespace()}/tft-secondary"
-        return nad
+            return f"{self.get_namespace()}/tft-secondary"
+        return (
+            self.node.effective_secondary_network_nad
+            or self.ts.connection.effective_secondary_network_nad
+        )
 
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
@@ -410,7 +414,8 @@ class Task(ABC):
             "port": self._get_template_args_port(),
             "secondary_network_nad": _j(self._get_effective_secondary_network_nad()),
             "use_secondary_network": (
-                bool(self.ts.connection.secondary_network_nad)
+                bool(self.node.secondary_network_nad)
+                or bool(self.ts.connection.secondary_network_nad)
                 or self.ts.test_case_id.is_udn_secondary
             ),
             "has_resource_name": bool(resource_name),
@@ -578,7 +583,10 @@ class Task(ABC):
                             f"falling back to status.podIP"
                         )
                         pod_ip = y["status"]["podIP"]
-                elif self.ts.connection.secondary_network_nad:
+                elif (
+                    self.node.secondary_network_nad
+                    or self.ts.connection.secondary_network_nad
+                ):
                     network_status_str = y["metadata"]["annotations"][
                         "k8s.v1.cni.cncf.io/network-status"
                     ]
