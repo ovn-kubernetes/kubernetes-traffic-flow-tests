@@ -1,6 +1,7 @@
 import json
 import logging
 import task
+import time as _time
 
 from pathlib import Path
 
@@ -23,7 +24,8 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 
 class TrafficFlowTests:
-    def __init__(self) -> None:
+    def __init__(self, *, no_cleanup: int = 0) -> None:
+        self._no_cleanup = no_cleanup
         self._udn_ns: str | None = None
         self._udn_ns_created: bool = False
         self._udn_setup_done: bool = False
@@ -222,6 +224,25 @@ class TrafficFlowTests:
         logger.info(f"Logs will be written to {log_file}")
         return log_file
 
+    def _final_cleanup(self, cfg_descr: ConfigDescriptor, ns_created: bool) -> None:
+        if self._no_cleanup == -1:
+            logger.info("Skipping cleanup")
+            return
+        if self._no_cleanup > 0:
+            logger.info(
+                f"Deferring cleanup: waiting {self._no_cleanup} seconds before cleanup"
+            )
+            _time.sleep(self._no_cleanup)
+        self._cleanup_previous_testspace(cfg_descr, force_cleanup=True)
+        self._cleanup_udn(cfg_descr)
+        if ns_created:
+            logger.info(f"Deleting namespace {cfg_descr.get_tft().namespace}")
+            cfg_descr.tc.client_tenant.oc(
+                f"delete ns {cfg_descr.get_tft().namespace}",
+                may_fail=True,
+                namespace=None,
+            )
+
     def _run_test_case_instance(
         self,
         cfg_descr: ConfigDescriptor,
@@ -394,12 +415,4 @@ class TrafficFlowTests:
                 filename=str(log_file),
             )
         finally:
-            self._cleanup_previous_testspace(cfg_descr, force_cleanup=True)
-            self._cleanup_udn(cfg_descr)
-            if ns_created:
-                logger.info(f"Deleting namespace {cfg_descr.get_tft().namespace}")
-                cfg_descr.tc.client_tenant.oc(
-                    f"delete ns {cfg_descr.get_tft().namespace}",
-                    may_fail=True,
-                    namespace=None,
-                )
+            self._final_cleanup(cfg_descr, ns_created)

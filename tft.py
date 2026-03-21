@@ -64,6 +64,16 @@ def parse_args() -> argparse.Namespace:
         help='By default, the program only runs the tests and writes the results. It is not expected to fail unless a serious error happened. In that case, you usually want to run `print_results.py` command afterwards. Passing "--check" combines those two steps in one and the `tft.py` command succeeds only if all tests pass.',
     )
     parser.add_argument(
+        "--no-cleanup",
+        nargs="?",
+        type=int,
+        const=-1,
+        default=0,
+        metavar="SECONDS",
+        help="Skip cleanup of pods, services, network policies, and namespaces after the test run. With a value, sleep for SECONDS before running cleanup (e.g. '--no-cleanup 3600' waits one hour). "
+        "Cleanup always runs immediately when this flag is omitted.",
+    )
+    parser.add_argument(
         "--kubeconfig",
         type=str,
         default=None,
@@ -88,10 +98,11 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def parse_args_full() -> tuple[TestConfig, bool]:
+def parse_args_full() -> tuple[TestConfig, bool, int]:
     args = parse_args()
 
     args_check = args.check
+    args_no_cleanup: int = args.no_cleanup if args.no_cleanup is not None else -1
     tc = TestConfig(
         config_path=args.config,
         evaluator_config=args.evaluator_config,
@@ -102,7 +113,11 @@ def parse_args_full() -> tuple[TestConfig, bool]:
         output_base=args.output_base,
     )
 
-    return tc, args_check
+    return (
+        tc,
+        args_check,
+        args_no_cleanup,
+    )  # args_no_cleanup: 0=cleanup, -1=skip, N>0=defer N seconds
 
 
 def option_get_kubeconfigs(
@@ -149,11 +164,11 @@ def option_get_kubeconfigs(
 def main() -> int:
     time_start = time.monotonic()
 
-    tc, args_check = parse_args_full()
+    tc, args_check, args_no_cleanup = parse_args_full()
 
     tc.system_check()
     tc.log_config()
-    tft = TrafficFlowTests()
+    tft = TrafficFlowTests(no_cleanup=args_no_cleanup)
 
     evaluator = Evaluator(tc.evaluator_config)
 
