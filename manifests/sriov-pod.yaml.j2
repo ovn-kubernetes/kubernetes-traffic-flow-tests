@@ -18,12 +18,16 @@ spec:
     image: {{ test_image }}
     command: {{ command }}
     args: {{ args }}
-    imagePullPolicy: {{ image_pull_policy }}{% if use_secondary_network and has_resource_name %}
+    imagePullPolicy: {{ image_pull_policy }}{% if use_secondary_network and has_resource_name or has_resources %}
     resources:
-      requests:
-        {{ resource_name }}: '1'
-      limits:
-        {{ resource_name }}: '1'{% endif %}
+      requests: {% if use_secondary_network and has_resource_name %}
+        {{ resource_name }}: '1'{% endif %}{% if cpu_request %}
+        cpu: {{ cpu_request }}{% endif %}{% if mem_request %}
+        memory: {{ mem_request }}{% endif %}
+      limits: {% if use_secondary_network and has_resource_name %}
+        {{ resource_name }}: '1'{% endif %}{% if cpu_limit %}
+        cpu: {{ cpu_limit }}{% endif %}{% if mem_limit %}
+        memory: {{ mem_limit }}{% endif %}{% endif %}
     securityContext:
       privileged: {{ privileged_pod }}
       capabilities: {{ capabilities_pod }}

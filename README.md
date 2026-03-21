@@ -67,11 +67,15 @@ tft:
             test_cases: (18a)
           - name: (18)
         secondary_network_nad: "(19)"
-    resource_name: "(20)"
-    privileged_pod: (21)
-    capabilities_pod: (22)
-kubeconfig: (23)
-kubeconfig_infra: (23)
+        resource_name: "(20)"
+        cpu_request: "(21)"
+        cpu_limit: "(22)"
+        mem_request: "(23)"
+        mem_limit: "(24)"
+    privileged_pod: (25)
+    capabilities_pod: (26)
+kubeconfig: (27)
+kubeconfig_infra: (27)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -149,12 +153,16 @@ kubeconfig_infra: (23)
 19. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-30, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-29 it defaults to "tft-secondary" if not set.
 20. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
 tool will try to autopopulate resource_name based on the secondary+network_nad provided.
-21. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
-22. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
-23. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+21. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
+22. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
+23. "mem_request" - (Optional) Memory request for server and client pods (e.g. "50Mi", "100Mi"). No memory request is set if omitted.
+24. "mem_limit" - (Optional) Memory limit for server and client pods (e.g. "100Mi", "200Mi"). No memory limit is set if omitted.
+25. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
+26. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
+27. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-24. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+28. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 

@@ -358,6 +358,10 @@ class ConfConnection(StructParseBaseNamed):
     secondary_network_nad: Optional[str]
     resource_name: Optional[str]
     duration: Optional[int]
+    cpu_request: Optional[str]
+    cpu_limit: Optional[str]
+    mem_request: Optional[str]
+    mem_limit: Optional[str]
 
     # This parameter is not expressed in YAML. It gets passed by the parent to
     # ConfConnection.parse()
@@ -382,6 +386,10 @@ class ConfConnection(StructParseBaseNamed):
         )
         common.dict_add_optional(extra, "resource_name", self.resource_name)
         common.dict_add_optional(extra, "duration", self.duration)
+        common.dict_add_optional(extra, "cpu_request", self.cpu_request)
+        common.dict_add_optional(extra, "cpu_limit", self.cpu_limit)
+        common.dict_add_optional(extra, "mem_request", self.mem_request)
+        common.dict_add_optional(extra, "mem_limit", self.mem_limit)
         return {
             **super().serialize(),
             "type": self.test_type.name,
@@ -474,6 +482,26 @@ class ConfConnection(StructParseBaseNamed):
             if duration_conn == 0:
                 duration_conn = 3600
 
+            cpu_request = common.structparse_pop_str(
+                varg.for_key("cpu_request"),
+                default=None,
+            )
+
+            cpu_limit = common.structparse_pop_str(
+                varg.for_key("cpu_limit"),
+                default=None,
+            )
+
+            mem_request = common.structparse_pop_str(
+                varg.for_key("mem_request"),
+                default=None,
+            )
+
+            mem_limit = common.structparse_pop_str(
+                varg.for_key("mem_limit"),
+                default=None,
+            )
+
         if len(server) > 1:
             raise pctx.value_error(
                 "currently only one server entry is supported", key="server"
@@ -504,6 +532,10 @@ class ConfConnection(StructParseBaseNamed):
             secondary_network_nad=secondary_network_nad,
             resource_name=resource_name,
             duration=duration_conn,
+            cpu_request=cpu_request,
+            cpu_limit=cpu_limit,
+            mem_request=mem_request,
+            mem_limit=mem_limit,
             namespace=namespace,
         )
 
