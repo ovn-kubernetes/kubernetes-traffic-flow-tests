@@ -17,7 +17,14 @@ spec:
     image: {{ test_image }}
     command: {{ command }}
     args: {{ args }}
-    imagePullPolicy: {{ image_pull_policy }}
+    imagePullPolicy: {{ image_pull_policy }}{% if has_resources %}
+    resources:
+      requests: {% if cpu_request %}
+        cpu: {{ cpu_request }}{% endif %}{% if mem_request %}
+        memory: {{ mem_request }}{% endif %}
+      limits: {% if cpu_limit %}
+        cpu: {{ cpu_limit }}{% endif %}{% if mem_limit %}
+        memory: {{ mem_limit }}{% endif %}{% endif %}
     securityContext:
       privileged: {{ privileged_pod }}
       capabilities: {{ capabilities_pod }}
