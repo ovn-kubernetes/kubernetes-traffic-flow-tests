@@ -11,11 +11,9 @@ spec:
     - name: tft-nodeport-service-tcp-{{ port }}
       protocol: TCP
       port: {{ port }}
-      nodePort: {{ nodeport_svc_port }}
     - name: tft-nodeport-service-udp-{{ port }}
       protocol: UDP
       port: {{ port }}
-      nodePort: {{ nodeport_svc_port }}
   selector:
     tft-port: "{{ port }}"
     tft-network: {{ network_type }}

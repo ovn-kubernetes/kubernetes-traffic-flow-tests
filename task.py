@@ -654,7 +654,7 @@ class Task(ABC):
         )
         return r.out if r.success else None
 
-    def create_node_port_service(self, nodeport: int) -> None:
+    def create_node_port_service(self) -> None:
         in_file_template = tftbase.get_manifest("svc-node-port.yaml.j2")
         out_file_yaml = tftbase.get_manifest_renderpath(
             f"svc-node-port-{self._svc_backend_label}.yaml"
@@ -663,7 +663,6 @@ class Task(ABC):
         template_args = {
             **self.get_template_args(),
             "svc_label": self._svc_backend_label,
-            "nodeport_svc_port": _j(nodeport),
             "network_type": self._network_type,
         }
 
@@ -994,8 +993,7 @@ class ServerTask(Task, ABC):
             if self.get_cluster_ip() is None:
                 self.create_cluster_ip_service()
             if self.get_nodeport_ip() is None:
-                nodeport_offset = 26000 if self._network_type == "secondary" else 25000
-                self.create_node_port_service(self.port + nodeport_offset)
+                self.create_node_port_service()
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:
