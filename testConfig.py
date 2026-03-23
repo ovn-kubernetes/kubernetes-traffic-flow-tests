@@ -357,6 +357,7 @@ class ConfConnection(StructParseBaseNamed):
     plugins: tuple[ConfPlugin, ...]
     secondary_network_nad: Optional[str]
     resource_name: Optional[str]
+    duration: Optional[int]
 
     # This parameter is not expressed in YAML. It gets passed by the parent to
     # ConfConnection.parse()
@@ -380,6 +381,7 @@ class ConfConnection(StructParseBaseNamed):
             extra, "secondary_network_nad", self.secondary_network_nad
         )
         common.dict_add_optional(extra, "resource_name", self.resource_name)
+        common.dict_add_optional(extra, "duration", self.duration)
         return {
             **super().serialize(),
             "type": self.test_type.name,
@@ -463,6 +465,15 @@ class ConfConnection(StructParseBaseNamed):
                 default=None,
             )
 
+            duration_conn = common.structparse_pop_int(
+                varg.for_key("duration"),
+                default=None,
+                check=lambda val: val >= 0,
+                description="a duration in seconds",
+            )
+            if duration_conn == 0:
+                duration_conn = 3600
+
         if len(server) > 1:
             raise pctx.value_error(
                 "currently only one server entry is supported", key="server"
@@ -492,6 +503,7 @@ class ConfConnection(StructParseBaseNamed):
             plugins=plugins,
             secondary_network_nad=secondary_network_nad,
             resource_name=resource_name,
+            duration=duration_conn,
             namespace=namespace,
         )
 
