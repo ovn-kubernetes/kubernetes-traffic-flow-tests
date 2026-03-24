@@ -1013,18 +1013,8 @@ class TestConfig:
                 f'{role} node "{node_name}" does not exist or cannot be queried'
             )
 
-        is_ready = self._is_node_ready(node_data)
-        is_unschedulable = bool(node_data.get("spec", {}).get("unschedulable", False))
-
-        if not is_ready or is_unschedulable:
-            state: list[str] = []
-            if not is_ready:
-                state.append("NotReady")
-            if is_unschedulable:
-                state.append("SchedulingDisabled")
-            raise RuntimeError(
-                f'{role} node "{node_name}" is not available: {",".join(state)}'
-            )
+        if not self._is_node_ready(node_data):
+            raise RuntimeError(f'{role} node "{node_name}" is not available: NotReady')
 
     def validate_selected_nodes_available(
         self,
