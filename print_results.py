@@ -43,8 +43,9 @@ def print_flow_test_output(
         msg = _red(f"failed: {test_output.eval_msg}")
     else:
         msg = _green("succeeded")
+    test_case_id = test_output.tft_metadata.test_case_id
     log(
-        f"Test ID: {test_output.tft_metadata.test_case_id.name}, "
+        f"Test ID: ({test_case_id.value}) {test_case_id.name}, "
         f"Test Type: {test_output.tft_metadata.test_type.name}, "
         f"Reverse: {common.bool_to_str(test_output.tft_metadata.reverse)}, "
         f"TX Bitrate: {test_output.bitrate_gbps.tx} Gbps, "
