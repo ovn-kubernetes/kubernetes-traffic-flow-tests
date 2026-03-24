@@ -348,6 +348,9 @@ class Task(ABC):
         return ns
 
     def get_duration(self) -> int:
+        conn_duration = self.ts.cfg_descr.get_connection().duration
+        if conn_duration is not None:
+            return conn_duration
         return self.ts.cfg_descr.get_tft().duration
 
     @property
