@@ -403,6 +403,16 @@ class Task(ABC):
 
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
+        conn = self.ts.connection
+        has_resources = any(
+            v is not None
+            for v in (
+                conn.cpu_request,
+                conn.cpu_limit,
+                conn.mem_request,
+                conn.mem_limit,
+            )
+        )
         return {
             "name_space": _j(self.get_namespace()),
             "test_image": _j(self._get_template_args_test_image()),
@@ -424,6 +434,11 @@ class Task(ABC):
             "has_resource_name": bool(resource_name),
             "resource_name": _j(resource_name),
             "default_network": _j(self.node.default_network),
+            "has_resources": has_resources,
+            "cpu_request": conn.cpu_request or "",
+            "cpu_limit": conn.cpu_limit or "",
+            "mem_request": conn.mem_request or "",
+            "mem_limit": conn.mem_limit or "",
         }
 
     def _get_template_args_privileged_pod(self) -> bool:
