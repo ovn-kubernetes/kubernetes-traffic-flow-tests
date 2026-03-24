@@ -66,6 +66,16 @@ class TrafficFlowTests:
 
         logger.info(f"Setting up UDN in namespace {udn_ns}")
 
+        # Only annotate the UDN with a resource name if every connection agrees
+        # on the same value. A missing resource_name in any connection means that
+        # connection doesn't need SR-IOV for the UDN.
+        resource_names = {c.resource_name for c in tft.connections}
+        resource_name = (
+            resource_names.pop()
+            if len(resource_names) == 1 and None not in resource_names
+            else None
+        )
+
         _j = json.dumps
 
         self._udn_ns = udn_ns
@@ -98,6 +108,8 @@ class TrafficFlowTests:
             kjinja2.render_file(
                 in_template,
                 {
+                    "has_resource_name": resource_name is not None,
+                    "resource_name": resource_name or "",
                     "name_space": _j(udn_ns),
                     "primary_cidr": _j(tftbase.get_udn_primary_cidr()),
                 },
@@ -111,6 +123,8 @@ class TrafficFlowTests:
             kjinja2.render_file(
                 in_template,
                 {
+                    "has_resource_name": resource_name is not None,
+                    "resource_name": resource_name or "",
                     "name_space": _j(udn_ns),
                     "secondary_cidr": _j(tftbase.get_udn_secondary_cidr()),
                 },
@@ -312,6 +326,8 @@ class TrafficFlowTests:
         seen_monitor_pods: set[str] = set()
 
         for cfg_descr2 in cfg_descr.describe_all_test_cases():
+            if cfg_descr2.get_test_case().is_udn and not self._udn_setup_done:
+                self._setup_udn(cfg_descr2)
             for cfg_descr3 in cfg_descr2.describe_all_connections():
                 connection = cfg_descr3.get_connection()
                 for instance_index in range(connection.instances):

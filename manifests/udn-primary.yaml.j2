@@ -4,7 +4,9 @@ metadata:
   name: primary
   namespace: {{ name_space }}
   labels:
-    tft-tests: "udn"
+    tft-tests: "udn"{% if has_resource_name %}
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: {{ resource_name }}{% endif %}
 spec:
   topology: Layer3
   layer3:
