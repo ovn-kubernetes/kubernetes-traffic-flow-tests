@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  namespace: {{ name_space }}
+  name: {{ np_name }}
+  labels:
+    tft-tests: {{ label_tft_tests }}
+spec:
+  podSelector:
+    matchLabels:
+      tft-tests: {{ label_tft_tests }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+{% if np_action == "allow" %}
+    - from:
+        - podSelector:
+            matchLabels:
+              tft-tests: {{ label_tft_tests }}
+      ports:
+        - port: {{ np_port }}
+          protocol: TCP
+        - port: {{ np_port }}
+          protocol: UDP
+{% endif %}
+  egress:
+{% if np_action == "allow" %}
+    - to:
+        - podSelector:
+            matchLabels:
+              tft-tests: {{ label_tft_tests }}
+      ports:
+        - port: {{ np_port }}
+          protocol: TCP
+        - port: {{ np_port }}
+          protocol: UDP
+{% endif %}

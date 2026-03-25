@@ -118,14 +118,16 @@ kubeconfig_infra: (27)
     | 31 | POD_TO_POD_ANP_ALLOW |
     | 32 | POD_TO_POD_ANP_DENY |
     | 33 | POD_TO_POD_ANP_PASS_NP_DENY |
-    | 34 | UDN_PRIMARY_POD_TO_POD_SAME_NODE |
-    | 35 | UDN_PRIMARY_POD_TO_POD_DIFF_NODE |
-    | 36 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 37 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 38 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 39 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 40 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
-    | 41 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
+    | 34 | POD_TO_POD_NP_DENY |
+    | 35 | POD_TO_POD_NP_ALLOW |
+    | 36 | UDN_PRIMARY_POD_TO_POD_SAME_NODE |
+    | 37 | UDN_PRIMARY_POD_TO_POD_DIFF_NODE |
+    | 38 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 39 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 40 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 41 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 42 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
+    | 43 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
