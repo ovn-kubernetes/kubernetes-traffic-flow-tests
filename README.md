@@ -341,6 +341,13 @@ tft:
      defaults to "manifests/yamls".
 - `TFT_KUBECONFIG`, `TFT_KUBECONFIG_INFRA` to overwrite the kubeconfigs from the configuration
      file. See also the "--kubeconfig" and "--kubeconfig-infra" command line options.
+- `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
+     Only effective when the connection type is `http` and the connection mode is `POD_TO_EXTERNAL`
+     or `HOST_TO_EXTERNAL`. When set, no Podman server is started; the client pod curls this URL
+     directly. If unset, falls back to the normal Podman-server path.
+- `TFT_EXTERNAL_SERVER_STRING` expected substring in the HTTP response body when
+     `TFT_EXTERNAL_URL` is set. Defaults to `"The document has moved"` (the body of an HTTP 301
+     redirect).
 
 ## File Transfer via magic-wormhole
 

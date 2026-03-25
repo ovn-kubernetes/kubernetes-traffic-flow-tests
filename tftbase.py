@@ -33,6 +33,9 @@ ENV_TFT_TEST_IMAGE_DEFAULT = (
 ENV_TFT_MANIFESTS_OVERRIDES = "TFT_MANIFESTS_OVERRIDES"
 ENV_TFT_MANIFESTS_YAMLS = "TFT_MANIFESTS_YAMLS"
 
+ENV_TFT_EXTERNAL_URL = "TFT_EXTERNAL_URL"
+ENV_TFT_EXTERNAL_SERVER_STRING = "TFT_EXTERNAL_SERVER_STRING"
+
 
 def get_environ(name: str) -> Optional[str]:
     # Some environment variables are honored as configuration.
@@ -160,6 +163,20 @@ def get_tft_manifests_yamls() -> str:
 
     logger.info(f"env: {ENV_TFT_MANIFESTS_YAMLS}={shlex.quote(path)}")
     return path
+
+
+@functools.cache
+def get_tft_external_url() -> Optional[str]:
+    d = get_environ(ENV_TFT_EXTERNAL_URL)
+    logger.info(f"env: {ENV_TFT_EXTERNAL_URL}={shlex.quote(d or '')}")
+    return d or None
+
+
+@functools.cache
+def get_tft_external_server_string() -> Optional[str]:
+    d = get_environ(ENV_TFT_EXTERNAL_SERVER_STRING)
+    logger.info(f"env: {ENV_TFT_EXTERNAL_SERVER_STRING}={shlex.quote(d or '')}")
+    return d or None
 
 
 TFT_TESTS = "tft-tests"

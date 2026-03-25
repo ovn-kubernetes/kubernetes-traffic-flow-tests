@@ -15,8 +15,13 @@ from task import TaskOperation
 from testSettings import TestSettings
 from testType import TestTypeHandler
 from tftbase import BaseOutput
+from tftbase import ConnectionMode
 from tftbase import FlowTestOutput
 from tftbase import TestType
+
+logger = common.ExtendedLogger("tft." + __name__)
+
+_INTERNET_DEFAULT_SERVER_STRING = "The document has moved"
 
 
 @dataclass(frozen=True)
@@ -53,18 +58,40 @@ class HttpServer(task.ServerTask):
 
 class HttpClient(task.ClientTask):
     def _create_task_operation(self) -> TaskOperation:
-        server_ip = self.get_target_ip()
-        target_port = self.get_target_port()
-        cmd = f"curl --fail -s http://{server_ip}:{target_port}/data"
+        external_url = tftbase.get_tft_external_url()
+        use_internet = (
+            self.connection_mode == ConnectionMode.EXTERNAL_IP
+            and external_url is not None
+        )
 
-        def _thread_action() -> BaseOutput:
-            self.ts.clmo_barrier.wait()
+        if use_internet:
+            cmd = f"curl -s -m 30 {external_url}"
+            expected_string = (
+                tftbase.get_tft_external_server_string()
+                or _INTERNET_DEFAULT_SERVER_STRING
+            )
 
-            def _check_success(r: host.Result) -> bool:
+            def _check_success_internet(r: host.Result) -> bool:
+                return expected_string in r.out
+
+        else:
+            server_ip = self.get_target_ip()
+            target_port = self.get_target_port()
+            cmd = f"curl --fail -s http://{server_ip}:{target_port}/data"
+
+            def _check_success_podman(r: host.Result) -> bool:
                 return r.success and r.match(
                     out="kubernetes-traffic-flow-tests\n",
                     err="",
                 )
+
+        def _thread_action() -> BaseOutput:
+            self.ts.clmo_barrier.wait()
+
+            if use_internet:
+                _check_success = _check_success_internet
+            else:
+                _check_success = _check_success_podman
 
             sleep_time = 0.2
             end_timestamp = time.monotonic() + self.get_duration() - sleep_time
@@ -79,8 +106,20 @@ class HttpClient(task.ClientTask):
 
             self.ts.event_client_finished.set()
 
+            success = _check_success(r)
+            if success:
+                msg = ""
+            elif use_internet:
+                if expected_string not in r.out:
+                    msg = f'Output of "{cmd}" does not contain expected string {repr(expected_string)}: {r.debug_msg()[:100]}'
+                else:
+                    msg = f'Output of "{cmd}" failed: {r.debug_msg()[:100]}'
+            else:
+                msg = f'Output of "{cmd}" failed: {r.debug_msg()[:100]}'
+
             return FlowTestOutput(
-                success=_check_success(r),
+                success=success,
+                msg=msg,
                 tft_metadata=self.ts.get_test_metadata(),
                 command=cmd,
                 result={

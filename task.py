@@ -35,6 +35,7 @@ from tftbase import ConnectionMode
 from tftbase import PluginOutput
 from tftbase import PodType
 from tftbase import TaskRole
+from tftbase import TestType
 
 _j = json.dumps
 
@@ -963,7 +964,16 @@ class ServerTask(Task, ABC):
         )
         port = port_base + self.index
 
-        if connection_mode == ConnectionMode.EXTERNAL_IP:
+        use_internet = (
+            connection_mode == ConnectionMode.EXTERNAL_IP
+            and tftbase.get_tft_external_url() is not None
+            and ts.connection.test_type == TestType.HTTP
+        )
+
+        if use_internet:
+            in_file_template = ""
+            pod_name = ""
+        elif connection_mode == ConnectionMode.EXTERNAL_IP:
             in_file_template = ""
             pod_name = EXTERNAL_PERF_SERVER
         elif connection_mode in (
@@ -995,6 +1005,7 @@ class ServerTask(Task, ABC):
         self.external_port: int = 0
         self.pod_type = pod_type
         self.connection_mode = ts.connection_mode
+        self.use_internet = use_internet
         self.in_file_template = in_file_template
         self.pod_name = pod_name
 
@@ -1027,6 +1038,11 @@ class ServerTask(Task, ABC):
         return self.cmd_line_args(for_template=True)
 
     def confirm_server_alive(self) -> None:
+        if self.use_internet:
+            # No server to wait for; client curls external URL directly.
+            self.ts.event_server_alive.set()
+            return
+
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
             # Podman scenario
             end_time = time.monotonic() + 60
@@ -1141,6 +1157,11 @@ class ServerTask(Task, ABC):
         # the connection_mode we call setup_pod().
 
         self.pre_provisioning = provisioning
+
+        if self.use_internet:
+            # No server needed; client curls external URL directly.
+            self.ts.event_server_alive.set()
+            return None
 
         th_cmd = self._create_setup_operation_get_thread_action_cmd()
 
@@ -1288,6 +1309,9 @@ class ClientTask(Task, ABC):
         self.render_pod_file("Client Pod Yaml")
 
     def get_target_ip(self) -> str:
+        if self.server.use_internet:
+            # URL is used directly by testTypeHttp; no IP needed.
+            return ""
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
             ip = self.server.get_cluster_ip()
             if ip is None:
@@ -1321,6 +1345,9 @@ class ClientTask(Task, ABC):
 
     def get_target_port(self) -> int:
         """Get the port to connect to. For EXTERNAL_IP, use discovered external_port."""
+        if self.server.use_internet:
+            # URL is used directly by testTypeHttp; no port needed.
+            return 0
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
             return self.server.external_port
         return self.port
