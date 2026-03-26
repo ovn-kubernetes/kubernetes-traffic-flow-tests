@@ -595,6 +595,7 @@ class TrafficFlowTests:
         instance_index: int,
         target_access_mode: tftbase.TargetAccessMode,
         reverse: bool = False,
+        host_ip_override: str | None = None,
     ) -> TftResult:
         connection = cfg_descr.get_connection()
 
@@ -612,6 +613,9 @@ class TrafficFlowTests:
         logger.info(
             f"Starting test {ts.get_test_info(client_pod_name=c.pod_name, server_pod_name=s.pod_name)}"
         )
+        if host_ip_override is not None:
+            c.host_ip_override = host_ip_override
+            logger.info(f"Using host IP override: {host_ip_override}")
         servers.append(s)
         clients.append(c)
         current_test_case = cfg_descr.get_test_case()
@@ -692,6 +696,38 @@ class TrafficFlowTests:
                         c.initialize()
                         c.start_setup(provisioning=True)
 
+    def _get_host_ips_for_test(
+        self, cfg_descr: ConfigDescriptor
+    ) -> list[str] | None:
+        """If the server is host-backed, discover host IPs from the node's
+        k8s.ovn.org/host-cidrs annotation.  Returns None when the test
+        does not involve a host-backed server."""
+        test_case_info = cfg_descr.get_test_case().info
+        if not test_case_info.is_server_hostbacked:
+            return None
+
+        server_node_name = cfg_descr.get_server().name
+        client = cfg_descr.tc.client_tenant
+        y = client.oc_get(f"node/{server_node_name}", may_fail=True, namespace=None)
+        if y:
+            cidrs_str = (
+                y.get("metadata", {})
+                .get("annotations", {})
+                .get("k8s.ovn.org/host-cidrs", "")
+            )
+            if cidrs_str:
+                try:
+                    cidrs = json.loads(cidrs_str)
+                    if isinstance(cidrs, list) and len(cidrs) > 1:
+                        ips = [c.split("/")[0] for c in cidrs]
+                        logger.info(
+                            f"Node {server_node_name} has multiple host IPs: {ips}"
+                        )
+                        return ips
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        return None
+
     def _run_test_case(self, cfg_descr: ConfigDescriptor) -> list[TftResult]:
         # TODO Allow for multiple connections / instances to run simultaneously
         tft_results: list[TftResult] = []
@@ -702,24 +738,34 @@ class TrafficFlowTests:
             target_access_modes = tftbase.get_target_access_modes(
                 cfg_descr2.get_test_case().info.connection_mode
             )
+            host_ips = self._get_host_ips_for_test(cfg_descr2)
+
             for instance_index in range(connection.instances):
                 for target_access_mode in target_access_modes:
-                    tft_results.append(
-                        self._run_test_case_instance(
-                            cfg_descr2,
-                            instance_index=instance_index,
-                            target_access_mode=target_access_mode,
-                        )
-                    )
-                    if connection.test_type_handler.can_run_reverse(connection):
+                    target_host_ips: tuple[str | None, ...]
+                    if host_ips is None:
+                        target_host_ips = (None,)
+                    else:
+                        target_host_ips = tuple(host_ips)
+                    for host_ip in target_host_ips:
                         tft_results.append(
                             self._run_test_case_instance(
                                 cfg_descr2,
                                 instance_index=instance_index,
-                                reverse=True,
                                 target_access_mode=target_access_mode,
+                                host_ip_override=host_ip,
                             )
                         )
+                        if connection.test_type_handler.can_run_reverse(connection):
+                            tft_results.append(
+                                self._run_test_case_instance(
+                                    cfg_descr2,
+                                    instance_index=instance_index,
+                                    reverse=True,
+                                    target_access_mode=target_access_mode,
+                                    host_ip_override=host_ip,
+                                )
+                            )
                 self._cleanup_previous_testspace(cfg_descr2)
         return tft_results
 
