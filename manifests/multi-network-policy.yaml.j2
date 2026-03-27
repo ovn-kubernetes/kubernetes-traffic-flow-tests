@@ -1,0 +1,37 @@
+kind: MultiNetworkPolicy
+apiVersion: k8s.cni.cncf.io/v1beta1
+metadata:
+  namespace: {{ name_space }}
+  name: {{ mnp_name }}
+  labels:
+    tft-tests: {{ label_tft_tests }}
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: {{ secondary_network_nad }}
+spec:
+  podSelector:
+    matchLabels:
+      tft-tests: {{ label_tft_tests }}
+  ingress:
+{% if mnp_action == "allow" %}
+    - from:
+        - podSelector:
+            matchLabels:
+              tft-tests: {{ label_tft_tests }}
+      ports:
+        - port: {{ mnp_port }}
+          protocol: TCP
+        - port: {{ mnp_port }}
+          protocol: UDP
+{% endif %}
+  egress:
+{% if mnp_action == "allow" %}
+    - to:
+        - podSelector:
+            matchLabels:
+              tft-tests: {{ label_tft_tests }}
+      ports:
+        - port: {{ mnp_port }}
+          protocol: TCP
+        - port: {{ mnp_port }}
+          protocol: UDP
+{% endif %}

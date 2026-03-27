@@ -160,12 +160,17 @@ IPERF_TCP:
       threshold: 18
     Reverse:
       threshold: 10
-  - id: POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW
+  - id: POD_TO_POD_2ND_INTERFACE_MNP_ALLOW_2ND
     Normal:
       threshold: 18
     Reverse:
       threshold: 10
-  - id: POD_TO_POD_MULTI_NETWORK_POLICY_DENY
+  - id: POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND
+    Normal:
+      threshold: 0
+    Reverse:
+      threshold: 0
+  - id: POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND
     Normal:
       threshold: 18
     Reverse:
@@ -416,12 +421,17 @@ IPERF_UDP:
       threshold: 5
     Reverse:
       threshold: 5
-  - id: POD_TO_POD_MULTI_NETWORK_POLICY_ALLOW
+  - id: POD_TO_POD_2ND_INTERFACE_MNP_ALLOW_2ND
     Normal:
       threshold: 5
     Reverse:
       threshold: 5
-  - id: POD_TO_POD_MULTI_NETWORK_POLICY_DENY
+  - id: POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND
+    Normal:
+      threshold: 0
+    Reverse:
+      threshold: 0
+  - id: POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND
     Normal:
       threshold: 5
     Reverse:
