@@ -179,13 +179,9 @@ def main() -> int:
 
     exit_code = 0
 
-    def results_log_fcn(msg: str) -> None:
-        if args_check:
-            logger.info(msg)
-
     if not print_results.process_results_all(
         tft_results_lst,
-        log=results_log_fcn,
+        log=lambda _: None,
     ):
         exit_code = print_results.EXIT_CODE_VALIDATION
 

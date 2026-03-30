@@ -1,5 +1,6 @@
 import json
 import logging
+import print_results
 import task
 import time as _time
 
@@ -428,6 +429,8 @@ class TrafficFlowTests:
 
             if not result_status.result:
                 logger.error(f"Failure detected in {cfg_descr.get_tft().name} results")
+
+            print_results.process_results(tft_results, log=logger.info)
 
             return TftResults(
                 lst=tft_results.lst,
