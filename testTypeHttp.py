@@ -77,7 +77,7 @@ class HttpClient(task.ClientTask):
         else:
             server_ip = self.get_target_ip()
             target_port = self.get_target_port()
-            cmd = f"curl --fail -s http://{server_ip}:{target_port}/data"
+            cmd = f"curl --fail -s --connect-timeout 5 http://{server_ip}:{target_port}/data"
 
             def _check_success_podman(r: host.Result) -> bool:
                 return r.success and r.match(
@@ -107,6 +107,7 @@ class HttpClient(task.ClientTask):
             self.ts.event_client_finished.set()
 
             success = _check_success(r)
+
             if success:
                 msg = ""
             elif use_internet:
@@ -116,6 +117,16 @@ class HttpClient(task.ClientTask):
                     msg = f'Output of "{cmd}" failed: {r.debug_msg()[:100]}'
             else:
                 msg = f'Output of "{cmd}" failed: {r.debug_msg()[:100]}'
+
+            # For deny tests, curl failing to connect is the expected outcome.
+            test_metadata = self.ts.get_test_metadata()
+            if test_metadata.expects_blocked:
+                if success:
+                    success = False
+                    msg = "Traffic was not blocked as expected (policy not enforced)"
+                else:
+                    success = True
+                    msg = "Traffic was blocked as expected (deny policy active)"
 
             return FlowTestOutput(
                 success=success,
@@ -132,3 +143,13 @@ class HttpClient(task.ClientTask):
             log_name=self.log_name,
             thread_action=_thread_action,
         )
+
+    def _aggregate_output_log_success(
+        self,
+        result: tftbase.AggregatableOutput,
+    ) -> None:
+        assert isinstance(result, FlowTestOutput)
+        if result.tft_metadata.expects_blocked:
+            logger.info("Traffic was blocked as expected, no HTTP results to log")
+            return
+        logger.info("HTTP request succeeded")
