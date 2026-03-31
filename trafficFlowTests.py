@@ -353,6 +353,8 @@ class TrafficFlowTests:
                         c.start_setup(provisioning=True)
 
                     for plugin in connection.plugins:
+                        if not plugin.applies_to_test_case(cfg_descr3.get_test_case()):
+                            continue
                         for m in plugin.plugin.enable(
                             ts=ts, perf_server=s, perf_client=c, tenant=True
                         ):
