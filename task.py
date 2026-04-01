@@ -2,6 +2,7 @@ import enum
 import json
 import logging
 import os
+import re
 import shlex
 import threading
 import time
@@ -658,6 +659,46 @@ class Task(ABC):
         logger.info(f"Secondary IP: {ip_address}")
         return ip_address
 
+    def get_nad_cidrs(self, nad: str) -> list[str]:
+        # Matches IPv4 and IPv6 CIDRs
+        cidr_re = re.compile(
+            r"^(\d{1,3}(?:\.\d{1,3}){3}/\d{1,3})(?:/\d+)?$"  # IPv4
+            r"|"
+            r"^([0-9a-fA-F:]{2,}/\d{1,3})(?:/\d+)?$"  # IPv6
+        )
+
+        def collect(val: object, out: list[str]) -> None:
+            if isinstance(val, str):
+                for token in re.split(r"[,\s]+", val.strip()):
+                    token = token.strip()
+                    if not token:
+                        continue
+                    m = cidr_re.match(token)
+                    if m:
+                        out.append(m.group(1) or m.group(2))
+            elif isinstance(val, list):
+                for item in val:
+                    collect(item, out)
+            elif isinstance(val, dict):
+                for v in val.values():
+                    collect(v, out)
+
+        if "/" in nad:
+            namespace, name = nad.split("/", 1)
+        else:
+            namespace = self.get_namespace()
+            name = nad
+        nad_data = self.run_oc_get(
+            f"network-attachment-definition/{name}",
+            die_on_error=True,
+            namespace=namespace,
+        )
+        assert nad_data is not None
+        config = json.loads(nad_data["spec"]["config"])
+        cidrs: list[str] = []
+        collect(config, cidrs)
+        return cidrs
+
     def create_cluster_ip_service(self) -> None:
         in_file_template = tftbase.get_manifest("svc-cluster-ip.yaml.j2")
         out_file_yaml = tftbase.get_manifest_renderpath(
@@ -768,11 +809,20 @@ class Task(ABC):
             f"mnp-{self.pod_name}-{action}.yaml"
         )
 
-        template_args = {
+        client_cidrs: list[str] = []
+        if action == NP_ACTION_ALLOW.lower():
+            client_nad = (
+                self.ts.connection.client[0].effective_secondary_network_nad
+                or self.ts.connection.effective_secondary_network_nad
+            )
+            client_cidrs = self.get_nad_cidrs(client_nad)
+
+        template_args: dict[str, typing.Any] = {
             **self.get_template_args(),
             "mnp_name": _j(mnp_name),
             "mnp_action": action,
             "mnp_port": _j(port),
+            "mnp_client_cidrs": client_cidrs,
         }
 
         self.render_file(
