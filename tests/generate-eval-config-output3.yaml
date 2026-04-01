@@ -240,6 +240,56 @@ IPERF_TCP:
       threshold: 18
     Reverse:
       threshold: 10
+  - id: UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_LOCALNET_POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_LOCALNET_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
+  - id: UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 10
   - id: POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE
     Normal:
       threshold: 18
@@ -497,6 +547,56 @@ IPERF_UDP:
     Reverse:
       threshold: 5
   - id: UDN_SECONDARY_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_LOCALNET_POD_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_LOCALNET_POD_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE
     Normal:
       threshold: 5
     Reverse:

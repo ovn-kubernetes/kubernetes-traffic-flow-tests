@@ -66,18 +66,18 @@ tft:
             secondary_network_nad: "(19)"
         plugins:
           - name: (20)
-            test_cases: (20a)
+            test_cases: (21)
           - name: (20)
-        secondary_network_nad: "(21)"
-        resource_name: "(22)"
-        cpu_request: "(23)"
-        cpu_limit: "(24)"
-        mem_request: "(25)"
-        mem_limit: "(26)"
-    privileged_pod: (27)
-    capabilities_pod: (28)
-kubeconfig: (29)
-kubeconfig_infra: (29)
+        secondary_network_nad: "(22)"
+        resource_name: "(23)"
+        cpu_request: "(24)"
+        cpu_limit: "(25)"
+        mem_request: "(26)"
+        mem_limit: "(27)"
+    privileged_pod: (28)
+    capabilities_pod: (29)
+kubeconfig: (30)
+kubeconfig_infra: (30)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -131,14 +131,24 @@ kubeconfig_infra: (29)
     | 42 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
     | 43 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
     | 44 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
-    | 45 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 46 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 47 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 48 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
-    | 49 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 50 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 51 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 52 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 45 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 46 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 47 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 48 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 49 | UDN_LOCALNET_POD_TO_POD_SAME_NODE |
+    | 50 | UDN_LOCALNET_POD_TO_POD_DIFF_NODE |
+    | 51 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 52 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 53 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 54 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 55 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 56 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 57 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 58 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 59 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 60 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 61 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 62 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -164,20 +174,19 @@ kubeconfig_infra: (29)
     | measure_cpu      | Measure CPU Usage    |
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
-20a. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-21. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-31, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-31 it defaults to "tft-secondary" if not set. Can be overridden per-node using the server/client level `secondary_network_nad` fields. The framework automatically creates and cleans up the NAD when these test cases are selected or when SRIOV nodes reference a secondary NAD. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
-22. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test
-tool will try to autopopulate resource_name based on the secondary+network_nad provided.
-23. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
-24. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
-25. "mem_request" - (Optional) Memory request for server and client pods (e.g. "50Mi", "100Mi"). No memory request is set if omitted.
-26. "mem_limit" - (Optional) Memory limit for server and client pods (e.g. "100Mi", "200Mi"). No memory limit is set if omitted.
-27. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
-28. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
-29. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+21. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
+22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-31, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-31 it defaults to "tft-secondary" if not set. Can be overridden per-node using the server/client level `secondary_network_nad` fields. The framework automatically creates and cleans up the NAD when these test cases are selected or when SRIOV nodes reference a secondary NAD. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
+23. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
+24. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
+25. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
+26. "mem_request" - (Optional) Memory request for server and client pods (e.g. "50Mi", "100Mi"). No memory request is set if omitted.
+27. "mem_limit" - (Optional) Memory limit for server and client pods (e.g. "100Mi", "200Mi"). No memory limit is set if omitted.
+28. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
+29. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
+30. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-30. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+31. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 
@@ -185,12 +194,13 @@ tool will try to autopopulate resource_name based on the secondary+network_nad p
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 34-41 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically.
+Test cases 37-54 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically.
 
-- **34-39** (Primary UDN): Layer3 network replacing the pod's default network.
-- **40-41** (Secondary UDN): Layer2 network attached as a 2nd interface.
+- **37-42** (Primary UDN): Layer3 network replacing the pod's default network. Supports pod-to-pod, ClusterIP, and NodePort.
+- **43-48** (Secondary UDN): Layer2 network attached as a 2nd interface. Supports pod-to-pod, ClusterIP, and NodePort.
+- **49-54** (Localnet UDN): Localnet topology secondary network via ClusterUserDefinedNetwork, providing direct L2 access. Supports pod-to-pod, ClusterIP, and NodePort.
 
-CIDRs default to `15.1.0.0/16` / `15.2.0.0/16`, overridable via `TFT_UDN_PRIMARY_CIDR` and `TFT_UDN_SECONDARY_CIDR`. Reference manifests are in `manifests/udn-primary.yaml.j2` and `manifests/udn-secondary.yaml.j2`.
+CIDRs default to `15.1.0.0/16` (primary), `15.2.0.0/16` (secondary), and `15.3.0.0/24` (localnet), overridable via `TFT_UDN_PRIMARY_CIDR`, `TFT_UDN_SECONDARY_CIDR`, and `TFT_UDN_LOCALNET_CIDR`. The localnet physical network name defaults to `physnet`, overridable via `TFT_UDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn-primary.yaml.j2`, `manifests/udn-secondary.yaml.j2`, and `manifests/udn-localnet.yaml.j2`.
 
 ## DPU Mode
 
@@ -356,6 +366,10 @@ tft:
      defaults to "manifests/yamls".
 - `TFT_KUBECONFIG`, `TFT_KUBECONFIG_INFRA` to overwrite the kubeconfigs from the configuration
      file. See also the "--kubeconfig" and "--kubeconfig-infra" command line options.
+- `TFT_UDN_PRIMARY_CIDR` CIDR for primary UDN tests. Defaults to `15.1.0.0/16`.
+- `TFT_UDN_SECONDARY_CIDR` CIDR for secondary UDN tests. Defaults to `15.2.0.0/16`.
+- `TFT_UDN_LOCALNET_CIDR` CIDR for localnet UDN tests. Defaults to `15.3.0.0/24`.
+- `TFT_UDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet UDN tests. Defaults to `physnet`.
 - `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
      Only effective when the connection type is `http` and the connection mode is `POD_TO_EXTERNAL`
      or `HOST_TO_EXTERNAL`. When set, no Podman server is started; the client pod curls this URL
