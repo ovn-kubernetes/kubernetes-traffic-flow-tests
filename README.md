@@ -129,14 +129,24 @@ kubeconfig_infra: (27)
     | 42 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
     | 43 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
     | 44 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
-    | 45 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 46 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 47 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 48 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
-    | 49 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 50 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 51 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 52 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 45 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 46 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 47 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 48 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 49 | UDN_LOCALNET_POD_TO_POD_SAME_NODE |
+    | 50 | UDN_LOCALNET_POD_TO_POD_DIFF_NODE |
+    | 51 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 52 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 53 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 54 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 55 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 56 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 57 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 58 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 59 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 60 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 61 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 62 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -181,12 +191,13 @@ tool will try to autopopulate resource_name based on the secondary+network_nad p
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 34-41 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically.
+Test cases 37-54 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically.
 
-- **34-39** (Primary UDN): Layer3 network replacing the pod's default network.
-- **40-41** (Secondary UDN): Layer2 network attached as a 2nd interface.
+- **37-42** (Primary UDN): Layer3 network replacing the pod's default network. Supports pod-to-pod, ClusterIP, and NodePort.
+- **43-48** (Secondary UDN): Layer2 network attached as a 2nd interface. Supports pod-to-pod, ClusterIP, and NodePort.
+- **49-54** (Localnet UDN): Localnet topology secondary network via ClusterUserDefinedNetwork, providing direct L2 access. Supports pod-to-pod, ClusterIP, and NodePort.
 
-CIDRs default to `15.1.0.0/16` / `15.2.0.0/16`, overridable via `TFT_UDN_PRIMARY_CIDR` and `TFT_UDN_SECONDARY_CIDR`. Reference manifests are in `manifests/udn-primary.yaml.j2` and `manifests/udn-secondary.yaml.j2`.
+CIDRs default to `15.1.0.0/16` (primary), `15.2.0.0/16` (secondary), and `15.3.0.0/24` (localnet), overridable via `TFT_UDN_PRIMARY_CIDR`, `TFT_UDN_SECONDARY_CIDR`, and `TFT_UDN_LOCALNET_CIDR`. The localnet physical network name defaults to `physnet`, overridable via `TFT_UDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn-primary.yaml.j2`, `manifests/udn-secondary.yaml.j2`, and `manifests/udn-localnet.yaml.j2`.
 
 ## DPU Mode
 
@@ -352,6 +363,10 @@ tft:
      defaults to "manifests/yamls".
 - `TFT_KUBECONFIG`, `TFT_KUBECONFIG_INFRA` to overwrite the kubeconfigs from the configuration
      file. See also the "--kubeconfig" and "--kubeconfig-infra" command line options.
+- `TFT_UDN_PRIMARY_CIDR` CIDR for primary UDN tests. Defaults to `15.1.0.0/16`.
+- `TFT_UDN_SECONDARY_CIDR` CIDR for secondary UDN tests. Defaults to `15.2.0.0/16`.
+- `TFT_UDN_LOCALNET_CIDR` CIDR for localnet UDN tests. Defaults to `15.3.0.0/24`.
+- `TFT_UDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet UDN tests. Defaults to `physnet`.
 - `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
      Only effective when the connection type is `http` and the connection mode is `POD_TO_EXTERNAL`
      or `HOST_TO_EXTERNAL`. When set, no Podman server is started; the client pod curls this URL

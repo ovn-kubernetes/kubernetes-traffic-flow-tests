@@ -1,0 +1,22 @@
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: tft-localnet
+  labels:
+    tft-tests: "udn"{% if has_resource_name %}
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: {{ resource_name }}{% endif %}
+spec:
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: In
+      values:
+      - {{ name_space }}
+  network:
+    topology: Localnet
+    localnet:
+      role: Secondary
+      physicalNetworkName: {{ physical_network_name }}
+      subnets:
+      - {{ localnet_cidr }}
