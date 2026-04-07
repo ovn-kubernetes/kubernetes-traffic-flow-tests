@@ -14,9 +14,16 @@ spec:
   ingress:
 {% if mnp_action == "allow" %}
     - from:
+{% if mnp_client_cidrs %}
+{% for cidr in mnp_client_cidrs %}
+        - ipBlock:
+            cidr: {{ cidr }}
+{% endfor %}
+{% else %}
         - podSelector:
             matchLabels:
               tft-tests: {{ label_tft_tests }}
+{% endif %}
       ports:
         - port: {{ mnp_port }}
           protocol: TCP
@@ -26,9 +33,16 @@ spec:
   egress:
 {% if mnp_action == "allow" %}
     - to:
+{% if mnp_client_cidrs %}
+{% for cidr in mnp_client_cidrs %}
+        - ipBlock:
+            cidr: {{ cidr }}
+{% endfor %}
+{% else %}
         - podSelector:
             matchLabels:
               tft-tests: {{ label_tft_tests }}
+{% endif %}
       ports:
         - port: {{ mnp_port }}
           protocol: TCP
