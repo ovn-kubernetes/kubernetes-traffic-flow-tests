@@ -357,13 +357,21 @@ class Task(ABC):
             raise RuntimeError("task cannot generate a pod yaml")
         return tftbase.get_manifest_renderpath(self.pod_name + ".yaml")
 
+    def _get_node_secondary_network_nad(self) -> Optional[str]:
+        if self.task_role == TaskRole.CLIENT and self.ts.test_case_id.info.is_same_node:
+            (c_client,) = self.ts.connection.client
+            if c_client.secondary_network_nad is not None:
+                return c_client.secondary_network_nad
+        return self.node.secondary_network_nad
+
     def get_resource_name(self) -> str:
         with self._lock:
             if self._resource_name is not None:
                 return self._resource_name
         resource_name_config = self.ts.connection.resource_name
         nad_for_detection = (
-            self.node.secondary_network_nad or self.ts.connection.secondary_network_nad
+            self._get_node_secondary_network_nad()
+            or self.ts.connection.secondary_network_nad
         )
         resource_name = (
             resource_name_config
@@ -394,6 +402,11 @@ class Task(ABC):
     def _get_effective_secondary_network_nad(self) -> str:
         if self.ts.test_case_id.is_udn:
             return f"{self.get_namespace()}/tft-secondary"
+        nad = self._get_node_secondary_network_nad()
+        if nad is not None:
+            if "/" not in nad:
+                nad = f"{self.get_namespace()}/{nad}"
+            return nad
         return (
             self.node.effective_secondary_network_nad
             or self.ts.connection.effective_secondary_network_nad
@@ -425,7 +438,7 @@ class Task(ABC):
             "port": self._get_template_args_port(),
             "secondary_network_nad": _j(self._get_effective_secondary_network_nad()),
             "use_secondary_network": (
-                bool(self.node.secondary_network_nad)
+                bool(self._get_node_secondary_network_nad())
                 or bool(self.ts.connection.secondary_network_nad)
                 or self.ts.test_case_id.is_udn_secondary
             ),
@@ -600,7 +613,7 @@ class Task(ABC):
                         )
                         pod_ip = y["status"]["podIP"]
                 elif (
-                    self.node.secondary_network_nad
+                    self._get_node_secondary_network_nad()
                     or self.ts.connection.secondary_network_nad
                 ):
                     network_status_str = y["metadata"]["annotations"][
