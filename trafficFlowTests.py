@@ -222,6 +222,12 @@ class TrafficFlowTests:
                 ConnectionMode.NP_ALLOW,
             ):
                 self._cleanup_multi_network_policies(cfg_descr)
+            if connection_mode == ConnectionMode.LOAD_BALANCER:
+                logger.info(f"Cleaning LoadBalancer services in namespace {namespace}")
+                client.oc(
+                    "delete services -l tft-svc-type=loadbalancer",
+                    namespace=namespace,
+                )
 
     def _cleanup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         if self._udn_ns is None:

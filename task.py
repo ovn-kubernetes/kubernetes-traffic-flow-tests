@@ -806,6 +806,7 @@ class Task(ABC):
             ip = self.get_load_balancer_ip()
             if ip:
                 logger.debug(f"LoadBalancer IP assigned: {ip}")
+                time.sleep(10)
                 return ip
             logger.debug("Waiting for LoadBalancer IP to be assigned...")
             time.sleep(5)
@@ -1153,8 +1154,6 @@ class ServerTask(Task, ABC):
                 self.create_cluster_ip_service()
             if self.get_nodeport_ip() is None:
                 self.create_node_port_service()
-            if self.get_load_balancer_ip() is None:
-                self.create_load_balancer_service()
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:
@@ -1332,6 +1331,9 @@ class ServerTask(Task, ABC):
                 self.create_network_policy(self.port, NP_ACTION_DENY)
             elif self.connection_mode == ConnectionMode.NP_ALLOW:
                 self.create_network_policy(self.port, NP_ACTION_ALLOW)
+
+            if self.connection_mode == ConnectionMode.LOAD_BALANCER:
+                self.create_load_balancer_service()
 
         def _run_cmd(cmd: str) -> BaseOutput:
             # We ignore the exit code of the command, that is because this is
