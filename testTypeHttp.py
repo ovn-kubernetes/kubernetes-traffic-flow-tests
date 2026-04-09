@@ -64,8 +64,10 @@ class HttpClient(task.ClientTask):
             and external_url is not None
         )
 
+        timeout = int(self.get_duration() * 1.5)
+
         if use_internet:
-            cmd = f"curl -s -m 30 {external_url}"
+            cmd = f"curl -s -m {timeout} {external_url}"
             expected_string = (
                 tftbase.get_tft_external_server_string()
                 or _INTERNET_DEFAULT_SERVER_STRING
@@ -77,7 +79,7 @@ class HttpClient(task.ClientTask):
         else:
             server_ip = self.get_target_ip()
             target_port = self.get_target_port()
-            cmd = f"curl --fail -s --connect-timeout 5 http://{server_ip}:{target_port}/data"
+            cmd = f"curl --fail -s --connect-timeout {timeout} http://{server_ip}:{target_port}/data"
 
             def _check_success_podman(r: host.Result) -> bool:
                 return r.success and r.match(
