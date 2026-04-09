@@ -400,7 +400,9 @@ class Task(ABC):
         return tftbase.get_tft_test_image_for_type(self.ts.connection.test_type)
 
     def _get_effective_secondary_network_nad(self) -> str:
-        if self.ts.test_case_id.is_udn:
+        if self.ts.test_case_id.is_udn_localnet:
+            return f"{self.get_namespace()}/tft-localnet"
+        if self.ts.test_case_id.is_udn_secondary:
             return f"{self.get_namespace()}/tft-secondary"
         nad = self._get_node_secondary_network_nad()
         if nad is not None:
@@ -441,6 +443,7 @@ class Task(ABC):
                 bool(self._get_node_secondary_network_nad())
                 or bool(self.ts.connection.secondary_network_nad)
                 or self.ts.test_case_id.is_udn_secondary
+                or self.ts.test_case_id.is_udn_localnet
             ),
             "has_resource_name": bool(resource_name),
             "resource_name": _j(resource_name),
@@ -482,7 +485,13 @@ class Task(ABC):
 
     @property
     def _network_type(self) -> str:
-        return "secondary" if self.ts.connection_mode in _SECONDARY_MODES else "primary"
+        if (
+            self.ts.connection_mode in _SECONDARY_MODES
+            or self.ts.test_case_id.is_udn_secondary
+            or self.ts.test_case_id.is_udn_localnet
+        ):
+            return "secondary"
+        return "primary"
 
     def render_pod_file(self, log_info: str) -> None:
         self.render_file(
@@ -1092,18 +1101,20 @@ class ServerTask(Task, ABC):
             and ts.connection.test_type == TestType.HTTP
         )
 
+        needs_secondary_pod = (
+            connection_mode in _SECONDARY_MODES
+            or connection_mode == ConnectionMode.MNP_PRIMARY_DENY
+            or ts.test_case_id.is_udn_secondary
+            or ts.test_case_id.is_udn_localnet
+        )
+
         if use_internet:
             in_file_template = ""
             pod_name = ""
         elif connection_mode == ConnectionMode.EXTERNAL_IP:
             in_file_template = ""
             pod_name = EXTERNAL_PERF_SERVER
-        elif connection_mode in (
-            ConnectionMode.MULTI_HOME,
-            ConnectionMode.MNP_2ND_DENY,
-            ConnectionMode.MNP_2ND_ALLOW,
-            ConnectionMode.MNP_PRIMARY_DENY,
-        ):
+        elif needs_secondary_pod:
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-network-server-{port}"
         elif pod_type == PodType.SRIOV:
@@ -1393,12 +1404,14 @@ class ClientTask(Task, ABC):
         port = server.port
         connection_mode = ts.connection_mode
 
-        if connection_mode in (
-            ConnectionMode.MULTI_HOME,
-            ConnectionMode.MNP_2ND_DENY,
-            ConnectionMode.MNP_2ND_ALLOW,
-            ConnectionMode.MNP_PRIMARY_DENY,
-        ):
+        needs_secondary_pod = (
+            connection_mode in _SECONDARY_MODES
+            or connection_mode == ConnectionMode.MNP_PRIMARY_DENY
+            or ts.test_case_id.is_udn_secondary
+            or ts.test_case_id.is_udn_localnet
+        )
+
+        if needs_secondary_pod:
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-network-{node_location}-client-{port}"
         elif pod_type == PodType.SRIOV:
