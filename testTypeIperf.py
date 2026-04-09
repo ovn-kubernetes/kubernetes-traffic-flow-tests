@@ -156,9 +156,11 @@ class IperfClient(task.ClientTask):
         if self.reverse:
             cmd += f" {IPERF_REV_OPT}"
 
+        expects_blocked = self.ts.test_case_id.info.expects_blocked
+
         def _thread_action() -> BaseOutput:
             self.ts.clmo_barrier.wait()
-            r = self.run_oc_exec(cmd)
+            r = self.run_oc_exec(cmd, may_fail=expects_blocked)
             self.ts.event_client_finished.set()
 
             success = True
@@ -168,9 +170,20 @@ class IperfClient(task.ClientTask):
             if not r.success:
                 success = False
                 msg = f'Command "{cmd}" failed: {r.debug_msg()}'
+                if not expects_blocked:
+                    logger.debug(
+                        f"iperf3 failure context: "
+                        f"client_pod={self.pod_name}, "
+                        f"server_pod={self.server.pod_name}, "
+                        f"server_port={self.server.port}, "
+                        f"node={self.node_name}, "
+                        f"exit_code={r.returncode}, "
+                        f"error={r.err.strip()!r}"
+                    )
 
-            # Log raw output for debugging
-            logger.debug(f"iperf3 raw output: {repr(r.out)}")
+            if not expects_blocked:
+                # Log raw output for debugging
+                logger.debug(f"iperf3 raw output: {repr(r.out)}")
 
             if success:
                 try:
@@ -195,6 +208,14 @@ class IperfClient(task.ClientTask):
                 if "error" in result:
                     success = False
                     msg = f'Output of "{cmd}" contains "error": {r.debug_msg()}'
+                    if not expects_blocked:
+                        logger.debug(
+                            f"iperf3 reported error: "
+                            f"client_pod={self.pod_name}, "
+                            f"server_pod={self.server.pod_name}, "
+                            f"server_port={self.server.port}, "
+                            f"error={result.get('error', '')!r}"
+                        )
 
             bitrate_gbps = _calculate_gbps(self.test_type, result)
             if success:

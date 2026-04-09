@@ -996,6 +996,14 @@ class Task(ABC):
 
         if not result.success:
             logger.warn(f"Result of {type(self).__name__} failed: {result.eval_msg}")
+            logger.debug(
+                f"Failure details: pod={self.pod_name}, "
+                f"port={getattr(self, 'port', 'N/A')}, "
+                f"node={self.node_name}, "
+                f"test_type={getattr(self, 'test_type', 'N/A')}, "
+                f"connection_mode="
+                f"{getattr(self, 'connection_mode', 'N/A')}"
+            )
         else:
             self._aggregate_output_log_success(result)
 
@@ -1183,6 +1191,11 @@ class ServerTask(Task, ABC):
             )
         if not r:
             logger.error(f"Failed to start server {self.pod_name}: {r.err}")
+            logger.debug(
+                f"Server startup failure details: pod={self.pod_name}, "
+                f"port={self.port}, node={self.node_name}, "
+                f"connection_mode={self.connection_mode.name}"
+            )
             raise RuntimeError(f"Failed to start server {self.pod_name}: {r.err}")
 
         if not self.pre_provisioning:
@@ -1260,6 +1273,11 @@ class ServerTask(Task, ABC):
             check_port = self.external_port if is_external else self.port
             error_msg = f"Server failed to start listening on port {check_port} within {max_wait_time}s"
         logger.error(error_msg)
+        logger.debug(
+            f"Server listen timeout: pod={self.pod_name}, "
+            f"port={self.port}, node={self.node_name}, "
+            f"connection_mode={self.connection_mode.name}"
+        )
         raise RuntimeError(error_msg)
 
     @abstractmethod
