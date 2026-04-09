@@ -145,6 +145,7 @@ class TrafficFlowTests:
         client.oc(
             "delete multi-networkpolicies -l tft-tests",
             namespace=namespace,
+            may_fail=True,
             check_success=client.check_success_delete_ignore_noexist(
                 "multi-networkpolicies"
             ),
@@ -152,12 +153,14 @@ class TrafficFlowTests:
         client.oc(
             "delete networkpolicies -l tft-tests",
             namespace=namespace,
+            may_fail=True,
             check_success=client.check_success_delete_ignore_noexist("networkpolicies"),
         )
 
         client.oc(
             "delete adminnetworkpolicies -l tft-tests",
             namespace=None,
+            may_fail=True,
             check_success=client.check_success_delete_ignore_noexist(
                 "adminnetworkpolicies"
             ),
@@ -203,10 +206,11 @@ class TrafficFlowTests:
             )
             host.local.run(
                 f"podman rm --force {task.EXTERNAL_PERF_SERVER}",
-                log_level_fail=logging.WARN,
+                log_level_fail=logging.DEBUG,
                 check_success=lambda r: (
                     r.success
                     or (r.returncode == 1 and "no container with name or ID" in r.err)
+                    or r.returncode == 127
                 ),
             )
         else:
