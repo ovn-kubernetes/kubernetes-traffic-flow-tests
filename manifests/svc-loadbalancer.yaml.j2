@@ -5,6 +5,7 @@ metadata:
   namespace: {{ name_space }}
   labels:
     tft-tests: {{ label_tft_tests }}
+    tft-svc-type: loadbalancer
 spec:
   type: LoadBalancer
   ports:
