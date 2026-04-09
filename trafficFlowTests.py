@@ -412,10 +412,11 @@ class TrafficFlowTests:
         ns_created = self._configure_namespace(cfg_descr)
         self._cleanup_stale_udn(cfg_descr)
         self._cleanup_previous_testspace(cfg_descr, force_cleanup=True)
-        if test.pre_provision:
-            self._provision_all_resources(cfg_descr)
 
         try:
+            if test.pre_provision:
+                self._provision_all_resources(cfg_descr)
+
             logger.info(f"Running test {test.name} for {test.duration} seconds")
             tft_results = self._run_test_cases(cfg_descr)
 
