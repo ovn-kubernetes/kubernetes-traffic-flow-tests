@@ -303,10 +303,13 @@ class TrafficFlowTests:
         ts.initialize_clmo_barrier(len(clients) + len(monitors))
 
         pre_provision = cfg_descr.get_tft().pre_provision
-        for tasks in servers + clients + monitors:
+        for sc_task in servers + clients:
             if not pre_provision:
-                tasks.initialize()
-            tasks.start_setup(skip_pod_setup=pre_provision)
+                sc_task.initialize()
+            sc_task.start_setup(skip_pod_setup=pre_provision)
+        for mon in monitors:
+            mon.initialize()
+            mon.start_setup()
 
         ts.event_server_alive.wait()
 
@@ -333,7 +336,6 @@ class TrafficFlowTests:
 
         seen_server_pods: set[str] = set()
         seen_client_pods: set[str] = set()
-        seen_monitor_pods: set[str] = set()
 
         for cfg_descr2 in cfg_descr.describe_all_test_cases():
             if cfg_descr2.get_test_case().is_udn and not self._udn_setup_done:
@@ -358,17 +360,6 @@ class TrafficFlowTests:
                         seen_client_pods.add(c.pod_name)
                         c.initialize()
                         c.start_setup(provisioning=True)
-
-                    for plugin in connection.plugins:
-                        if not plugin.applies_to_test_case(cfg_descr3.get_test_case()):
-                            continue
-                        for m in plugin.plugin.enable(
-                            ts=ts, perf_server=s, perf_client=c, tenant=True
-                        ):
-                            if m.pod_name not in seen_monitor_pods:
-                                seen_monitor_pods.add(m.pod_name)
-                                m.initialize()
-                                m.start_setup(provisioning=True)
 
     def _run_test_case(self, cfg_descr: ConfigDescriptor) -> list[TftResult]:
         # TODO Allow for multiple connections / instances to run simultaneously
