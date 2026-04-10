@@ -353,6 +353,8 @@ class TrafficFlowTests:
                         seen_server_pods.add(s.pod_name)
                         s.initialize()
                         s.start_setup(provisioning=True)
+                    else:
+                        s.ensure_services()
 
                     if c.pod_name not in seen_client_pods:
                         seen_client_pods.add(c.pod_name)
