@@ -44,14 +44,17 @@ def print_flow_test_output(
     else:
         msg = _green("succeeded")
     test_case_id = test_output.tft_metadata.test_case_id
-    log(
-        f"Test ID: ({test_case_id.value}) {test_case_id.name}, "
-        f"Test Type: {test_output.tft_metadata.test_type.name}, "
-        f"Reverse: {common.bool_to_str(test_output.tft_metadata.reverse)}, "
-        f"TX Bitrate: {test_output.bitrate_gbps.tx} Gbps, "
-        f"RX Bitrate: {test_output.bitrate_gbps.rx} Gbps, "
-        f"{msg}"
-    )
+    test_type = test_output.tft_metadata.test_type
+    parts = [
+        f"Test ID: ({test_case_id.value}) {test_case_id.name}",
+        f"Test Type: {test_type.name}",
+    ]
+    if test_type != tftbase.TestType.HTTP:
+        parts.append(f"Reverse: {common.bool_to_str(test_output.tft_metadata.reverse)}")
+        parts.append(f"TX Bitrate: {test_output.bitrate_gbps.tx} Gbps")
+        parts.append(f"RX Bitrate: {test_output.bitrate_gbps.rx} Gbps")
+    parts.append(msg)
+    log(", ".join(parts))
 
 
 def print_plugin_output(
