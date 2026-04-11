@@ -627,7 +627,7 @@ class Task(ABC):
                             pod_ip = network["ips"][0]
                             break
         except Exception as e:
-            logger.error(f"Error retrieving pod IP for {self.pod_name}: {e}")
+            logger.debug(f"Error retrieving pod IP for {self.pod_name}: {e}")
         if not isinstance(pod_ip, str):
             raise RuntimeError(f"Failure to get pod IP for {self.pod_name}")
         return pod_ip
