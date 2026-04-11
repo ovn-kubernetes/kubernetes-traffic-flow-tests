@@ -1105,7 +1105,7 @@ class ServerTask(Task, ABC):
             ConnectionMode.MNP_PRIMARY_DENY,
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
-            pod_name = f"normal-pod-secondary-network-server-{port}"
+            pod_name = f"normal-pod-secondary-server-{port}"
         elif pod_type == PodType.SRIOV:
             in_file_template = "sriov-pod.yaml.j2"
             pod_name = f"sriov-pod-server-{port}"
@@ -1145,15 +1145,19 @@ class ServerTask(Task, ABC):
         )
         return f"{prefix}-{self.port}"
 
+    def ensure_services(self) -> None:
+        if self.in_file_template != "":
+            if self.get_cluster_ip() is None:
+                self.create_cluster_ip_service()
+            if self.get_nodeport_ip() is None:
+                self.create_node_port_service()
+
     def initialize(self) -> None:
         super().initialize()
 
         if self.in_file_template != "":
             self.render_pod_file("Server Pod Yaml")
-            if self.get_cluster_ip() is None:
-                self.create_cluster_ip_service()
-            if self.get_nodeport_ip() is None:
-                self.create_node_port_service()
+        self.ensure_services()
 
     def _get_template_args_args(self) -> list[str]:
         if not self.exec_persistent:
@@ -1400,16 +1404,16 @@ class ClientTask(Task, ABC):
             ConnectionMode.MNP_PRIMARY_DENY,
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
-            pod_name = f"normal-pod-secondary-network-{node_location}-client-{port}"
+            pod_name = f"normal-pod-secondary-{node_location}-client"
         elif pod_type == PodType.SRIOV:
             in_file_template = "sriov-pod.yaml.j2"
-            pod_name = f"sriov-pod-{node_location}-client-{port}"
+            pod_name = f"sriov-pod-{node_location}-client"
         elif pod_type == PodType.NORMAL:
             in_file_template = "pod.yaml.j2"
-            pod_name = f"normal-pod-{node_location}-client-{port}"
+            pod_name = f"normal-pod-{node_location}-client"
         elif pod_type == PodType.HOSTBACKED:
             in_file_template = "host-pod.yaml.j2"
-            pod_name = f"host-pod-{node_location}-client-{port}"
+            pod_name = f"host-pod-{node_location}-client"
         else:
             raise ValueError("Invalid pod_type {pod_type}")
 

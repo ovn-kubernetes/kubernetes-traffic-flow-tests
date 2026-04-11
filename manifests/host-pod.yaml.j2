@@ -5,7 +5,7 @@ metadata:
   name: {{ pod_name }}
   labels:
     tft-tests: {{ label_tft_tests }}
-    tft-port: "{{ port }}"
+    tft-pod-name: {{ pod_name }}
     tft-network: primary
 spec:
   hostNetwork: true
