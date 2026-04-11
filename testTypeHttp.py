@@ -87,6 +87,8 @@ class HttpClient(task.ClientTask):
                     err="",
                 )
 
+        expects_blocked = self.ts.test_case_id.info.expects_blocked
+
         def _thread_action() -> BaseOutput:
             self.ts.clmo_barrier.wait()
 
@@ -99,7 +101,7 @@ class HttpClient(task.ClientTask):
             end_timestamp = time.monotonic() + self.get_duration() - sleep_time
 
             while True:
-                r = self.run_oc_exec(cmd)
+                r = self.run_oc_exec(cmd, may_fail=expects_blocked)
                 if not _check_success(r):
                     break
                 if time.monotonic() >= end_timestamp:
@@ -119,6 +121,17 @@ class HttpClient(task.ClientTask):
                     msg = f'Output of "{cmd}" failed: {r.debug_msg()[:100]}'
             else:
                 msg = f'Output of "{cmd}" failed: {r.debug_msg()[:100]}'
+
+            if not success and not expects_blocked:
+                logger.debug(
+                    f"HTTP failure context: "
+                    f"client_pod={self.pod_name}, "
+                    f"server_pod={self.server.pod_name}, "
+                    f"server_port={self.server.port}, "
+                    f"node={self.node_name}, "
+                    f"exit_code={r.returncode}, "
+                    f"error={r.err.strip()!r}"
+                )
 
             # For deny tests, curl failing to connect is the expected outcome.
             test_metadata = self.ts.get_test_metadata()
