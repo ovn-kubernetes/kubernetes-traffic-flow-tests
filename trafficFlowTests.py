@@ -139,7 +139,8 @@ class TrafficFlowTests:
     def _setup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
         if not any(
-            tc.info.connection_mode
+            not tc.is_udn
+            and tc.info.connection_mode
             in (
                 tftbase.ConnectionMode.MULTI_HOME,
                 tftbase.ConnectionMode.MNP_2ND_ALLOW,
@@ -152,7 +153,13 @@ class TrafficFlowTests:
 
         namespace = tft.namespace
         client = cfg_descr.tc.client_tenant
-        nad = cfg_descr.get_tft().connections[0].effective_secondary_network_nad
+        conn = cfg_descr.get_tft().connections[0]
+        server_nad = conn.server[0].effective_secondary_network_nad
+        client_nad = conn.client[0].effective_secondary_network_nad
+        if server_nad is not None or client_nad is not None:
+            return
+
+        nad = conn.effective_secondary_network_nad
         nad_name = nad.split("/")[-1]
 
         existing = client.oc_get(
