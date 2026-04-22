@@ -481,17 +481,22 @@ class TaskValidateOffload(PluginTask):
                 logger.info("There is no VF on an external server")
                 msg = "External Iperf Server"
             else:
+                ifname = (
+                    "net1"
+                    if self._perf_instance._network_type == "secondary"
+                    else "eth0"
+                )
                 # Get VF representor - use DPU mode if configured
                 if self._is_dpu_mode:
                     logger.info("DPU mode: querying VF representor from DPU cluster")
                     vf_rep = self._get_vf_rep_dpu_mode(
                         pod_name=self.perf_pod_name,
-                        ifname="eth0",
+                        ifname=ifname,
                     )
                 else:
                     vf_rep = self.pod_get_vf_rep(
                         pod_name=self.perf_pod_name,
-                        ifname="eth0",
+                        ifname=ifname,
                         host_pod_name=self.pod_name,
                     )
 
@@ -499,11 +504,11 @@ class TaskValidateOffload(PluginTask):
                     success_result = False
                     msg = "cannot determine VF_REP for pod"
                     logger.error(
-                        f"VF representor for {self.perf_pod_name} not detected"
+                        f"VF representor for {ifname} in {self.perf_pod_name} not detected"
                     )
                 else:
                     logger.info(
-                        f"VF representor for eth0 in pod {self.perf_pod_name} is {repr(vf_rep)}"
+                        f"VF representor for {ifname} in pod {self.perf_pod_name} is {repr(vf_rep)}"
                     )
                     ethtool_cmd = f"ethtool -S {vf_rep}"
 
