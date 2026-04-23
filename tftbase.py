@@ -183,6 +183,8 @@ TFT_TESTS = "tft-tests"
 
 ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
 ENV_TFT_UDN_SECONDARY_CIDR = "TFT_UDN_SECONDARY_CIDR"
+ENV_TFT_UDN_LOCALNET_CIDR = "TFT_UDN_LOCALNET_CIDR"
+ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK = "TFT_UDN_LOCALNET_PHYSICAL_NETWORK"
 
 ENV_TFT_SECONDARY_NAD_SUBNETS = "TFT_SECONDARY_NAD_SUBNETS"
 ENV_TFT_SECONDARY_NAD_MTU = "TFT_SECONDARY_NAD_MTU"
@@ -200,6 +202,20 @@ def get_udn_primary_cidr() -> str:
 def get_udn_secondary_cidr() -> str:
     s = get_environ(ENV_TFT_UDN_SECONDARY_CIDR) or "15.2.0.0/16"
     logger.info(f"env: {ENV_TFT_UDN_SECONDARY_CIDR}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_udn_localnet_cidr() -> str:
+    s = get_environ(ENV_TFT_UDN_LOCALNET_CIDR) or "15.3.0.0/24"
+    logger.info(f"env: {ENV_TFT_UDN_LOCALNET_CIDR}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_udn_localnet_physical_network() -> str:
+    s = get_environ(ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK) or "physnet"
+    logger.info(f"env: {ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK}={shlex.quote(s)}")
     return s
 
 
@@ -399,14 +415,24 @@ class TestCaseType(Enum):
     UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 42
     UDN_SECONDARY_POD_TO_POD_SAME_NODE = 43
     UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 44
-    POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 45
-    POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 46
-    POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 47
-    POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 48
-    HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 49
-    HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 50
-    HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 51
-    HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 52
+    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 45
+    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 46
+    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 47
+    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 48
+    UDN_LOCALNET_POD_TO_POD_SAME_NODE = 49
+    UDN_LOCALNET_POD_TO_POD_DIFF_NODE = 50
+    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 51
+    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 52
+    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 53
+    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 54
+    POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 55
+    POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 56
+    POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 57
+    POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 58
+    HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 59
+    HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 60
+    HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 61
+    HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 62
 
     @property
     def is_udn(self) -> bool:
@@ -419,6 +445,10 @@ class TestCaseType(Enum):
     @property
     def is_udn_secondary(self) -> bool:
         return self.name.startswith("UDN_SECONDARY_")
+
+    @property
+    def is_udn_localnet(self) -> bool:
+        return self.name.startswith("UDN_LOCALNET_")
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -1204,6 +1234,76 @@ _test_case_typ_infos = {
         TestCaseTypInfo(
             test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_POD_DIFF_NODE,
             connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.CLUSTER_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_IP,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,

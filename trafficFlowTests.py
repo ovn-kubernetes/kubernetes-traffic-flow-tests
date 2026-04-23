@@ -58,8 +58,9 @@ class TrafficFlowTests:
         tft = cfg_descr.get_tft()
         needs_primary = any(tc.is_udn_primary for tc in tft.test_cases)
         needs_secondary = any(tc.is_udn_secondary for tc in tft.test_cases)
+        needs_localnet = any(tc.is_udn_localnet for tc in tft.test_cases)
 
-        if not needs_primary and not needs_secondary:
+        if not needs_primary and not needs_secondary and not needs_localnet:
             return
 
         udn_ns = f"{tft.namespace}-udn"
@@ -116,6 +117,9 @@ class TrafficFlowTests:
                 },
                 out_file=out_yaml,
             )
+            logger.info(
+                f'Generate Primary UDN Yaml "{out_yaml}" (from "{in_template}")'
+            )
             client.oc(f"apply -f {out_yaml}", die_on_error=True)
 
         if needs_secondary:
@@ -131,7 +135,31 @@ class TrafficFlowTests:
                 },
                 out_file=out_yaml,
             )
+            logger.info(
+                f'Generate Secondary UDN Yaml "{out_yaml}" (from "{in_template}")'
+            )
             client.oc(f"apply -f {out_yaml}", die_on_error=True)
+
+        if needs_localnet:
+            in_template = tftbase.get_manifest("udn-localnet.yaml.j2")
+            out_yaml = tftbase.get_manifest_renderpath("udn-localnet.yaml")
+            kjinja2.render_file(
+                in_template,
+                {
+                    "has_resource_name": resource_name is not None,
+                    "resource_name": resource_name or "",
+                    "name_space": _j(udn_ns),
+                    "localnet_cidr": _j(tftbase.get_udn_localnet_cidr()),
+                    "physical_network_name": _j(
+                        tftbase.get_udn_localnet_physical_network()
+                    ),
+                },
+                out_file=out_yaml,
+            )
+            logger.info(
+                f'Generate Localnet CUDN Yaml "{out_yaml}" (from "{in_template}")'
+            )
+            client.oc(f"apply -f {out_yaml}", die_on_error=True, namespace=None)
 
         self._configure_namespace(cfg_descr, namespace=udn_ns)
         self._udn_setup_done = True
@@ -241,6 +269,11 @@ class TrafficFlowTests:
         tft = cfg_descr.get_tft()
         udn_ns = f"{tft.namespace}-udn"
         client = cfg_descr.tc.client_tenant
+        client.oc(
+            "delete clusteruserdefinednetwork -l tft-tests",
+            namespace=None,
+            may_fail=True,
+        )
         if client.oc_get(f"namespace/{udn_ns}", may_fail=True) is None:
             return
         logger.info(
@@ -311,6 +344,11 @@ class TrafficFlowTests:
             return
         udn_ns = self._udn_ns
         client = cfg_descr.tc.client_tenant
+        client.oc(
+            "delete clusteruserdefinednetwork -l tft-tests",
+            namespace=None,
+            may_fail=True,
+        )
         client.oc(f"delete userdefinednetwork -l tft-tests -n {udn_ns}", may_fail=True)
         if self._udn_ns_created:
             logger.info(f"Deleting UDN namespace {udn_ns}")
