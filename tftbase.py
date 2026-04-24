@@ -1,6 +1,7 @@
 import dataclasses
 import functools
 import json
+import logging
 import math
 import os
 import re
@@ -12,6 +13,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Optional
+from typing import Union
 
 from ktoolbox import common
 from ktoolbox import host
@@ -36,11 +38,49 @@ ENV_TFT_MANIFESTS_YAMLS = "TFT_MANIFESTS_YAMLS"
 ENV_TFT_EXTERNAL_URL = "TFT_EXTERNAL_URL"
 ENV_TFT_EXTERNAL_SERVER_STRING = "TFT_EXTERNAL_SERVER_STRING"
 
+ENV_TFT_LOG_PREAMBLE = "TFT_LOG_PREAMBLE"
+
 
 def get_environ(name: str) -> Optional[str]:
     # Some environment variables are honored as configuration.
     # Which ones? Run `git grep -w get_environ`!
     return common.getenv_config(name)
+
+
+def _get_log_preamble() -> bool:
+    return common.str_to_bool(
+        get_environ(ENV_TFT_LOG_PREAMBLE), on_default=True, on_error=True
+    )
+
+
+def configure_logging(
+    level: Optional[Union[int, bool, str]],
+    *loggers: Union[str, logging.Logger],
+) -> None:
+    # Wraps `common.log_config_logger` so the timestamp/thread preamble that
+    # ktoolbox always prepends (e.g. "2026-01-01 07:39:38.957 INFO    [th:123]:")
+    # can be stripped via the TFT_LOG_PREAMBLE env var.
+    # Default (true) preserves ktoolbox's built-in formatter.
+    common.log_config_logger(level, *loggers)
+
+    if _get_log_preamble():
+        return
+
+    formatter = logging.Formatter("%(levelname)-7s: %(message)s")
+
+    seen: set[int] = set()
+    for lg in loggers:
+        real_logger = common.ExtendedLogger.unwrap(lg)
+        cur: Optional[logging.Logger] = real_logger
+        while cur is not None:
+            for h in cur.handlers:
+                if id(h) in seen:
+                    continue
+                seen.add(id(h))
+                h.setFormatter(formatter)
+            if not cur.propagate:
+                break
+            cur = cur.parent
 
 
 def _is_ib_test_type(test_type: "TestType") -> bool:
