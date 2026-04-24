@@ -209,7 +209,7 @@ def parse_args() -> argparse.Namespace:
 
     args = parser.parse_args()
 
-    common.log_config_logger(args.verbose, "tft", "ktoolbox")
+    tftbase.configure_logging(args.verbose, "tft", "ktoolbox")
 
     if args.tighten_only and not args.config:
         logger.error(
