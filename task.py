@@ -45,12 +45,6 @@ logger = common.ExtendedLogger("tft." + __name__)
 
 EXTERNAL_PERF_SERVER = "external-perf-server"
 
-_SECONDARY_MODES = (
-    ConnectionMode.MULTI_HOME,
-    ConnectionMode.MNP_2ND_DENY,
-    ConnectionMode.MNP_2ND_ALLOW,
-)
-
 
 NP_ACTION_ALLOW = "Allow"
 NP_ACTION_DENY = "Deny"
@@ -302,6 +296,7 @@ class Task(ABC):
         self.task_role = task_role
         self.in_file_template = ""
         self.pod_name = ""
+        self.pod_type: Optional[PodType] = None
         self._setup_operation: Optional[TaskOperation] = None
         self._task_operation: Optional[TaskOperation] = None
         self._result: Optional[BaseOutput] = None
@@ -485,13 +480,18 @@ class Task(ABC):
 
     @property
     def _network_type(self) -> str:
-        if (
-            self.ts.connection_mode in _SECONDARY_MODES
-            or self.ts.test_case_id.is_udn_secondary
-            or self.ts.test_case_id.is_udn_localnet
-        ):
+        assert self.pod_type is not None
+        if self.pod_type == PodType.SECONDARY:
             return "secondary"
         return "primary"
+
+    @property
+    def uses_secondary_ip(self) -> bool:
+        # MNP_PRIMARY_DENY is a SECONDARY pod, but its traffic still flows on the primary IP
+        return (
+            self._network_type == "secondary"
+            and self.ts.connection_mode != ConnectionMode.MNP_PRIMARY_DENY
+        )
 
     def render_pod_file(self, log_info: str) -> None:
         self.render_file(
@@ -621,10 +621,7 @@ class Task(ABC):
                             f"falling back to status.podIP"
                         )
                         pod_ip = y["status"]["podIP"]
-                elif (
-                    self._get_node_secondary_network_nad()
-                    or self.ts.connection.secondary_network_nad
-                ):
+                elif self.uses_secondary_ip:
                     network_status_str = y["metadata"]["annotations"][
                         "k8s.v1.cni.cncf.io/network-status"
                     ]
@@ -1115,9 +1112,10 @@ class ServerTask(Task, ABC):
         elif connection_mode == ConnectionMode.EXTERNAL_IP:
             in_file_template = ""
             pod_name = EXTERNAL_PERF_SERVER
-        elif (
-            self._network_type == "secondary"
-            or connection_mode == ConnectionMode.MNP_PRIMARY_DENY
+        elif pod_type == PodType.SECONDARY or (
+            pod_type == PodType.NORMAL
+            and ts.cfg_descr.get_tft().pre_provision
+            and ts.cfg_descr.get_tft().uses_secondary_network_pod
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-server-{port}"
@@ -1420,11 +1418,11 @@ class ClientTask(Task, ABC):
         pod_type = ts.client_pod_type
         node_location = self.node_location
         port = server.port
-        connection_mode = ts.connection_mode
 
-        if (
-            self._network_type == "secondary"
-            or connection_mode == ConnectionMode.MNP_PRIMARY_DENY
+        if pod_type == PodType.SECONDARY or (
+            pod_type == PodType.NORMAL
+            and ts.cfg_descr.get_tft().pre_provision
+            and ts.cfg_descr.get_tft().uses_secondary_network_pod
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-{node_location}-client"
