@@ -657,6 +657,10 @@ class ConfTest(StructParseBaseNamed):
             cwd=self.config.test_config.cwddir,
         )
 
+    @property
+    def uses_secondary_network_pod(self) -> bool:
+        return any(tc.info.uses_secondary_network_pod for tc in self.test_cases)
+
     def get_output_file(self) -> pathlib.Path:
         output_base = self.config.test_config.output_base
 

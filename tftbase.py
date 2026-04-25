@@ -368,6 +368,7 @@ class PodType(Enum):
     NORMAL = 1
     SRIOV = 2
     HOSTBACKED = 3
+    SECONDARY = 4
 
 
 class TestCaseType(Enum):
@@ -470,6 +471,14 @@ class ConnectionMode(Enum):
     NP_DENY = 12
     NP_ALLOW = 13
     LOAD_BALANCER = 14
+
+
+_SECONDARY_MODES = (
+    ConnectionMode.MULTI_HOME,
+    ConnectionMode.MNP_2ND_DENY,
+    ConnectionMode.MNP_2ND_ALLOW,
+    ConnectionMode.MNP_PRIMARY_DENY,
+)
 
 
 @strict_dataclass
@@ -908,9 +917,19 @@ class TestCaseTypInfo:
             return "same-node"
         return "diff-node"
 
+    @property
+    def uses_secondary_network_pod(self) -> bool:
+        return (
+            self.connection_mode in _SECONDARY_MODES
+            or self.test_case_type.is_udn_secondary
+            or self.test_case_type.is_udn_localnet
+        )
+
     def get_server_pod_type(self, pod_type: PodType) -> PodType:
         if self.is_server_hostbacked:
             return PodType.HOSTBACKED
+        if self.uses_secondary_network_pod:
+            return PodType.SECONDARY
         if pod_type == PodType.SRIOV:
             return PodType.SRIOV
         return PodType.NORMAL
@@ -918,6 +937,8 @@ class TestCaseTypInfo:
     def get_client_pod_type(self, pod_type: PodType) -> PodType:
         if self.is_client_hostbacked:
             return PodType.HOSTBACKED
+        if self.uses_secondary_network_pod:
+            return PodType.SECONDARY
         if pod_type == PodType.SRIOV:
             return PodType.SRIOV
         return PodType.NORMAL
