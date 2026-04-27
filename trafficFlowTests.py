@@ -63,7 +63,7 @@ class TrafficFlowTests:
         if not needs_primary and not needs_secondary and not needs_localnet:
             return
 
-        udn_ns = f"{tft.namespace}-udn"
+        udn_ns = tftbase.get_udn_namespace(tft.namespace)
         client = cfg_descr.tc.client_tenant
 
         logger.info(f"Setting up UDN in namespace {udn_ns}")
@@ -235,26 +235,42 @@ class TrafficFlowTests:
             may_fail=True,
         )
 
-    def _cleanup_multi_network_policies(self, cfg_descr: ConfigDescriptor) -> None:
+    def _cleanup_multi_network_policies(
+        self,
+        cfg_descr: ConfigDescriptor,
+        force_cleanup: bool = False,
+    ) -> None:
         namespace = cfg_descr.get_tft().namespace
         client = cfg_descr.tc.client_tenant
-        logger.info(
-            f"Cleaning multi-networkpolicies and admin-networkpolicies with label tft-tests in namespace {namespace}"
-        )
-        client.oc(
-            "delete multi-networkpolicies -l tft-tests",
-            namespace=namespace,
-            may_fail=True,
-            check_success=client.check_success_delete_ignore_noexist(
-                "multi-networkpolicies"
-            ),
-        )
-        client.oc(
-            "delete networkpolicies -l tft-tests",
-            namespace=namespace,
-            may_fail=True,
-            check_success=client.check_success_delete_ignore_noexist("networkpolicies"),
-        )
+        # Cleanup per-test namespace or all namespaces if force_cleanup is True
+        if force_cleanup:
+            namespaces = [namespace]
+            if self._udn_setup_done:
+                namespaces.append(tftbase.get_udn_namespace(namespace))
+        elif cfg_descr.get_test_case().is_udn:
+            namespaces = [tftbase.get_udn_namespace(namespace)]
+        else:
+            namespaces = [namespace]
+        for ns in namespaces:
+            logger.info(
+                f"Cleaning multi-networkpolicies and networkpolicies with label tft-tests in namespace {ns}"
+            )
+            client.oc(
+                "delete multi-networkpolicies -l tft-tests",
+                namespace=ns,
+                may_fail=True,
+                check_success=client.check_success_delete_ignore_noexist(
+                    "multi-networkpolicies"
+                ),
+            )
+            client.oc(
+                "delete networkpolicies -l tft-tests",
+                namespace=ns,
+                may_fail=True,
+                check_success=client.check_success_delete_ignore_noexist(
+                    "networkpolicies"
+                ),
+            )
 
         client.oc(
             "delete adminnetworkpolicies -l tft-tests",
@@ -267,7 +283,7 @@ class TrafficFlowTests:
 
     def _cleanup_stale_udn(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
-        udn_ns = f"{tft.namespace}-udn"
+        udn_ns = tftbase.get_udn_namespace(tft.namespace)
         client = cfg_descr.tc.client_tenant
         client.oc(
             "delete clusteruserdefinednetwork -l tft-tests",
@@ -298,12 +314,12 @@ class TrafficFlowTests:
             )
             client.oc("delete pods -l tft-tests", namespace=namespace)
             client.oc("delete services -l tft-tests", namespace=namespace)
-            self._cleanup_multi_network_policies(cfg_descr)
+            self._cleanup_multi_network_policies(cfg_descr, force_cleanup=force_cleanup)
             if force_cleanup:
                 self._cleanup_secondary_nad(cfg_descr)
 
             if self._udn_setup_done:
-                udn_ns = f"{namespace}-udn"
+                udn_ns = tftbase.get_udn_namespace(namespace)
                 client.oc("delete pods -l tft-tests", namespace=udn_ns)
                 client.oc("delete services -l tft-tests", namespace=udn_ns)
 
@@ -333,17 +349,22 @@ class TrafficFlowTests:
             ):
                 self._cleanup_multi_network_policies(cfg_descr)
             if connection_mode == ConnectionMode.LOAD_BALANCER:
-                logger.info(f"Cleaning LoadBalancer services in namespace {namespace}")
-                client.oc(
-                    "delete services -l tft-svc-type=loadbalancer",
-                    namespace=namespace,
-                )
+                lb_namespaces = [namespace]
+                if cfg_descr.get_test_case().is_udn and self._udn_setup_done:
+                    lb_namespaces.append(tftbase.get_udn_namespace(namespace))
+                for ns in lb_namespaces:
+                    logger.info(f"Cleaning LoadBalancer services in namespace {ns}")
+                    client.oc(
+                        "delete services -l tft-svc-type=loadbalancer",
+                        namespace=ns,
+                    )
 
     def _cleanup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         if self._udn_ns is None:
             return
         udn_ns = self._udn_ns
         client = cfg_descr.tc.client_tenant
+        logger.info(f"Cleaning up UDN resources in namespace {udn_ns}")
         client.oc(
             "delete clusteruserdefinednetwork -l tft-tests",
             namespace=None,
