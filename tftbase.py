@@ -212,6 +212,10 @@ def get_udn_localnet_cidr() -> str:
     return s
 
 
+def get_udn_namespace(base_namespace: str) -> str:
+    return f"{base_namespace}-udn"
+
+
 @functools.cache
 def get_udn_localnet_physical_network() -> str:
     s = get_environ(ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK) or "physnet"
@@ -413,26 +417,31 @@ class TestCaseType(Enum):
     UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 40
     UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 41
     UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 42
-    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 43
-    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 44
-    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 45
-    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 46
-    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 47
-    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 48
-    UDN_LOCALNET_POD_TO_POD_SAME_NODE = 49
-    UDN_LOCALNET_POD_TO_POD_DIFF_NODE = 50
-    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 51
-    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 52
-    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 53
-    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 54
-    POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 55
-    POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 56
-    POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 57
-    POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 58
-    HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 59
-    HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 60
-    HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 61
-    HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 62
+    UDN_PRIMARY_POD_TO_EXTERNAL = 43
+    UDN_PRIMARY_POD_TO_POD_NP_DENY = 44
+    UDN_PRIMARY_POD_TO_POD_NP_ALLOW = 45
+    UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 46
+    UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 47
+    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 48
+    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 49
+    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 50
+    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 51
+    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 52
+    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 53
+    UDN_LOCALNET_POD_TO_POD_SAME_NODE = 54
+    UDN_LOCALNET_POD_TO_POD_DIFF_NODE = 55
+    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 56
+    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 57
+    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 58
+    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 59
+    POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 60
+    POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 61
+    POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 62
+    POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 63
+    HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 64
+    HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 65
+    HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 66
+    HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 67
 
     @property
     def is_udn(self) -> bool:
@@ -1220,6 +1229,42 @@ _test_case_typ_infos = {
         TestCaseTypInfo(
             test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE,
             connection_mode=ConnectionMode.NODE_PORT_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_EXTERNAL,
+            connection_mode=ConnectionMode.EXTERNAL_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_POD_NP_DENY,
+            connection_mode=ConnectionMode.NP_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_POD_NP_ALLOW,
+            connection_mode=ConnectionMode.NP_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.LOAD_BALANCER,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,

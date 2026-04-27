@@ -129,26 +129,31 @@ kubeconfig_infra: (30)
     | 40 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
     | 41 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
     | 42 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 43 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
-    | 44 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
-    | 45 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 46 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 47 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 48 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 49 | UDN_LOCALNET_POD_TO_POD_SAME_NODE |
-    | 50 | UDN_LOCALNET_POD_TO_POD_DIFF_NODE |
-    | 51 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 52 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 53 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 54 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 55 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 56 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 57 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 58 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
-    | 59 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 60 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 61 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 62 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 43 | UDN_PRIMARY_POD_TO_EXTERNAL |
+    | 44 | UDN_PRIMARY_POD_TO_POD_NP_DENY |
+    | 45 | UDN_PRIMARY_POD_TO_POD_NP_ALLOW |
+    | 46 | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 47 | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 48 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
+    | 49 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
+    | 50 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 51 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 52 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 53 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 54 | UDN_LOCALNET_POD_TO_POD_SAME_NODE |
+    | 55 | UDN_LOCALNET_POD_TO_POD_DIFF_NODE |
+    | 56 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
+    | 57 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
+    | 58 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
+    | 59 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
+    | 60 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 61 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 62 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 63 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 64 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 65 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 66 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
+    | 67 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -194,11 +199,15 @@ kubeconfig_infra: (30)
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 37-54 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically.
+Test cases 37-59 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
 
-- **37-42** (Primary UDN): Layer3 network replacing the pod's default network. Supports pod-to-pod, ClusterIP, and NodePort.
-- **43-48** (Secondary UDN): Layer2 network attached as a 2nd interface. Supports pod-to-pod, ClusterIP, and NodePort.
-- **49-54** (Localnet UDN): Localnet topology secondary network via ClusterUserDefinedNetwork, providing direct L2 access. Supports pod-to-pod, ClusterIP, and NodePort.
+- **37-47** (Primary UDN): Layer3 network replacing the pod's default network.
+  - **37-42**: pod-to-pod, ClusterIP, and NodePort.
+  - **43**: pod-to-external (egress out of the UDN to the public internet).
+  - **44-45**: NetworkPolicy enforcement on the primary UDN (deny / allow).
+  - **46-47**: pod-to-LoadBalancer-to-pod (same / different node).
+- **48-53** (Secondary UDN): Layer2 network attached as a 2nd interface. Supports pod-to-pod, ClusterIP, and NodePort.
+- **54-59** (Localnet UDN): Localnet topology secondary network via ClusterUserDefinedNetwork, providing direct L2 access. Supports pod-to-pod, ClusterIP, and NodePort.
 
 CIDRs default to `15.1.0.0/16` (primary), `15.2.0.0/16` (secondary), and `15.3.0.0/24` (localnet), overridable via `TFT_UDN_PRIMARY_CIDR`, `TFT_UDN_SECONDARY_CIDR`, and `TFT_UDN_LOCALNET_CIDR`. The localnet physical network name defaults to `physnet`, overridable via `TFT_UDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn-primary.yaml.j2`, `manifests/udn-secondary.yaml.j2`, and `manifests/udn-localnet.yaml.j2`.
 

@@ -342,7 +342,7 @@ class Task(ABC):
     def get_namespace(self) -> str:
         ns = self.ts.cfg_descr.get_tft().namespace
         if self.ts.test_case_id.is_udn:
-            return f"{ns}-udn"
+            return tftbase.get_udn_namespace(ns)
         return ns
 
     def get_duration(self) -> int:
