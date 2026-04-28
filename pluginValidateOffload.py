@@ -591,4 +591,10 @@ class TaskValidateOffload(PluginTask):
             else:
                 logger.info("The server VF representor ovn-k8s-mp0_0 does not exist")
 
-        logger.info(f"validateOffload results on {self.perf_pod_name}: {result.result}")
+        msg_suffix = f", {result.msg}" if result.msg is not None else ""
+        logger.info(
+            f"validateOffload results on {self.perf_pod_name}: "
+            f"success={result.success}{msg_suffix}"
+        )
+
+        logger.debug(f"Full results: {result.result}")
