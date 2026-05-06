@@ -97,16 +97,18 @@ class HttpClient(task.ClientTask):
             else:
                 _check_success = _check_success_podman
 
-            sleep_time = 0.2
-            end_timestamp = time.monotonic() + self.get_duration() - sleep_time
-
-            while True:
+            if expects_blocked:
+                sleep_time = 0.2
+                end_timestamp = time.monotonic() + self.get_duration() - sleep_time
+                while True:
+                    r = self.run_oc_exec(cmd, may_fail=expects_blocked)
+                    if not _check_success(r):
+                        break
+                    if time.monotonic() >= end_timestamp:
+                        break
+                    time.sleep(sleep_time)
+            else:
                 r = self.run_oc_exec(cmd, may_fail=expects_blocked)
-                if not _check_success(r):
-                    break
-                if time.monotonic() >= end_timestamp:
-                    break
-                time.sleep(sleep_time)
 
             self.ts.event_client_finished.set()
 
