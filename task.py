@@ -1020,15 +1020,35 @@ class Task(ABC):
         v = self.run_oc_get(f"pod/{self.pod_name}", may_fail=True)
         if v is None:
             logger.info(f"Creating Pod {self.pod_name}.")
-            self.run_oc(f"apply -f {self.out_file_yaml}", die_on_error=True)
+            r = self.run_oc(f"apply -f {self.out_file_yaml}", may_fail=True)
+            if not r.success:
+                self._dump_pod_failure_diagnostics(
+                    reason=f"kubectl apply failed: {r.err}"
+                )
+                raise RuntimeError(f"Failed to create Pod {self.pod_name}: {r.err}")
         else:
             logger.info(f"Pod {self.pod_name} already exists.")
 
         logger.info(f"Waiting for Pod {self.pod_name} to become ready.")
-        self.run_oc(
-            f"wait --for=condition=ready pod/{self.pod_name} --timeout=10m",
-            die_on_error=True,
+        r = self.run_oc(
+            f"wait --for=condition=ready pod/{self.pod_name} --timeout=2m",
+            may_fail=True,
         )
+        if not r.success:
+            self._dump_pod_failure_diagnostics(reason="did not become Ready within 2m")
+            raise RuntimeError(f"Pod {self.pod_name} did not become Ready within 2m")
+
+    def _dump_pod_failure_diagnostics(self, *, reason: str) -> None:
+        sep = "=" * 64
+        logger.error(sep)
+        logger.error(
+            f"POD BRINGUP FAILED: pod/{self.pod_name} "
+            f"in ns/{self.get_namespace()} {reason}"
+        )
+        logger.error(sep)
+        d = self.run_oc(f"describe pod/{self.pod_name}", may_fail=True)
+        logger.error(f"--- kubectl describe pod/{self.pod_name} ---")
+        logger.error(d.out or d.err or "(no describe output)")
 
     def start_task(self) -> None:
         assert self._task_operation is None
