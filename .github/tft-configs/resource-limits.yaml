@@ -1,0 +1,33 @@
+# Validates per-pod CPU/memory requests+limits, a persistent server pod, the
+# reverse direction codepath, and a plugin scoped to a subset of test cases.
+
+tft:
+  - name: "kind-resource-limits"
+    namespace: "default"
+    test_cases: "1-12"
+    duration: 5
+    pre_provision: true
+    connections:
+      - name: "iperf-tcp"
+        type: "iperf-tcp"
+        instances: 1
+        reverse: true
+        cpu_request: "10m"
+        cpu_limit: "500m"
+        mem_request: "50Mi"
+        mem_limit: "200Mi"
+        server:
+          - name: "dpu-sim-host-worker"
+            persistent: true
+            sriov: false
+        client:
+          - name: "dpu-sim-host-worker2"
+            sriov: false
+        plugins:
+          - name: measure_cpu
+            test_cases:
+              - POD_TO_POD_SAME_NODE
+              - POD_TO_POD_DIFF_NODE
+              - POD_TO_HOST_SAME_NODE
+              - POD_TO_HOST_DIFF_NODE
+              - POD_TO_CLUSTER_IP_TO_POD_SAME_NODE

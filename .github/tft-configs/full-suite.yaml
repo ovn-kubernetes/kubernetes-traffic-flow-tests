@@ -1,0 +1,31 @@
+# Run test cases 1-26 and 32-36 with iperf-tcp, and http-curl.
+
+tft:
+  - name: "kind-full-suite"
+    namespace: "default"
+    test_cases: "1-26,32-36"
+    duration: 5
+    pre_provision: true
+    connections:
+      - name: "iperf-tcp"
+        type: "iperf-tcp"
+        instances: 1
+        reverse: false
+        server:
+          - name: "dpu-sim-host-worker"
+            persistent: false
+            sriov: false
+        client:
+          - name: "dpu-sim-host-worker2"
+            sriov: false
+      - name: "http-curl"
+        type: "http"
+        instances: 1
+        reverse: false
+        server:
+          - name: "dpu-sim-host-worker"
+            persistent: false
+            sriov: false
+        client:
+          - name: "dpu-sim-host-worker2"
+            sriov: false
