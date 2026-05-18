@@ -481,11 +481,7 @@ class TaskValidateOffload(PluginTask):
                 logger.info("There is no VF on an external server")
                 msg = "External Iperf Server"
             else:
-                ifname = (
-                    "net1"
-                    if self._perf_instance._network_type == "secondary"
-                    else "eth0"
-                )
+                ifname = "net1" if self._perf_instance.uses_secondary_ip else "eth0"
                 # Get VF representor - use DPU mode if configured
                 if self._is_dpu_mode:
                     logger.info("DPU mode: querying VF representor from DPU cluster")
