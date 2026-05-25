@@ -377,6 +377,9 @@ tft:
 - `TFT_EXTERNAL_SERVER_STRING` expected substring in the HTTP response body when
      `TFT_EXTERNAL_URL` is set. Defaults to `"The document has moved"` (the body of an HTTP 301
      redirect).
+- `TFT_LOG_PREAMBLE` enable or disable the timestamp and thread preamble that ktoolbox
+     prepends to every log record. Defaults to `true`, which keeps the existing ktoolbox format. 
+     Set to `false` to strip the preamble and log only `LEVEL: message`.
 
 ## File Transfer via magic-wormhole
 

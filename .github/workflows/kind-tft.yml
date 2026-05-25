@@ -18,6 +18,7 @@ jobs:
             dpu_sim_config: config-kind.yaml
           - scenario: diverse-subset
             dpu_sim_config: config-kind.yaml
+            tft_log_preamble: "false"
           - scenario: resource-limits
             dpu_sim_config: config-kind.yaml
           - scenario: dpu-offload
@@ -109,6 +110,7 @@ jobs:
         working-directory: dpu-simulator
         env:
           TFT_KUBECONFIG: ${{ github.workspace }}/dpu-simulator/kubeconfig/dpu-sim-host.kubeconfig
+          TFT_LOG_PREAMBLE: ${{ matrix.tft_log_preamble }}
         run: |
           ./bin/dpu-sim tft run \
             --config ${{ matrix.dpu_sim_config }} \
