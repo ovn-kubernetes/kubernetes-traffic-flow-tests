@@ -487,11 +487,15 @@ class Task(ABC):
 
     @property
     def uses_secondary_ip(self) -> bool:
-        # MNP_PRIMARY_DENY is a SECONDARY pod, but its traffic still flows on the primary IP
+        # MNP_PRIMARY_DENY stays on primary; SR-IOV with a NAD uses secondary IP
+        has_configured_secondary_network = bool(
+            self._get_node_secondary_network_nad()
+            or self.ts.connection.secondary_network_nad
+        )
         return (
             self._network_type == "secondary"
             and self.ts.connection_mode != ConnectionMode.MNP_PRIMARY_DENY
-        )
+        ) or (self.pod_type == PodType.SRIOV and has_configured_secondary_network)
 
     def render_pod_file(self, log_info: str) -> None:
         self.render_file(
@@ -621,10 +625,7 @@ class Task(ABC):
                             f"falling back to status.podIP"
                         )
                         pod_ip = y["status"]["podIP"]
-                elif (
-                    self._get_node_secondary_network_nad()
-                    or self.ts.connection.secondary_network_nad
-                ):
+                elif self.uses_secondary_ip:
                     network_status_str = y["metadata"]["annotations"][
                         "k8s.v1.cni.cncf.io/network-status"
                     ]
