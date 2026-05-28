@@ -49,6 +49,12 @@ def print_flow_test_output(
         f"Test ID: ({test_case_id.value}) {test_case_id.name}",
         f"Test Type: {test_type.name}",
     ]
+    target_access_mode = test_output.tft_metadata.target_access_mode
+    default_target_access_mode = tftbase.get_default_target_access_mode(
+        test_case_id.info.connection_mode
+    )
+    if target_access_mode != default_target_access_mode:
+        parts.append(f"Target Access: {target_access_mode.name}")
     if test_type != tftbase.TestType.HTTP:
         parts.append(f"Reverse: {common.bool_to_str(test_output.tft_metadata.reverse)}")
         parts.append(f"TX Bitrate: {test_output.bitrate_gbps.tx} Gbps")

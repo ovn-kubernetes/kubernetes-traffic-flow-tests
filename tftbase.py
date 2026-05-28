@@ -41,6 +41,8 @@ ENV_TFT_EXTERNAL_SERVER_STRING = "TFT_EXTERNAL_SERVER_STRING"
 ENV_TFT_HOST_NETWORK_NAMESPACE = "TFT_HOST_NETWORK_NAMESPACE"
 
 ENV_TFT_LOG_PREAMBLE = "TFT_LOG_PREAMBLE"
+ENV_TFT_ENABLE_TARGET_ACCESS_SUBTESTS = "TFT_ENABLE_TARGET_ACCESS_SUBTESTS"
+ENV_TFT_DEFAULT_TARGET_ACCESS_MODE = "TFT_DEFAULT_TARGET_ACCESS_MODE"
 
 
 def get_environ(name: str) -> Optional[str]:
@@ -53,6 +55,33 @@ def _get_log_preamble() -> bool:
     return common.str_to_bool(
         get_environ(ENV_TFT_LOG_PREAMBLE), on_default=True, on_error=True
     )
+
+
+@functools.cache
+def get_tft_enable_target_access_subtests() -> bool:
+    value = common.str_to_bool(
+        get_environ(ENV_TFT_ENABLE_TARGET_ACCESS_SUBTESTS),
+        on_default=False,
+        on_error=False,
+    )
+    logger.info(
+        f"env: {ENV_TFT_ENABLE_TARGET_ACCESS_SUBTESTS}={common.bool_to_str(value)}"
+    )
+    return value
+
+
+@functools.cache
+def get_tft_default_target_access_mode_override() -> Optional["TargetAccessMode"]:
+    value = get_environ(ENV_TFT_DEFAULT_TARGET_ACCESS_MODE)
+    if value is None:
+        return None
+
+    if value in ("IP", "SERVICE_NAME"):
+        mode = TargetAccessMode[value]
+        logger.info(f"env: {ENV_TFT_DEFAULT_TARGET_ACCESS_MODE}={mode.name}")
+        return mode
+
+    return None
 
 
 def configure_logging(
@@ -538,6 +567,54 @@ class ConnectionMode(Enum):
     NP_NS_SELECTOR_ALLOW = 15
 
 
+class TargetAccessMode(Enum):
+    IP = 1
+    SERVICE_NAME = 2
+    SERVER_NODE_IP = 3
+
+
+_SERVICE_TARGET_ACCESS_CONNECTION_MODES = (
+    ConnectionMode.CLUSTER_IP,
+    ConnectionMode.NODE_PORT_IP,
+    ConnectionMode.LOAD_BALANCER,
+)
+
+
+def get_default_target_access_mode(
+    connection_mode: ConnectionMode,
+) -> TargetAccessMode:
+    override = get_tft_default_target_access_mode_override()
+    if override == TargetAccessMode.IP:
+        return TargetAccessMode.IP
+    if connection_mode in _SERVICE_TARGET_ACCESS_CONNECTION_MODES:
+        return TargetAccessMode.SERVICE_NAME
+    return TargetAccessMode.IP
+
+
+def get_target_access_modes(
+    connection_mode: ConnectionMode,
+) -> tuple[TargetAccessMode, ...]:
+    if not get_tft_enable_target_access_subtests():
+        return (get_default_target_access_mode(connection_mode),)
+    if connection_mode == ConnectionMode.CLUSTER_IP:
+        return (TargetAccessMode.IP, TargetAccessMode.SERVICE_NAME)
+    if connection_mode == ConnectionMode.NODE_PORT_IP:
+        return (
+            TargetAccessMode.IP,
+            TargetAccessMode.SERVICE_NAME,
+            TargetAccessMode.SERVER_NODE_IP,
+        )
+    if connection_mode == ConnectionMode.LOAD_BALANCER:
+        return (TargetAccessMode.IP, TargetAccessMode.SERVICE_NAME)
+    return (TargetAccessMode.IP,)
+
+
+def get_service_protocol(test_type: "TestType") -> str:
+    if test_type == TestType.IPERF_UDP:
+        return "UDP"
+    return "TCP"
+
+
 _SECONDARY_MODES = (
     ConnectionMode.MULTI_HOME,
     ConnectionMode.MNP_2ND_DENY,
@@ -641,6 +718,7 @@ class TestMetadata:
     reverse: bool
     server: PodInfo
     client: PodInfo
+    target_access_mode: TargetAccessMode = TargetAccessMode.IP
     expects_blocked: bool = False
 
 
@@ -816,9 +894,16 @@ class TftResults:
         return f" in {repr(self.filename)}"
 
     def serialize(self) -> dict[str, Any]:
-        return {
-            TftResults.TFT_TESTS: [common.dataclass_to_dict(o) for o in self],
-        }
+        # Keep default IP access compatible with existing result JSON.
+        data = [common.dataclass_to_dict(o) for o in self]
+        for item in data:
+            metadata = item["flow_test"]["tft_metadata"]
+            if metadata.get("target_access_mode") in (
+                None,
+                TargetAccessMode.IP.name,
+            ):
+                metadata.pop("target_access_mode", None)
+        return {TftResults.TFT_TESTS: data}
 
     def serialize_to_file(
         self,

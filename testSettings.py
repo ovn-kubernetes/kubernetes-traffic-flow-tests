@@ -19,6 +19,7 @@ class TestSettings:
     cfg_descr: testConfig.ConfigDescriptor
     instance_index: int
     reverse: bool
+    target_access_mode: tftbase.TargetAccessMode = tftbase.TargetAccessMode.IP
 
     event_server_alive: threading.Event = dataclasses.field(
         init=False, default_factory=threading.Event
@@ -138,7 +139,7 @@ class TestSettings:
         return self.test_case_id.info.connection_mode
 
     def get_test_info(self) -> str:
-        return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}
+        return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}, target-access={self.target_access_mode.name}
         Client Node: {self.node_client.name}
             Tenant={self.client_is_tenant}
             Index={self.client_index}
@@ -151,7 +152,7 @@ class TestSettings:
         direction = ""
         if self.reverse:
             direction = "-REV"
-        return f"{self.test_case_id.name}-{self.client_pod_type.name}_TO_{self.connection_mode.name}_TO_{self.server_pod_type.name}-{self.test_case_id.info.node_location}{direction}"
+        return f"{self.test_case_id.name}-{self.client_pod_type.name}_TO_{self.connection_mode.name}_TO_{self.server_pod_type.name}-{self.test_case_id.info.node_location}{direction}-{self.target_access_mode.name}"
 
     def get_test_metadata(self) -> TestMetadata:
         return TestMetadata(
@@ -161,6 +162,7 @@ class TestSettings:
             test_case_id=self.test_case_id,
             test_type=self.connection.test_type,
             reverse=self.reverse,
+            target_access_mode=self.target_access_mode,
             server=PodInfo(
                 name=self.node_server.name,
                 pod_type=self.server_pod_type,
