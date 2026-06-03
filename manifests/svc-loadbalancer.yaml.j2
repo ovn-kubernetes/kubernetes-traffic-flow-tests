@@ -8,6 +8,7 @@ metadata:
     tft-svc-type: loadbalancer
 spec:
   type: LoadBalancer
+  ipFamilyPolicy: PreferDualStack
   ports:
     - name: tft-loadbalancer-service-tcp-{{ port }}
       protocol: TCP

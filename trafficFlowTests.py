@@ -387,6 +387,7 @@ class TrafficFlowTests:
         cfg_descr: ConfigDescriptor,
         instance_index: int,
         reverse: bool = False,
+        active_ip_family: tftbase.IpFamily = tftbase.IpFamily.IPV4,
     ) -> TftResult:
         connection = cfg_descr.get_connection()
 
@@ -398,6 +399,7 @@ class TrafficFlowTests:
             cfg_descr=cfg_descr,
             instance_index=instance_index,
             reverse=reverse,
+            active_ip_family=active_ip_family,
         )
         logger.info(f"Starting test {ts.get_test_info()}")
         s, c = connection.test_type_handler.create_server_client(ts)
@@ -485,22 +487,25 @@ class TrafficFlowTests:
             connection = cfg_descr2.get_connection()
             logger.info(f"Starting {connection.name}")
             logger.info(f"Number Of Simultaneous connections {connection.instances}")
-            for instance_index in range(connection.instances):
-                tft_results.append(
-                    self._run_test_case_instance(
-                        cfg_descr2,
-                        instance_index=instance_index,
-                    )
-                )
-                if connection.test_type_handler.can_run_reverse(connection):
+            for active_family in connection.ip_family.ip_families():
+                for instance_index in range(connection.instances):
                     tft_results.append(
                         self._run_test_case_instance(
                             cfg_descr2,
                             instance_index=instance_index,
-                            reverse=True,
+                            active_ip_family=active_family,
                         )
                     )
-                self._cleanup_previous_testspace(cfg_descr2)
+                    if connection.test_type_handler.can_run_reverse(connection):
+                        tft_results.append(
+                            self._run_test_case_instance(
+                                cfg_descr2,
+                                instance_index=instance_index,
+                                reverse=True,
+                                active_ip_family=active_family,
+                            )
+                        )
+                    self._cleanup_previous_testspace(cfg_descr2)
         return tft_results
 
     def _run_test_cases(self, cfg_descr: ConfigDescriptor) -> TftResults:

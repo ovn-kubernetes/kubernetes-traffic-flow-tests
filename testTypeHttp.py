@@ -44,6 +44,8 @@ class HttpServer(task.ServerTask):
             "python3",
             "-m",
             "http.server",
+            "--bind",
+            "::",
             "-d",
             "/etc/kubernetes-traffic-flow-tests",
             f"{self.port}",
@@ -79,6 +81,8 @@ class HttpClient(task.ClientTask):
         else:
             server_ip = self.get_target_ip()
             target_port = self.get_target_port()
+            if tftbase.IpFamily.is_ipv6(server_ip):
+                server_ip = f"[{server_ip}]"
             cmd = f"curl --fail -s --connect-timeout {timeout} http://{server_ip}:{target_port}/data"
 
             def _check_success_podman(r: host.Result) -> bool:
