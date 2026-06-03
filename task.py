@@ -719,6 +719,17 @@ class Task(ABC):
             namespace=self._get_run_oc_namespace(namespace),
         )
 
+    def _pick_pod_ip_for_family(self, y: dict[str, Any]) -> Optional[str]:
+        family = self.ts.active_ip_family
+        pod_ips = [entry["ip"] for entry in y["status"].get("podIPs", [])]
+        ip = family.pick_ip(pod_ips)
+        if ip is not None:
+            return ip
+        fallback = y["status"].get("podIP")
+        if isinstance(fallback, str) and family.matches(fallback):
+            return fallback
+        return None
+
     def get_pod_ip(self) -> str:
         """Return the pod IP on the network exercised by the current test.
 
@@ -730,7 +741,7 @@ class Task(ABC):
         pod_ip = None
         try:
             if y:
-                pod_ip = y["status"]["podIP"]
+                pod_ip = self._pick_pod_ip_for_family(y)
                 if self.uses_primary_udn:
                     pod_networks_str = y["metadata"]["annotations"].get(
                         "k8s.ovn.org/pod-networks", ""
@@ -740,15 +751,18 @@ class Task(ABC):
                         for net_info in pod_networks.values():
                             if net_info.get("role") == "primary":
                                 ip_with_cidr = net_info["ip_address"]
-                                pod_ip = ip_with_cidr.split("/")[0]
+                                candidate = ip_with_cidr.split("/")[0]
+                                if self.ts.active_ip_family.matches(candidate):
+                                    pod_ip = candidate
                                 break
                     if pod_ip is None:
                         logger.warning(
                             f"Could not find UDN primary IP for pod {self.pod_name} "
+                            f"matching {self.ts.active_ip_family.name} "
                             f"in k8s.ovn.org/pod-networks annotation, "
                             f"falling back to status.podIP"
                         )
-                        pod_ip = y["status"]["podIP"]
+                        pod_ip = self._pick_pod_ip_for_family(y)
                 elif self.uses_secondary_ip:
                     if self.ts.test_case_id.is_udn:
                         pod_ip = None
@@ -760,7 +774,7 @@ class Task(ABC):
                     nad = self._get_effective_secondary_network_nad()
                     for network in network_status:
                         if network["name"] == nad:
-                            pod_ip = network["ips"][0]
+                            pod_ip = self.ts.active_ip_family.pick_ip(network["ips"])
                             break
         except Exception as e:
             logger.debug(f"Error retrieving pod IP for {self.pod_name}: {e}")
@@ -772,7 +786,7 @@ class Task(ABC):
         y = self.run_oc_get(f"pod/{self.pod_name}", die_on_error=True)
         pod_ip = None
         if y:
-            pod_ip = y["status"]["podIP"]
+            pod_ip = self._pick_pod_ip_for_family(y)
         if not isinstance(pod_ip, str):
             raise RuntimeError(f"Failure to get podIP for {self.pod_name}")
         return pod_ip
@@ -780,10 +794,11 @@ class Task(ABC):
     def get_secondary_ip(self) -> str:
         """Return the secondary target IP, matching the exact NAD for UDN tests."""
         if self.ts.test_case_id.is_udn:
-            ip_address = self.get_pod_ip()
-            logger.info(f"Secondary IP: {ip_address}")
-            return ip_address
+            udn_ip_address = self.get_pod_ip()
+            logger.info(f"Secondary IP: {udn_ip_address}")
+            return udn_ip_address
 
+        family = self.ts.active_ip_family
         jsonpath = "{.metadata.annotations.k8s\\.ovn\\.org\\/pod-networks}"
         r = self.run_oc(
             f"get pod {self.pod_name} -o jsonpath='{jsonpath}'", die_on_error=True
@@ -792,10 +807,22 @@ class Task(ABC):
         y = yaml.safe_load(r.out)
 
         nad = self._get_effective_secondary_network_nad()
+        ip_addresses = y[nad].get("ip_addresses", [])
+        if ip_addresses:
+            ips = [addr.split("/")[0] for addr in ip_addresses]
+            ip_address = family.pick_ip(ips)
+            if ip_address is not None:
+                logger.info(f"Secondary IP: {ip_address}")
+                return ip_address
         ip_address_with_cidr = typing.cast(str, y[nad]["ip_address"])
-        ip_address = ip_address_with_cidr.split("/")[0] if ip_address_with_cidr else ""
-        logger.info(f"Secondary IP: {ip_address}")
-        return ip_address
+        candidate = ip_address_with_cidr.split("/")[0] if ip_address_with_cidr else ""
+        if candidate and family.matches(candidate):
+            logger.info(f"Secondary IP: {candidate}")
+            return candidate
+        raise RuntimeError(
+            f"Could not find secondary IP for pod {self.pod_name} "
+            f"matching {family.name}"
+        )
 
     def get_nad_cidrs(self, nad: str) -> list[str]:
         # Matches IPv4 and IPv6 CIDRs
@@ -863,13 +890,27 @@ class Task(ABC):
     def get_cluster_ip_service_dns_name(self) -> str:
         return f"{self.get_cluster_ip_service_name()}.{self.get_namespace()}.svc"
 
-    def get_cluster_ip(self) -> Optional[str]:
-        svc_name = self.get_cluster_ip_service_name()
+    def _get_service_ip(self, svc_name: str) -> Optional[str]:
+        family = self.ts.active_ip_family
+        r = self.run_oc(
+            f"get service {svc_name} -o=jsonpath='{{.spec.clusterIPs[*]}}'",
+            may_fail=True,
+        )
+        if r.success and r.out:
+            ip = family.pick_ip(r.out.split())
+            if ip is not None:
+                return ip
         r = self.run_oc(
             f"get service {svc_name} -o=jsonpath='{{.spec.clusterIP}}'",
             may_fail=True,
         )
-        return r.out if r.success else None
+        if r.success and r.out and family.matches(r.out):
+            return r.out
+        return None
+
+    def get_cluster_ip(self) -> Optional[str]:
+        svc_name = self.get_cluster_ip_service_name()
+        return self._get_service_ip(svc_name)
 
     def create_node_port_service(self) -> None:
         in_file_template = tftbase.get_manifest("svc-node-port.yaml.j2")
@@ -900,11 +941,7 @@ class Task(ABC):
 
     def get_nodeport_cluster_ip(self) -> Optional[str]:
         svc_name = self.get_nodeport_service_name()
-        r = self.run_oc(
-            f"get service {svc_name} -o=jsonpath='{{.spec.clusterIP}}'",
-            may_fail=True,
-        )
-        return r.out if r.success else None
+        return self._get_service_ip(svc_name)
 
     def get_nodeport_port(self, protocol: str) -> Optional[int]:
         svc_name = self.get_nodeport_service_name()
@@ -958,11 +995,22 @@ class Task(ABC):
 
     def get_load_balancer_ip(self) -> Optional[str]:
         svc_name = self.get_load_balancer_service_name()
+        family = self.ts.active_ip_family
+        r = self.run_oc(
+            f"get service {svc_name} -o=jsonpath='{{.status.loadBalancer.ingress[*].ip}}'",
+            may_fail=True,
+        )
+        if r.success and r.out:
+            ip = family.pick_ip(r.out.split())
+            if ip is not None:
+                return ip
         r = self.run_oc(
             f"get service {svc_name} -o=jsonpath='{{.status.loadBalancer.ingress[0].ip}}'",
             may_fail=True,
         )
-        return r.out if r.success and r.out else None
+        if r.success and r.out and family.matches(r.out):
+            return r.out
+        return None
 
     def wait_load_balancer_ip(self, timeout: int = 120) -> str:
         deadline = time.monotonic() + timeout
@@ -1534,11 +1582,14 @@ class ServerTask(Task, ABC):
             if tftbase.get_tft_image_pull_policy() == "Always":
                 pull_policy = " --pull=always"
 
-            # Use -p {port} to let podman auto-assign a free host port
             test_image = tftbase.get_tft_test_image_for_type(
                 self.ts.connection.test_type
             )
-            cmd = f"podman run -it --replace --rm -p {self.port} --name={self.pod_name}{pull_policy} {test_image} {th_cmd}"
+            if self.ts.active_ip_family == tftbase.IpFamily.IPV6:
+                port_flag = f"-p [::]:0:{self.port}"
+            else:
+                port_flag = f"-p {self.port}"
+            cmd = f"podman run -it --replace --rm {port_flag} --name={self.pod_name}{pull_policy} {test_image} {th_cmd}"
             cancel_cmd = f"podman rm --force {self.pod_name}"
         else:
             if not skip_pod_setup:
@@ -1880,17 +1931,29 @@ class ClientTask(Task, ABC):
         the correct source interface (e.g. a VPN tunnel rather than the
         default LAN gateway).
         """
+        family = self.ts.active_ip_family
         server_name = self.ts.node_server.name
         r = self.lh.run(f"getent hosts {shlex.quote(server_name)}")
+        node_ip = None
         if r.success and r.out.strip():
-            node_ip = r.out.split()[0]
-        else:
-            node_ip = "1"
+            resolved_ips = [
+                line.split()[0] for line in r.out.splitlines() if line.split()
+            ]
+            node_ip = family.pick_ip(resolved_ips)
+        if node_ip is None:
+            if family == tftbase.IpFamily.IPV6:
+                node_ip = "2001:4860:4860::8888"
+            else:
+                node_ip = "1"
             logger.debug(
-                f"get_host_ip() could not resolve {server_name}, "
+                f"get_host_ip() could not resolve {server_name} for {family.name}, "
                 "falling back to default route"
             )
-        r = self.lh.run(f"ip -j route get {node_ip}")
+        if family == tftbase.IpFamily.IPV6:
+            cmd = f"ip -6 -j route get {shlex.quote(node_ip)}"
+        else:
+            cmd = f"ip -j route get {shlex.quote(node_ip)}"
+        r = self.lh.run(cmd)
         if r.success and r.out.strip():
             try:
                 routes = json.loads(r.out.strip())
@@ -1900,7 +1963,9 @@ class ClientTask(Task, ABC):
                     return ip
             except (json.JSONDecodeError, KeyError, IndexError):
                 pass
-        raise RuntimeError("Failed to get host IP address from route lookup")
+        raise RuntimeError(
+            f"Failed to get host IP address from route lookup for {family.name}"
+        )
 
     def aggregate_output(self, tft_result_builder: tftbase.TftResultBuilder) -> None:
         if (

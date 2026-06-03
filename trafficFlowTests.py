@@ -684,6 +684,7 @@ class TrafficFlowTests:
         instance_index: int,
         target_access_mode: tftbase.TargetAccessMode,
         reverse: bool = False,
+        active_ip_family: tftbase.IpFamily = tftbase.IpFamily.IPV4,
     ) -> TftResult:
         connection = cfg_descr.get_connection()
 
@@ -696,6 +697,7 @@ class TrafficFlowTests:
             instance_index=instance_index,
             reverse=reverse,
             target_access_mode=target_access_mode,
+            active_ip_family=active_ip_family,
         )
         s, c = connection.test_type_handler.create_server_client(ts)
         logger.info(
@@ -791,25 +793,28 @@ class TrafficFlowTests:
             target_access_modes = tftbase.get_target_access_modes(
                 cfg_descr2.get_test_case().info.connection_mode
             )
-            for instance_index in range(connection.instances):
-                for target_access_mode in target_access_modes:
-                    tft_results.append(
-                        self._run_test_case_instance(
-                            cfg_descr2,
-                            instance_index=instance_index,
-                            target_access_mode=target_access_mode,
-                        )
-                    )
-                    if connection.test_type_handler.can_run_reverse(connection):
+            for active_family in connection.ip_family.ip_families():
+                for instance_index in range(connection.instances):
+                    for target_access_mode in target_access_modes:
                         tft_results.append(
                             self._run_test_case_instance(
                                 cfg_descr2,
                                 instance_index=instance_index,
-                                reverse=True,
                                 target_access_mode=target_access_mode,
+                                active_ip_family=active_family,
                             )
                         )
-                self._cleanup_previous_testspace(cfg_descr2)
+                        if connection.test_type_handler.can_run_reverse(connection):
+                            tft_results.append(
+                                self._run_test_case_instance(
+                                    cfg_descr2,
+                                    instance_index=instance_index,
+                                    reverse=True,
+                                    target_access_mode=target_access_mode,
+                                    active_ip_family=active_family,
+                                )
+                            )
+                    self._cleanup_previous_testspace(cfg_descr2)
         return tft_results
 
     def _run_test_cases(self, cfg_descr: ConfigDescriptor) -> TftResults:
