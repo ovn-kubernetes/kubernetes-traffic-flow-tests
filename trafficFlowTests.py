@@ -470,8 +470,8 @@ class TrafficFlowTests:
     def _provision_all_resources(self, cfg_descr: ConfigDescriptor) -> None:
         logger.info("Pre-provisioning all pods and services for the test run")
 
-        seen_server_pods: set[str] = set()
-        seen_client_pods: set[str] = set()
+        seen_server_pods: set[tuple[str, str]] = set()
+        seen_client_pods: set[tuple[str, str]] = set()
 
         for cfg_descr2 in cfg_descr.describe_all_test_cases():
             if cfg_descr2.get_test_case().is_udn and not self._udn_setup_done:
@@ -486,16 +486,19 @@ class TrafficFlowTests:
                     )
                     s, c = connection.test_type_handler.create_server_client(ts)
 
+                    s_key = (s.get_namespace(), s.pod_name)
+                    c_key = (c.get_namespace(), c.pod_name)
+
                     # EXTERNAL_IP runs via podman; leave those per-test.
-                    if s.pod_name not in seen_server_pods:
-                        seen_server_pods.add(s.pod_name)
+                    if s_key not in seen_server_pods:
+                        seen_server_pods.add(s_key)
                         s.initialize()
                         s.start_setup(provisioning=True)
                     else:
                         s.ensure_services()
 
-                    if c.pod_name not in seen_client_pods:
-                        seen_client_pods.add(c.pod_name)
+                    if c_key not in seen_client_pods:
+                        seen_client_pods.add(c_key)
                         c.initialize()
                         c.start_setup(provisioning=True)
 
