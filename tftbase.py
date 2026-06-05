@@ -265,7 +265,10 @@ def get_udn_localnet_physical_network() -> str:
 
 @functools.cache
 def get_secondary_nad_subnets() -> str:
-    s = get_environ(ENV_TFT_SECONDARY_NAD_SUBNETS) or "10.193.0.0/16/26"
+    s = (
+        get_environ(ENV_TFT_SECONDARY_NAD_SUBNETS)
+        or "10.193.0.0/16/26,fd00:10:193::/48/64"
+    )
     logger.info(f"env: {ENV_TFT_SECONDARY_NAD_SUBNETS}={shlex.quote(s)}")
     return s
 
@@ -384,6 +387,32 @@ def eval_binary_opt_in(
         b = not a
 
     return a, b
+
+
+class IpFamily(Enum):
+    IPV4 = 1
+    IPV6 = 2
+    DUAL_STACK = 3
+
+    def ip_families(self) -> tuple["IpFamily", ...]:
+        if self == IpFamily.DUAL_STACK:
+            return (IpFamily.IPV4, IpFamily.IPV6)
+        return (self,)
+
+    @staticmethod
+    def is_ipv6(addr: str) -> bool:
+        return ":" in addr
+
+    def matches(self, addr: str) -> bool:
+        if self == IpFamily.IPV6:
+            return IpFamily.is_ipv6(addr)
+        return not IpFamily.is_ipv6(addr)
+
+    def pick_ip(self, ips: list[str]) -> Optional[str]:
+        for ip in ips:
+            if self.matches(ip):
+                return ip
+        return None
 
 
 class ClusterMode(Enum):
@@ -625,6 +654,7 @@ class TestMetadata:
     reverse: bool
     server: PodInfo
     client: PodInfo
+    active_ip_family: IpFamily = IpFamily.IPV4
     expects_blocked: bool = False
 
 
@@ -799,9 +829,18 @@ class TftResults:
             return ""
         return f" in {repr(self.filename)}"
 
+    # IPv4 is the historic default; omit it to keep old result files stable.
+    @staticmethod
+    def _serialize_result(result: TftResult) -> dict[str, Any]:
+        data = common.dataclass_to_dict(result)
+        tft_metadata = data["flow_test"]["tft_metadata"]
+        if tft_metadata.get("active_ip_family") == IpFamily.IPV4.name:
+            del tft_metadata["active_ip_family"]
+        return data
+
     def serialize(self) -> dict[str, Any]:
         return {
-            TftResults.TFT_TESTS: [common.dataclass_to_dict(o) for o in self],
+            TftResults.TFT_TESTS: [TftResults._serialize_result(o) for o in self],
         }
 
     def serialize_to_file(

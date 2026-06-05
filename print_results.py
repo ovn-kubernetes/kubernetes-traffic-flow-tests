@@ -49,6 +49,8 @@ def print_flow_test_output(
         f"Test ID: ({test_case_id.value}) {test_case_id.name}",
         f"Test Type: {test_type.name}",
     ]
+    if test_output.tft_metadata.active_ip_family != tftbase.IpFamily.IPV4:
+        parts.append(f"IP Family: {test_output.tft_metadata.active_ip_family.name}")
     if test_type != tftbase.TestType.HTTP:
         parts.append(f"Reverse: {common.bool_to_str(test_output.tft_metadata.reverse)}")
         parts.append(f"TX Bitrate: {test_output.bitrate_gbps.tx} Gbps")
