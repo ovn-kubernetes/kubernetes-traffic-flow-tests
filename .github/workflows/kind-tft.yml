@@ -92,6 +92,8 @@ jobs:
 
       - name: Deploy KIND cluster
         working-directory: dpu-simulator
+        env:
+          KIND_EXPERIMENTAL_PROVIDER: docker
         run: ./bin/dpu-sim --config ${{ matrix.dpu_sim_config }}
 
       - name: Verify clusters are ready
