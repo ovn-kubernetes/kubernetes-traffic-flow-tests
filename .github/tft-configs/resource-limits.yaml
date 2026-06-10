@@ -19,10 +19,13 @@ tft:
         server:
           - name: "dpu-sim-host-worker"
             persistent: true
-            sriov: false
+            sriov: true
+            default_network: "default/ovn-primary"
         client:
           - name: "dpu-sim-host-worker2"
-            sriov: false
+            sriov: true
+            default_network: "default/ovn-primary"
+        resource_name: "dpusim.io/vf"
         plugins:
           - name: measure_cpu
             test_cases:
