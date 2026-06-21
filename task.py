@@ -1502,7 +1502,7 @@ class ClientTask(Task, ABC):
                 logger.warning(f"Could not validate EgressIP subnet: {e}")
 
         self.run_oc(
-            f"label node {egress_node} k8s.ovn.org/egress-assignable=true --overwrite",
+            f"label node {egress_node} k8s.ovn.org/egress-assignable=true tft-tests-egress-node=true --overwrite",
             namespace=None,
             die_on_error=True,
         )
@@ -1653,7 +1653,9 @@ class ClientTask(Task, ABC):
                         msg="EgressIP verification failed: could not parse "
                         "server output for source IP",
                     )
-                elif actual_ip != expected_ip:
+                elif ipaddress.ip_address(actual_ip) != ipaddress.ip_address(
+                    expected_ip
+                ):
                     self._result = dataclasses.replace(
                         self._result,
                         success=False,
