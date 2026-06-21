@@ -1,3 +1,4 @@
+import json
 import os
 import pytest
 import sys
@@ -103,3 +104,35 @@ def test_task_operation_thread_with_collect_wrong() -> None:
     op.start()
     with pytest.raises(TypeError):
         op.finish()
+
+
+def test_extract_server_remote_host_valid() -> None:
+    server_json = json.dumps(
+        {
+            "start": {
+                "connected": [
+                    {
+                        "socket": 5,
+                        "local_host": "0.0.0.0",
+                        "local_port": 5201,
+                        "remote_host": "10.0.0.100",
+                        "remote_port": 12345,
+                    }
+                ]
+            }
+        }
+    )
+    assert task.extract_server_remote_host(server_json) == "10.0.0.100"
+
+
+def test_extract_server_remote_host_invalid_json() -> None:
+    assert task.extract_server_remote_host("not json") is None
+
+
+def test_extract_server_remote_host_missing_fields() -> None:
+    assert task.extract_server_remote_host(json.dumps({"start": {}})) is None
+    assert task.extract_server_remote_host(json.dumps({})) is None
+    assert (
+        task.extract_server_remote_host(json.dumps({"start": {"connected": []}}))
+        is None
+    )

@@ -483,6 +483,11 @@ class TestCaseType(Enum):
     HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 65
     HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 66
     HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 67
+    POD_TO_EXTERNAL_EGRESS = 68
+
+    @property
+    def is_egress_ip(self) -> bool:
+        return self.name.endswith("_EGRESS")
 
     @property
     def is_udn(self) -> bool:
@@ -1469,6 +1474,13 @@ _test_case_typ_infos = {
             is_same_node=False,
             is_server_hostbacked=True,
             is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_EXTERNAL_EGRESS,
+            connection_mode=ConnectionMode.EXTERNAL_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
         ),
     )
 }
