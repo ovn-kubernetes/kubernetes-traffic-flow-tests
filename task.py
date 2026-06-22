@@ -1486,18 +1486,18 @@ class ClientTask(Task, ABC):
             raise RuntimeError(f"EgressIP node {egress_node!r} not found")
 
         annotations = node_data.get("metadata", {}).get("annotations", {})
-        primary_ifaddr = annotations.get("k8s.ovn.org/node-primary-ifaddr")
-        if primary_ifaddr is not None:
+        host_cidrs_raw = annotations.get("k8s.ovn.org/host-cidrs")
+        if host_cidrs_raw is not None:
             try:
-                ifaddr_data = json.loads(primary_ifaddr)
-                cidr = ifaddr_data.get("ipv4", "")
-                if cidr:
-                    network = ipaddress.ip_network(cidr, strict=False)
-                    if ipaddress.ip_address(egress_ip_addr) not in network:
-                        raise RuntimeError(
-                            f"EgressIP {egress_ip_addr} not in node "
-                            f"{egress_node!r} subnet {cidr}"
-                        )
+                cidrs = json.loads(host_cidrs_raw)
+                eip = ipaddress.ip_address(egress_ip_addr)
+                if not any(
+                    eip in ipaddress.ip_network(cidr, strict=False) for cidr in cidrs
+                ):
+                    raise RuntimeError(
+                        f"EgressIP {egress_ip_addr} not in any node "
+                        f"{egress_node!r} subnet: {cidrs}"
+                    )
             except (json.JSONDecodeError, ValueError) as e:
                 logger.warning(f"Could not validate EgressIP subnet: {e}")
 
