@@ -404,11 +404,28 @@ class Task(ABC):
         """Get the test image, auto-selecting RDMA image for ib-* test types."""
         return tftbase.get_tft_test_image_for_type(self.ts.connection.test_type)
 
+    def _shares_pre_provisioned_secondary_pod(self) -> bool:
+        tft = self.ts.cfg_descr.get_tft()
+        if not tft.pre_provision:
+            return False
+        is_udn = self.ts.test_case_id.is_udn
+        return any(
+            tc.info.uses_secondary_network_pod and tc.is_udn == is_udn
+            for tc in tft.test_cases
+        )
+
     def _get_effective_secondary_network_nad(self) -> str:
         if self.ts.test_case_id.is_udn_localnet:
             return f"{self.get_namespace()}/tft-localnet"
         if self.ts.test_case_id.is_udn_secondary:
             return f"{self.get_namespace()}/tft-secondary"
+        if self.ts.test_case_id.is_udn_primary:
+            test_cases = self.ts.cfg_descr.get_tft().test_cases
+            if self._shares_pre_provisioned_secondary_pod():
+                if any(tc.is_udn_localnet for tc in test_cases):
+                    return f"{self.get_namespace()}/tft-localnet"
+                if any(tc.is_udn_secondary for tc in test_cases):
+                    return f"{self.get_namespace()}/tft-secondary"
         nad = self._get_node_secondary_network_nad()
         if nad is not None:
             if "/" not in nad:
@@ -1129,7 +1146,7 @@ class ServerTask(Task, ABC):
         elif pod_type == PodType.SECONDARY or (
             pod_type == PodType.NORMAL
             and ts.cfg_descr.get_tft().pre_provision
-            and ts.cfg_descr.get_tft().uses_secondary_network_pod
+            and self._shares_pre_provisioned_secondary_pod()
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-server-{port}"
@@ -1446,7 +1463,7 @@ class ClientTask(Task, ABC):
         if pod_type == PodType.SECONDARY or (
             pod_type == PodType.NORMAL
             and ts.cfg_descr.get_tft().pre_provision
-            and ts.cfg_descr.get_tft().uses_secondary_network_pod
+            and self._shares_pre_provisioned_secondary_pod()
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-{node_location}-client"
