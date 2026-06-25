@@ -137,6 +137,7 @@ class TrafficFlowTests:
         network_name: str,
         is_primary: bool,
         cidr: str,
+        host_subnet: int = tftbase.UDN_DEFAULT_HOST_SUBNET,
     ) -> None:
         client = cfg_descr.tc.client_tenant
         network_label = network_name
@@ -180,6 +181,7 @@ class TrafficFlowTests:
                 "topology_name": topology_name,
                 "network_type": _j("Primary" if is_primary else "Secondary"),
                 "cidr": _j(cidr),
+                "host_subnet": host_subnet,
                 "physical_network_name": _j(physical_network_name),
                 "transport_name": transport_name,
                 "no_overlay_outbound_snat": _j(no_overlay_outbound_snat),
@@ -259,6 +261,7 @@ class TrafficFlowTests:
                 network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
                 is_primary=True,
                 cidr=tftbase.get_udn_primary_cidr(),
+                host_subnet=tftbase.get_udn_primary_host_subnet(),
             )
 
         for network in secondary_networks.values():

@@ -17,7 +17,7 @@ spec:
     role: {{ network_type }}
     subnets:
     - cidr: {{ cidr }}
-      hostSubnet: 24
+      hostSubnet: {{ host_subnet }}
 {% elif topology_name == "Layer2" %}
   layer2:
     role: {{ network_type }}
