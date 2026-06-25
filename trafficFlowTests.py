@@ -285,20 +285,34 @@ class TrafficFlowTests:
         tft = cfg_descr.get_tft()
         udn_ns = tftbase.get_udn_namespace(tft.namespace)
         client = cfg_descr.tc.client_tenant
-        client.oc(
-            "delete clusteruserdefinednetwork -l tft-tests",
-            namespace=None,
-            may_fail=True,
-        )
         if client.oc_get(f"namespace/{udn_ns}", may_fail=True) is None:
+            client.oc(
+                "delete clusteruserdefinednetwork -l tft-tests --timeout=120s",
+                namespace=None,
+                may_fail=True,
+            )
             return
         logger.info(
             f"Found existing UDN namespace {udn_ns} from a previous run, cleaning up"
         )
-        client.oc(f"delete userdefinednetwork -l tft-tests -n {udn_ns}", may_fail=True)
-        client.oc(f"delete namespace {udn_ns}", may_fail=True)
+        client.oc(
+            "delete userdefinednetwork -l tft-tests",
+            namespace=udn_ns,
+            may_fail=True,
+        )
+        client.oc(
+            f"delete namespace {udn_ns}",
+            namespace=None,
+            may_fail=True,
+        )
+        client.oc(
+            "delete clusteruserdefinednetwork -l tft-tests --timeout=120s",
+            namespace=None,
+            may_fail=True,
+        )
         client.oc(
             f"wait --for=delete namespace/{udn_ns} --timeout=120s",
+            namespace=None,
             may_fail=True,
         )
 
