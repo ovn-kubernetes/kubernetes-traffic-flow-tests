@@ -27,6 +27,7 @@ logger = common.ExtendedLogger("tft." + __name__)
 IPERF_EXE = "iperf3"
 IPERF_UDP_OPT = "-u"
 IPERF_REV_OPT = "-R"
+IPERF_TIMEOUT = 30
 
 
 class ResultTcp:
@@ -139,7 +140,8 @@ class IperfClient(task.ClientTask):
     def _create_task_operation(self) -> TaskOperation:
         server_ip = self.get_target_ip()
         target_port = self.get_target_port()
-        cmd = f"{IPERF_EXE} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
+        timeout = self.get_duration() + IPERF_TIMEOUT
+        cmd = f"timeout {timeout} {IPERF_EXE} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
 
         connect_timeout_ms = int(self.get_duration() * 1.5 * 1000)
         cmd += f" --connect-timeout {connect_timeout_ms}"
