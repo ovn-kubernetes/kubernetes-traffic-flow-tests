@@ -83,9 +83,11 @@ tft:
       mode: "(33)"
       topology: "(34)"
       transport: "(35)"
-kubeconfig: (36)
-kubeconfig_infra: (36)
-dpu_node_host_label: (37)
+      frr_configuration_selector: # (36)
+        "(37)": "(38)"
+kubeconfig: (39)
+kubeconfig_infra: (39)
+dpu_node_host_label: (40)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -207,10 +209,13 @@ dpu_node_host_label: (37)
 33. "mode" - (Optional) Field under `udn_primary_network`. Supported values are `udn` and `cudn`.
 34. "topology" - (Optional) Field under `udn_primary_network`. Supported values are `layer3` and `layer2`.
 35. "transport" - (Optional) Field under `udn_primary_network`. Supported values are `overlay` and `no-overlay`; `no-overlay` requires `mode: cudn` and `topology: layer3`.
-36. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+36. "frr_configuration_selector" - (Optional) Field under `udn_primary_network`. Map of `frrConfigurationSelector.matchLabels` labels used to create RouteAdvertisements for unmanaged no-overlay CUDNs. If omitted or empty, RouteAdvertisements are not created.
+37. selector label key - A Kubernetes label key under `frr_configuration_selector`.
+38. selector label value - A Kubernetes label value under `frr_configuration_selector`. Empty string values are supported.
+39. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-37. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+40. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 
@@ -235,6 +240,18 @@ Test cases 37-47 and 69-78 run traffic over OVN-Kubernetes User Defined Networks
 The primary CIDR defaults to `15.1.0.0/16`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
 
 `udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
+
+For unmanaged no-overlay primary CUDNs, set `frr_configuration_selector` to create a RouteAdvertisements object that advertises the selected CUDN pod network. The selector is a map of `frrConfigurationSelector.matchLabels` labels. When `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` is true, RouteAdvertisements are not created.
+
+```yaml
+udn_primary_network:
+  mode: cudn
+  topology: layer3
+  transport: no-overlay
+  frr_configuration_selector:
+    network: blue
+    ra.k8s.ovn.org/example: ""
+```
 
 ## Management Port Reachability Plugin
 

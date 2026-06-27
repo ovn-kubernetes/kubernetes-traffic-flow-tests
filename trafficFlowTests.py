@@ -88,6 +88,45 @@ class TrafficFlowTests:
             f"ClusterUserDefinedNetwork/{cudn_name} TransportAccepted not True, continuing"
         )
 
+    def _setup_udn_route_advertisements(
+        self,
+        cfg_descr: ConfigDescriptor,
+        *,
+        network: testConfig.ConfUdnNetwork,
+        network_name: str,
+        network_label: str,
+    ) -> None:
+        if not network.frr_configuration_selector:
+            logger.info(
+                "No no-overlay FRRConfiguration selector configured; "
+                f"not creating RouteAdvertisements for {network_name}"
+            )
+            return
+
+        client = cfg_descr.tc.client_tenant
+        in_template = tftbase.get_manifest("udn-route-advertisements.yaml.j2")
+        out_yaml = tftbase.get_manifest_renderpath(
+            f"udn-route-advertisements-{network_label}.yaml"
+        )
+        _j = json.dumps
+        kjinja2.render_file(
+            in_template,
+            {
+                "network_name": _j(network_name),
+                "network_label": _j(network_label),
+                "frr_configuration_selector": [
+                    (_j(k), _j(v))
+                    for k, v in network.frr_configuration_selector.items()
+                ],
+            },
+            out_file=out_yaml,
+        )
+        logger.info(
+            f'Generate {network_label} RouteAdvertisements "{out_yaml}" '
+            f'(from "{in_template}")'
+        )
+        client.oc(f"apply -f {out_yaml}", die_on_error=True)
+
     def _setup_udn_network(
         self,
         cfg_descr: ConfigDescriptor,
@@ -150,6 +189,13 @@ class TrafficFlowTests:
         )
         logger.info(f'Generate {network_label} "{out_yaml}" (from "{in_template}")')
         client.oc(f"apply -f {out_yaml}", die_on_error=True)
+        if is_no_overlay and not routing_managed:
+            self._setup_udn_route_advertisements(
+                cfg_descr,
+                network=network,
+                network_name=network_name,
+                network_label=network_label,
+            )
         if is_no_overlay:
             self._wait_for_cudn_transport_accepted(cfg_descr, network_name)
 
@@ -221,6 +267,7 @@ class TrafficFlowTests:
                 mode=network.mode,
                 topology=network.topology,
                 transport=network.transport,
+                frr_configuration_selector={},
             )
             self._setup_udn_network(
                 cfg_descr,
@@ -378,6 +425,11 @@ class TrafficFlowTests:
                     namespace=None,
                     may_fail=True,
                 )
+        client.oc(
+            "delete routeadvertisements -l tft-tests",
+            namespace=None,
+            may_fail=True,
+        )
         client.oc(
             "delete clusteruserdefinednetwork -l tft-tests --timeout=120s",
             namespace=None,

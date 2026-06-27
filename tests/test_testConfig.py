@@ -430,6 +430,7 @@ tft:
     assert primary.mode == UdnNetworkMode.UDN
     assert primary.topology == UdnNetworkTopology.LAYER3
     assert primary.transport == UdnNetworkTransport.OVERLAY
+    assert primary.frr_configuration_selector == {}
 
     _check_testConfig(tc)
 
@@ -443,6 +444,9 @@ tft:
       mode: cudn
       topology: layer3
       transport: no-overlay
+      frr_configuration_selector:
+        network: blue
+        ra.k8s.ovn.org/example: ""
     connections:
     - {}
 """)
@@ -455,6 +459,10 @@ tft:
     assert primary.mode == UdnNetworkMode.CUDN
     assert primary.topology == UdnNetworkTopology.LAYER3
     assert primary.transport == UdnNetworkTransport.NO_OVERLAY
+    assert primary.frr_configuration_selector == {
+        "network": "blue",
+        "ra.k8s.ovn.org/example": "",
+    }
 
     _check_testConfig(tc)
 
