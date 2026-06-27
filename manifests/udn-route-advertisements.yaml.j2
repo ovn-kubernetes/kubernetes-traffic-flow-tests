@@ -1,0 +1,22 @@
+apiVersion: k8s.ovn.org/v1
+kind: RouteAdvertisements
+metadata:
+  name: {{ network_name }}
+  labels:
+    tft-tests: "udn"
+spec:
+  advertisements:
+  - PodNetwork
+  frrConfigurationSelector:
+    matchLabels:
+    {%- for key, value in frr_configuration_selector %}
+      {{ key }}: {{ value }}
+    {%- endfor %}
+  networkSelectors:
+  - clusterUserDefinedNetworkSelector:
+      networkSelector:
+        matchLabels:
+          tft-tests: "udn"
+          tft-udn-network: {{ network_label }}
+    networkSelectionType: ClusterUserDefinedNetworks
+  nodeSelector: {}

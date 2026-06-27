@@ -98,6 +98,24 @@ def _construct_capabilities_pod(
     return {"add": tuple(arg["add"])}
 
 
+def _construct_str_mapping(pctx: StructParseParseContext) -> Mapping[str, str]:
+    arg = common.structparse_check_strdict(pctx.arg, pctx.yamlpath)
+    result: dict[str, str] = {}
+    for key, value in arg.items():
+        if not key:
+            raise pctx.value_error("label key cannot be empty")
+        if value is None:
+            result[key] = ""
+        elif isinstance(value, str):
+            result[key] = value
+        else:
+            raise pctx.value_error(
+                f"expects string label values but got {repr(value)}",
+                key=key,
+            )
+    return result
+
+
 T2 = TypeVar("T2", bound="ConfNodeServer | ConfNodeClient")
 
 
@@ -602,6 +620,7 @@ class ConfUdnNetwork(StructParseBase):
     mode: UdnNetworkMode
     topology: UdnNetworkTopology
     transport: Optional[UdnNetworkTransport]
+    frr_configuration_selector: Mapping[str, str]
 
     def serialize(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -610,6 +629,8 @@ class ConfUdnNetwork(StructParseBase):
         }
         if self.transport is not None:
             data["transport"] = self.transport.name
+        if self.frr_configuration_selector:
+            data["frr_configuration_selector"] = dict(self.frr_configuration_selector)
         return data
 
     @staticmethod
@@ -626,6 +647,7 @@ class ConfUdnNetwork(StructParseBase):
             mode = UdnNetworkMode.UDN
             topology = default_topology
             transport: Optional[UdnNetworkTransport] = UdnNetworkTransport.OVERLAY
+            frr_configuration_selector: Mapping[str, str] = {}
         else:
             with pctx.with_strdict() as varg:
                 transport_configured = "transport" in varg.vdict
@@ -643,6 +665,11 @@ class ConfUdnNetwork(StructParseBase):
                     varg.for_key("transport"),
                     enum_type=UdnNetworkTransport,
                     default=None,
+                )
+                frr_configuration_selector = common.structparse_pop_obj(
+                    varg.for_key("frr_configuration_selector"),
+                    construct=_construct_str_mapping,
+                    default={},
                 )
             if transport is None and topology != UdnNetworkTopology.LOCALNET:
                 transport = UdnNetworkTransport.OVERLAY
@@ -674,6 +701,11 @@ class ConfUdnNetwork(StructParseBase):
                 "no-overlay transport is only supported for layer3 primary CUDN",
                 key="transport",
             )
+        if frr_configuration_selector and transport != UdnNetworkTransport.NO_OVERLAY:
+            raise pctx.value_error(
+                "frr_configuration_selector requires transport no-overlay",
+                key="frr_configuration_selector",
+            )
 
         return ConfUdnNetwork(
             yamlidx=pctx.yamlidx,
@@ -681,6 +713,7 @@ class ConfUdnNetwork(StructParseBase):
             mode=mode,
             topology=topology,
             transport=transport,
+            frr_configuration_selector=frr_configuration_selector,
         )
 
 
