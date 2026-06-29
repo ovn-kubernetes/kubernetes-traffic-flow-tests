@@ -281,23 +281,20 @@ ENV_TFT_SECONDARY_NAD_MTU = "TFT_SECONDARY_NAD_MTU"
 ENV_TFT_SECONDARY_NAD_TOPOLOGY = "TFT_SECONDARY_NAD_TOPOLOGY"
 
 
-@functools.cache
-def _get_udn_primary_cidr_parts() -> tuple[str, int]:
-    s = get_environ(ENV_TFT_UDN_PRIMARY_CIDR) or "15.1.0.0/16"
-    logger.info(f"env: {ENV_TFT_UDN_PRIMARY_CIDR}={shlex.quote(s)}")
+def _parse_udn_primary_subnet(s: str) -> tuple[str, int]:
     cidr, separator, host_subnet = s.rpartition("/")
     if separator and "/" in cidr:
         return cidr, int(host_subnet)
     return s, UDN_DEFAULT_HOST_SUBNET
 
 
-def get_udn_primary_cidr() -> str:
-    return _get_udn_primary_cidr_parts()[0]
-
-
 @functools.cache
-def get_udn_primary_host_subnet() -> int:
-    return _get_udn_primary_cidr_parts()[1]
+def get_udn_primary_subnets() -> tuple[tuple[str, int], ...]:
+    s = get_environ(ENV_TFT_UDN_PRIMARY_CIDR) or "15.1.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_PRIMARY_CIDR}={shlex.quote(s)}")
+    return tuple(
+        _parse_udn_primary_subnet(cidr.strip()) for cidr in s.split(",") if cidr.strip()
+    )
 
 
 @functools.cache

@@ -22,19 +22,25 @@ spec:
     layer3:
       role: {{ network_type }}
       subnets:
-      - cidr: {{ cidr }}
-        hostSubnet: {{ host_subnet }}
+{% for subnet in subnets %}
+      - cidr: {{ subnet.cidr }}
+        hostSubnet: {{ subnet.host_subnet }}
+{% endfor %}
 {% elif topology_name == "Layer2" %}
     layer2:
       role: {{ network_type }}
       subnets:
-      - {{ cidr }}
+{% for subnet in subnets %}
+      - {{ subnet.cidr }}
+{% endfor %}
 {% elif topology_name == "Localnet" %}
     localnet:
       role: {{ network_type }}
       physicalNetworkName: {{ physical_network_name }}
       subnets:
-      - {{ cidr }}
+{% for subnet in subnets %}
+      - {{ subnet.cidr }}
+{% endfor %}
 {% endif %}
 {% if transport_name == "NoOverlay" %}
     transport: NoOverlay
