@@ -177,7 +177,6 @@ tft:
       egress_ip:
         ip: "10.0.0.100"
         node: "worker-1"
-      external_server_ip: "10.0.0.200"
       server:
         - name: server-node
       client:
@@ -191,7 +190,6 @@ tft:
     assert conn.egress_ip is not None
     assert conn.egress_ip.ip == "10.0.0.100"
     assert conn.egress_ip.node == "worker-1"
-    assert conn.external_server_ip == "10.0.0.200"
     assert conn.has_egress_ip is True
     assert conn.get_effective_egress_node("fallback-node") == "worker-1"
 
@@ -261,24 +259,6 @@ tft:
         )
 
 
-def test_external_server_ip_invalid() -> None:
-    full_config = yaml.safe_load("""
-tft:
-  - connections:
-    - name: egress-conn
-      external_server_ip: "not-an-ip"
-      server:
-        - name: server-node
-      client:
-        - name: client-node
-""")
-    with pytest.raises(ValueError):
-        testConfig.TestConfig(
-            full_config=full_config,
-            kubeconfigs=testConfigKubeconfigsArgs1,
-        )
-
-
 def test_no_egress_ip() -> None:
     full_config = yaml.safe_load("""
 tft:
@@ -295,7 +275,6 @@ tft:
     )
     conn = tc.config.tft[0].connections[0]
     assert conn.egress_ip is None
-    assert conn.external_server_ip is None
     assert conn.has_egress_ip is False
 
 

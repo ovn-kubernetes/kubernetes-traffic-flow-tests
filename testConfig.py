@@ -397,7 +397,6 @@ class ConfConnection(StructParseBaseNamed):
     mem_request: Optional[str]
     mem_limit: Optional[str]
     egress_ip: Optional[ConfEgressIP]
-    external_server_ip: Optional[str]
 
     # This parameter is not expressed in YAML. It gets passed by the parent to
     # ConfConnection.parse()
@@ -437,7 +436,6 @@ class ConfConnection(StructParseBaseNamed):
         common.dict_add_optional(extra, "mem_limit", self.mem_limit)
         if self.egress_ip is not None:
             extra["egress_ip"] = self.egress_ip.serialize()
-        common.dict_add_optional(extra, "external_server_ip", self.external_server_ip)
         return {
             **super().serialize(),
             "type": self.test_type.name,
@@ -556,19 +554,6 @@ class ConfConnection(StructParseBaseNamed):
                 default=None,
             )
 
-            def _check_ip(val: str) -> bool:
-                try:
-                    ipaddress.ip_address(val)
-                except ValueError:
-                    return False
-                return True
-
-            external_server_ip = common.structparse_pop_str(
-                varg.for_key("external_server_ip"),
-                default=None,
-                check=_check_ip,
-            )
-
         if len(server) > 1:
             raise pctx.value_error(
                 "currently only one server entry is supported", key="server"
@@ -604,7 +589,6 @@ class ConfConnection(StructParseBaseNamed):
             mem_request=mem_request,
             mem_limit=mem_limit,
             egress_ip=egress_ip,
-            external_server_ip=external_server_ip,
             namespace=namespace,
         )
 

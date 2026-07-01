@@ -1576,13 +1576,6 @@ class ClientTask(Task, ABC):
             logger.debug(f"get_target_ip() NodePortIP connection to {ip}")
             return ip
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
-            ext_ip = self.ts.connection.external_server_ip
-            if ext_ip is not None:
-                logger.debug(
-                    f"get_target_ip() External connection to configured "
-                    f"server {ext_ip}"
-                )
-                return ext_ip
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")
             return host_ip
@@ -1614,9 +1607,23 @@ class ClientTask(Task, ABC):
         return self.port
 
     def get_host_ip(self) -> str:
-        """Get the host's IP address for EXTERNAL_IP mode."""
-        # Get the IP from default route using JSON output
-        r = self.lh.run("ip -j route get 1")
+        """Get the host's IP address for EXTERNAL_IP mode.
+
+        Probes the route toward the server node so that the kernel picks
+        the correct source interface (e.g. a VPN tunnel rather than the
+        default LAN gateway).
+        """
+        server_name = self.ts.node_server.name
+        r = self.lh.run(f"getent hosts {shlex.quote(server_name)}")
+        if r.success and r.out.strip():
+            node_ip = r.out.split()[0]
+        else:
+            node_ip = "1"
+            logger.debug(
+                f"get_host_ip() could not resolve {server_name}, "
+                "falling back to default route"
+            )
+        r = self.lh.run(f"ip -j route get {node_ip}")
         if r.success and r.out.strip():
             try:
                 routes = json.loads(r.out.strip())
@@ -1626,7 +1633,7 @@ class ClientTask(Task, ABC):
                     return ip
             except (json.JSONDecodeError, KeyError, IndexError):
                 pass
-        raise RuntimeError("Failed to get host IP address from default route")
+        raise RuntimeError("Failed to get host IP address from route lookup")
 
     def aggregate_output(self, tft_result_builder: tftbase.TftResultBuilder) -> None:
         if (
