@@ -12,6 +12,7 @@ from ktoolbox import common  # noqa: E402
 
 import testConfig  # noqa: E402
 
+from testConfig import ConfEgressIP  # noqa: E402
 from tftbase import TestCaseType  # noqa: E402
 from tftbase import TestType  # noqa: E402
 
@@ -166,6 +167,123 @@ tft:
         )
         assert tc.config.tft[0].test_cases[0] == TestCaseType[test_case_name]
         _check_testConfig(tc)
+
+
+def test_egress_ip_config() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-conn
+      egress_ip:
+        ip: "10.0.0.100"
+        node: "worker-1"
+      server:
+        - name: server-node
+      client:
+        - name: client-node
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+    conn = tc.config.tft[0].connections[0]
+    assert conn.egress_ip is not None
+    assert conn.egress_ip.ip == "10.0.0.100"
+    assert conn.egress_ip.node == "worker-1"
+    assert conn.has_egress_ip is True
+    assert conn.get_effective_egress_node("fallback-node") == "worker-1"
+
+    _check_testConfig(tc)
+
+
+def test_egress_ip_no_node() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-conn
+      egress_ip:
+        ip: "10.0.0.100"
+      server:
+        - name: server-node
+      client:
+        - name: client-node
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+    conn = tc.config.tft[0].connections[0]
+    assert conn.egress_ip is not None
+    assert conn.egress_ip.ip == "10.0.0.100"
+    assert conn.egress_ip.node is None
+    assert conn.get_effective_egress_node("fallback-node") == "fallback-node"
+
+    _check_testConfig(tc)
+
+
+def test_egress_ip_invalid_ip() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-conn
+      egress_ip:
+        ip: "not-an-ip"
+      server:
+        - name: server-node
+      client:
+        - name: client-node
+""")
+    with pytest.raises(ValueError, match="invalid IP address"):
+        testConfig.TestConfig(
+            full_config=full_config,
+            kubeconfigs=testConfigKubeconfigsArgs1,
+        )
+
+
+def test_egress_ip_missing_ip() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: egress-conn
+      egress_ip:
+        node: "worker-1"
+      server:
+        - name: server-node
+      client:
+        - name: client-node
+""")
+    with pytest.raises(ValueError):
+        testConfig.TestConfig(
+            full_config=full_config,
+            kubeconfigs=testConfigKubeconfigsArgs1,
+        )
+
+
+def test_no_egress_ip() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - name: plain-conn
+      server:
+        - name: server-node
+      client:
+        - name: client-node
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+    conn = tc.config.tft[0].connections[0]
+    assert conn.egress_ip is None
+    assert conn.has_egress_ip is False
+
+
+def test_egress_ip_serialize() -> None:
+    eip = ConfEgressIP(ip="10.0.0.100", node="worker-1")
+    assert eip.serialize() == {"ip": "10.0.0.100", "node": "worker-1"}
+
+    eip2 = ConfEgressIP(ip="10.0.0.100", node=None)
+    assert eip2.serialize() == {"ip": "10.0.0.100"}
 
 
 def test_config2() -> None:

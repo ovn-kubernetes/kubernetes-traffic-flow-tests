@@ -1,4 +1,6 @@
+import dataclasses
 import enum
+import ipaddress
 import json
 import logging
 import os
@@ -53,6 +55,14 @@ ANP_DEFAULT_PRIORITY = 50
 
 
 T = TypeVar("T")
+
+
+def extract_server_remote_host(server_output: str) -> Optional[str]:
+    try:
+        data = json.loads(server_output)
+        return typing.cast(str, data["start"]["connected"][0]["remote_host"])
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+        return None
 
 
 class _OperationState(enum.Enum):
@@ -1148,6 +1158,7 @@ class ServerTask(Task, ABC):
         self.use_internet = use_internet
         self.in_file_template = in_file_template
         self.pod_name = pod_name
+        self.server_stdout: Optional[str] = None
 
     def _get_template_args_port(self) -> str:
         return str(self.port)
@@ -1366,7 +1377,7 @@ class ServerTask(Task, ABC):
             if self.connection_mode == ConnectionMode.LOAD_BALANCER:
                 self.create_load_balancer_service()
 
-        def _run_cmd(cmd: str) -> BaseOutput:
+        def _run_cmd(cmd: str, capture_server_output: bool = False) -> BaseOutput:
             # We ignore the exit code of the command, that is because this is
             # commonly a long running process that needs to get killed with the
             # "cancel_action".  In that case, the exit code will be non-zero, but
@@ -1381,6 +1392,8 @@ class ServerTask(Task, ABC):
                     cmd,
                     log_level_fail=logging.DEBUG if may_fail else logging.ERROR,
                 )
+                if capture_server_output:
+                    self.server_stdout = res.out
             elif self.exec_persistent:
                 return BaseOutput(msg="Server is persistent")
             elif self.pre_provisioning:
@@ -1397,9 +1410,16 @@ class ServerTask(Task, ABC):
             return BaseOutput.from_cmd(res, success=True if may_fail else None)
 
         def _thread_action() -> BaseOutput:
-            return _run_cmd(cmd)
+            return _run_cmd(cmd, capture_server_output=True)
 
         def _cancel_action() -> None:
+            if self.server_stdout is None:
+                r = self.lh.run(
+                    f"podman logs {self.pod_name}",
+                    log_level_fail=logging.DEBUG,
+                )
+                if r.success and r.out:
+                    self.server_stdout = r.out
             _run_cmd(cancel_cmd)
 
         return TaskOperation(
@@ -1454,8 +1474,85 @@ class ClientTask(Task, ABC):
         self.in_file_template = in_file_template
         self.pod_name = pod_name
 
+    def create_egressip(self) -> None:
+        conn = self.ts.connection
+        assert conn.egress_ip is not None
+
+        egress_ip_addr = conn.egress_ip.ip
+        egress_node = conn.get_effective_egress_node(self.node_name)
+
+        node_data = self.run_oc_get(f"node/{egress_node}", namespace=None)
+        if node_data is None:
+            raise RuntimeError(f"EgressIP node {egress_node!r} not found")
+
+        annotations = node_data.get("metadata", {}).get("annotations", {})
+        host_cidrs_raw = annotations.get("k8s.ovn.org/host-cidrs")
+        if host_cidrs_raw is not None:
+            try:
+                cidrs = json.loads(host_cidrs_raw)
+                eip = ipaddress.ip_address(egress_ip_addr)
+                if not any(
+                    eip in ipaddress.ip_network(cidr, strict=False) for cidr in cidrs
+                ):
+                    raise RuntimeError(
+                        f"EgressIP {egress_ip_addr} not in any node "
+                        f"{egress_node!r} subnet: {cidrs}"
+                    )
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"Could not validate EgressIP subnet: {e}")
+
+        self.run_oc(
+            f"label node {egress_node} k8s.ovn.org/egress-assignable=true tft-tests-egress-node=true --overwrite",
+            namespace=None,
+            die_on_error=True,
+        )
+
+        egressip_name = f"tft-egressip-{self.index}"
+        namespace = self.get_namespace()
+        in_file_template = tftbase.get_manifest("egressip.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(f"egressip-{self.index}.yaml")
+
+        template_args: dict[str, str | list[str] | bool] = {
+            "egressip_name": _j(egressip_name),
+            "label_tft_tests": _j(f"{self.index}"),
+            "egress_ips_yaml": f'    - "{egress_ip_addr}"',
+            "name_space": _j(namespace),
+        }
+
+        self.render_file("EgressIP CR", in_file_template, out_file_yaml, template_args)
+        self.run_oc(
+            f"apply -f {out_file_yaml}",
+            namespace=None,
+            die_on_error=True,
+        )
+
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            eip_data = self.run_oc_get(
+                f"egressip/{egressip_name}",
+                namespace=None,
+            )
+            if eip_data is not None:
+                items = eip_data.get("status", {}).get("items", [])
+                for item in items:
+                    if item.get("egressIP") == egress_ip_addr:
+                        assigned_node = item.get("node", "")
+                        logger.info(
+                            f"EgressIP {egress_ip_addr} assigned to "
+                            f"node {assigned_node}"
+                        )
+                        return
+            time.sleep(2)
+
+        raise RuntimeError(
+            f"EgressIP {egress_ip_addr} was not assigned within 120s. "
+            f"Check OVN logs for errors."
+        )
+
     def initialize(self) -> None:
         super().initialize()
+        if self.ts.connection.has_egress_ip:
+            self.create_egressip()
         self.render_pod_file("Client Pod Yaml")
 
     def get_target_ip(self) -> str:
@@ -1479,7 +1576,6 @@ class ClientTask(Task, ABC):
             logger.debug(f"get_target_ip() NodePortIP connection to {ip}")
             return ip
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
-            # For port forwarding, connect to the host's IP, not the container's internal IP
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")
             return host_ip
@@ -1511,9 +1607,23 @@ class ClientTask(Task, ABC):
         return self.port
 
     def get_host_ip(self) -> str:
-        """Get the host's IP address for EXTERNAL_IP mode."""
-        # Get the IP from default route using JSON output
-        r = self.lh.run("ip -j route get 1")
+        """Get the host's IP address for EXTERNAL_IP mode.
+
+        Probes the route toward the server node so that the kernel picks
+        the correct source interface (e.g. a VPN tunnel rather than the
+        default LAN gateway).
+        """
+        server_name = self.ts.node_server.name
+        r = self.lh.run(f"getent hosts {shlex.quote(server_name)}")
+        if r.success and r.out.strip():
+            node_ip = r.out.split()[0]
+        else:
+            node_ip = "1"
+            logger.debug(
+                f"get_host_ip() could not resolve {server_name}, "
+                "falling back to default route"
+            )
+        r = self.lh.run(f"ip -j route get {node_ip}")
         if r.success and r.out.strip():
             try:
                 routes = json.loads(r.out.strip())
@@ -1523,7 +1633,48 @@ class ClientTask(Task, ABC):
                     return ip
             except (json.JSONDecodeError, KeyError, IndexError):
                 pass
-        raise RuntimeError("Failed to get host IP address from default route")
+        raise RuntimeError("Failed to get host IP address from route lookup")
+
+    def aggregate_output(self, tft_result_builder: tftbase.TftResultBuilder) -> None:
+        if (
+            self._result is not None
+            and isinstance(self._result, tftbase.FlowTestOutput)
+            and self._result.success
+            and self.ts.connection.has_egress_ip
+        ):
+            assert self.ts.connection.egress_ip is not None
+            expected_ip = self.ts.connection.egress_ip.ip
+            server_out = self.server.server_stdout
+            if server_out is None:
+                self._result = dataclasses.replace(
+                    self._result,
+                    success=False,
+                    msg="EgressIP verification failed: no server output captured",
+                )
+            else:
+                actual_ip = extract_server_remote_host(server_out)
+                if actual_ip is None:
+                    self._result = dataclasses.replace(
+                        self._result,
+                        success=False,
+                        msg="EgressIP verification failed: could not parse "
+                        "server output for source IP",
+                    )
+                elif ipaddress.ip_address(actual_ip) != ipaddress.ip_address(
+                    expected_ip
+                ):
+                    self._result = dataclasses.replace(
+                        self._result,
+                        success=False,
+                        msg=f"EgressIP verification failed: expected source "
+                        f"IP {expected_ip} but got {actual_ip}",
+                    )
+                else:
+                    logger.info(
+                        f"EgressIP verification passed: source IP "
+                        f"{actual_ip} matches expected {expected_ip}"
+                    )
+        super().aggregate_output(tft_result_builder)
 
     def get_podman_ip(self, pod_name: str) -> str:
         cmd = "podman inspect --format '{{.NetworkSettings.IPAddress}}' " + pod_name

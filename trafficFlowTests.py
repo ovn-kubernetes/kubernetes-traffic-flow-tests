@@ -335,6 +335,25 @@ class TrafficFlowTests:
                     or r.returncode == 127
                 ),
             )
+
+            logger.info("Cleaning EgressIP resources (if present)")
+            client.oc(
+                "delete egressip -l tft-tests",
+                namespace=None,
+                may_fail=True,
+            )
+            r = client.oc(
+                "get nodes -l tft-tests-egress-node=true -o jsonpath='{.items[*].metadata.name}'",
+                namespace=None,
+                may_fail=True,
+            )
+            if r.success and r.out.strip():
+                for node_name in r.out.strip().split():
+                    client.oc(
+                        f"label node {node_name} k8s.ovn.org/egress-assignable- tft-tests-egress-node-",
+                        namespace=None,
+                        may_fail=True,
+                    )
         else:
             connection_mode = cfg_descr.get_test_case().info.connection_mode
             if connection_mode in (

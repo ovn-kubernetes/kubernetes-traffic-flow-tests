@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import datetime
+import ipaddress
 import json
 import logging
 import os
@@ -347,6 +348,39 @@ class ConfNodeClient(ConfNodeBase):
 
 @strict_dataclass
 @dataclass(frozen=True, kw_only=True)
+class ConfEgressIP:
+    ip: str
+    node: Optional[str]
+
+    def serialize(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"ip": self.ip}
+        if self.node is not None:
+            d["node"] = self.node
+        return d
+
+    @staticmethod
+    def parse(pctx: StructParseParseContext) -> "ConfEgressIP":
+        with pctx.with_strdict() as varg:
+            ip_str = common.structparse_pop_str(
+                varg.for_key("ip"),
+            )
+            try:
+                ipaddress.ip_address(ip_str)
+            except ValueError:
+                raise pctx.value_error(
+                    f"invalid IP address {repr(ip_str)}", key="ip"
+                ) from None
+
+            node = common.structparse_pop_str(
+                varg.for_key("node"),
+                default=None,
+            )
+
+        return ConfEgressIP(ip=ip_str, node=node)
+
+
+@strict_dataclass
+@dataclass(frozen=True, kw_only=True)
 class ConfConnection(StructParseBaseNamed):
     test_type: TestType
     test_type_handler: TestTypeHandler
@@ -362,6 +396,7 @@ class ConfConnection(StructParseBaseNamed):
     cpu_limit: Optional[str]
     mem_request: Optional[str]
     mem_limit: Optional[str]
+    egress_ip: Optional[ConfEgressIP]
 
     # This parameter is not expressed in YAML. It gets passed by the parent to
     # ConfConnection.parse()
@@ -379,6 +414,15 @@ class ConfConnection(StructParseBaseNamed):
     def tft(self) -> "ConfTest":
         return self._owner_reference.get(ConfTest)
 
+    @property
+    def has_egress_ip(self) -> bool:
+        return self.egress_ip is not None
+
+    def get_effective_egress_node(self, client_node: str) -> str:
+        if self.egress_ip is not None and self.egress_ip.node is not None:
+            return self.egress_ip.node
+        return client_node
+
     def serialize(self) -> dict[str, Any]:
         extra: dict[str, Any] = {}
         common.dict_add_optional(
@@ -390,6 +434,8 @@ class ConfConnection(StructParseBaseNamed):
         common.dict_add_optional(extra, "cpu_limit", self.cpu_limit)
         common.dict_add_optional(extra, "mem_request", self.mem_request)
         common.dict_add_optional(extra, "mem_limit", self.mem_limit)
+        if self.egress_ip is not None:
+            extra["egress_ip"] = self.egress_ip.serialize()
         return {
             **super().serialize(),
             "type": self.test_type.name,
@@ -502,6 +548,12 @@ class ConfConnection(StructParseBaseNamed):
                 default=None,
             )
 
+            egress_ip = common.structparse_pop_obj(
+                varg.for_key("egress_ip"),
+                construct=ConfEgressIP.parse,
+                default=None,
+            )
+
         if len(server) > 1:
             raise pctx.value_error(
                 "currently only one server entry is supported", key="server"
@@ -536,6 +588,7 @@ class ConfConnection(StructParseBaseNamed):
             cpu_limit=cpu_limit,
             mem_request=mem_request,
             mem_limit=mem_limit,
+            egress_ip=egress_ip,
             namespace=namespace,
         )
 

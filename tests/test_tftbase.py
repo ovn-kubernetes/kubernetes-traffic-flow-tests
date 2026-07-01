@@ -129,7 +129,7 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 67
+    assert list(TestCaseType)[-1].value == 68
     list_numeric = list(range(1, list(TestCaseType)[-1].value + 1))
     assert list_numeric == [typ.value for typ in tftbase.TestCaseType]
 
@@ -144,6 +144,8 @@ def test_test_case_typ_infos() -> None:
         assert ti1.test_case_type != ti2.test_case_type
         t1 = ti1.test_case_type
         t2 = ti2.test_case_type
+        if t1.is_egress_ip != t2.is_egress_ip:
+            return False
         if t1.is_udn != t2.is_udn:
             return False
         if t1.is_udn:
