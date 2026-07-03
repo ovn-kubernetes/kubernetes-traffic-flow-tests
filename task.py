@@ -906,6 +906,38 @@ class Task(ABC):
             die_on_error=True,
         ).out
 
+    def create_network_policy_ns_selector(self, port: int, allow_namespace: str) -> str:
+        self.create_network_policy(port, NP_ACTION_DENY)
+
+        np_allow_name = f"tft-np-nssel-allow-{self.index}"
+        in_file_template = tftbase.get_manifest("network-policy-ns-selector.yaml.j2")
+        out_file_yaml = tftbase.get_manifest_renderpath(
+            f"np-nssel-{self.pod_name}.yaml"
+        )
+
+        template_args = {
+            **self.get_template_args(),
+            "np_allow_name": np_allow_name,
+            "np_ns_name": _j(allow_namespace),
+            "np_ns_port": _j(port),
+        }
+
+        self.render_file(
+            "Namespace Selector Network Policy",
+            in_file_template,
+            out_file_yaml,
+            template_args,
+        )
+        self.run_oc(
+            f"apply -f {out_file_yaml}",
+            check_success=lambda r: r.success or "already exists" in r.err,
+            die_on_error=True,
+        )
+        return self.run_oc(
+            f"get networkpolicies {np_allow_name}",
+            die_on_error=True,
+        ).out
+
     def create_network_policy(self, port: int, action: str = NP_ACTION_DENY) -> str:
         action = action.lower()
         np_name = f"tft-np-{action}-{self.index}"
@@ -1373,6 +1405,10 @@ class ServerTask(Task, ABC):
                 self.create_network_policy(self.port, NP_ACTION_DENY)
             elif self.connection_mode == ConnectionMode.NP_ALLOW:
                 self.create_network_policy(self.port, NP_ACTION_ALLOW)
+            elif self.connection_mode == ConnectionMode.NP_NS_SELECTOR_ALLOW:
+                self.create_network_policy_ns_selector(
+                    self.port, tftbase.get_host_network_namespace()
+                )
 
             if self.connection_mode == ConnectionMode.LOAD_BALANCER:
                 self.create_load_balancer_service()

@@ -38,6 +38,8 @@ ENV_TFT_MANIFESTS_YAMLS = "TFT_MANIFESTS_YAMLS"
 ENV_TFT_EXTERNAL_URL = "TFT_EXTERNAL_URL"
 ENV_TFT_EXTERNAL_SERVER_STRING = "TFT_EXTERNAL_SERVER_STRING"
 
+ENV_TFT_HOST_NETWORK_NAMESPACE = "TFT_HOST_NETWORK_NAMESPACE"
+
 ENV_TFT_LOG_PREAMBLE = "TFT_LOG_PREAMBLE"
 
 
@@ -254,6 +256,13 @@ def get_udn_localnet_cidr() -> str:
 
 def get_udn_namespace(base_namespace: str) -> str:
     return f"{base_namespace}-udn"
+
+
+@functools.cache
+def get_host_network_namespace() -> str:
+    s = get_environ(ENV_TFT_HOST_NETWORK_NAMESPACE) or "openshift-host-network"
+    logger.info(f"env: {ENV_TFT_HOST_NETWORK_NAMESPACE}={shlex.quote(s)}")
+    return s
 
 
 @functools.cache
@@ -484,6 +493,7 @@ class TestCaseType(Enum):
     HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 66
     HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 67
     POD_TO_EXTERNAL_EGRESS = 68
+    HOST_TO_POD_NP_NS_SELECTOR_ALLOW = 69
 
     @property
     def is_egress_ip(self) -> bool:
@@ -525,6 +535,7 @@ class ConnectionMode(Enum):
     NP_DENY = 12
     NP_ALLOW = 13
     LOAD_BALANCER = 14
+    NP_NS_SELECTOR_ALLOW = 15
 
 
 _SECONDARY_MODES = (
@@ -1481,6 +1492,13 @@ _test_case_typ_infos = {
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_POD_NP_NS_SELECTOR_ALLOW,
+            connection_mode=ConnectionMode.NP_NS_SELECTOR_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=True,
         ),
     )
 }

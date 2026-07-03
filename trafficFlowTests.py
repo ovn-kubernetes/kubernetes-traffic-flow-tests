@@ -365,6 +365,7 @@ class TrafficFlowTests:
                 ConnectionMode.ANP_PASS_NP_DENY,
                 ConnectionMode.NP_DENY,
                 ConnectionMode.NP_ALLOW,
+                ConnectionMode.NP_NS_SELECTOR_ALLOW,
             ):
                 self._cleanup_multi_network_policies(cfg_descr)
             if connection_mode == ConnectionMode.LOAD_BALANCER:
