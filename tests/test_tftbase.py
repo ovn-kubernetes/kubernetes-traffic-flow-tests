@@ -129,16 +129,18 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 69
-    expected_values = [*range(1, 48), *range(60, 70)]
+    assert list(TestCaseType)[-1].value == 79
+    expected_values = [*range(1, 48), *range(60, 80)]
     assert expected_values == [typ.value for typ in tftbase.TestCaseType]
 
     for typ in TestCaseType:
-        if typ.is_udn_primary or typ.is_udn_secondary or typ.is_udn_localnet:
+        if typ.is_udn_primary or typ.is_udn_secondary:
             assert typ.is_udn
         if typ.is_udn:
-            assert typ.is_udn_primary or typ.is_udn_secondary or typ.is_udn_localnet
-        assert sum([typ.is_udn_primary, typ.is_udn_secondary, typ.is_udn_localnet]) <= 1
+            assert typ.is_udn_primary or typ.is_udn_secondary
+        assert sum([typ.is_udn_primary, typ.is_udn_secondary]) <= 1
+        if typ.is_udn_localnet:
+            assert typ.is_udn_secondary
 
     def _is_identical(ti1: TestCaseTypInfo, ti2: TestCaseTypInfo) -> bool:
         assert ti1.test_case_type != ti2.test_case_type
@@ -153,7 +155,7 @@ def test_test_case_typ_infos() -> None:
                 return False
             if t1.is_udn_secondary != t2.is_udn_secondary:
                 return False
-            if t1.is_udn_localnet != t2.is_udn_localnet:
+            if ti1.udn_network_spec != ti2.udn_network_spec:
                 return False
         return (
             ti1.connection_mode == ti2.connection_mode
@@ -170,6 +172,58 @@ def test_test_case_typ_infos() -> None:
         assert (
             ti1.test_case_type == (list(TestCaseType))[idx1]
         ), 'We expect that "_test_case_typ_infos" follows the same order as the values in the enum'
+
+
+def test_secondary_udn_test_case_info() -> None:
+    expected = (
+        (
+            TestCaseType.CUDN_LAYER3_POD_TO_POD_SAME_NODE,
+            TestCaseType.CUDN_LAYER3_POD_TO_POD_DIFF_NODE,
+            tftbase.CUDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        (
+            TestCaseType.UDN_LAYER3_POD_TO_POD_SAME_NODE,
+            TestCaseType.UDN_LAYER3_POD_TO_POD_DIFF_NODE,
+            tftbase.UDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        (
+            TestCaseType.CUDN_LAYER2_POD_TO_POD_SAME_NODE,
+            TestCaseType.CUDN_LAYER2_POD_TO_POD_DIFF_NODE,
+            tftbase.CUDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        (
+            TestCaseType.UDN_LAYER2_POD_TO_POD_SAME_NODE,
+            TestCaseType.UDN_LAYER2_POD_TO_POD_DIFF_NODE,
+            tftbase.UDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        (
+            TestCaseType.CUDN_LOCALNET_POD_TO_POD_SAME_NODE,
+            TestCaseType.CUDN_LOCALNET_POD_TO_POD_DIFF_NODE,
+            tftbase.CUDN_SECONDARY_LOCALNET_NETWORK,
+        ),
+    )
+
+    for same_node, diff_node, network in expected:
+        assert same_node.udn_network_spec is network
+        assert diff_node.udn_network_spec is network
+        assert same_node.info.connection_mode == ConnectionMode.MULTI_HOME
+        assert diff_node.info.connection_mode == ConnectionMode.MULTI_HOME
+        assert same_node.info.is_same_node is True
+        assert diff_node.info.is_same_node is False
+        assert same_node.is_udn_secondary
+        assert diff_node.is_udn_secondary
+        is_localnet = network.topology == tftbase.UdnNetworkTopology.LOCALNET
+        assert same_node.is_udn_localnet == is_localnet
+        assert diff_node.is_udn_localnet == is_localnet
+        assert network.mode.name in same_node.name
+        assert network.topology.name in same_node.name
+        expected_transport = (
+            None if is_localnet else tftbase.UdnNetworkTransport.OVERLAY
+        )
+        assert network.transport == expected_transport
+
+    networks = tuple(network for _, _, network in expected)
+    assert len({network.name for network in networks}) == len(networks)
 
 
 def test_anp_test_case_info() -> None:

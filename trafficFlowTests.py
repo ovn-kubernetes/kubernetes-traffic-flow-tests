@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import logging
 import print_results
@@ -57,18 +58,6 @@ class TrafficFlowTests:
         )
         return not existing
 
-    @staticmethod
-    def _udn_network_cidr(
-        network: testConfig.ConfUdnNetwork,
-        *,
-        is_primary: bool,
-    ) -> str:
-        if network.topology == tftbase.UdnNetworkTopology.LOCALNET:
-            return tftbase.get_udn_localnet_cidr()
-        if is_primary:
-            return tftbase.get_udn_primary_cidr()
-        return tftbase.get_udn_secondary_cidr()
-
     def _wait_for_cudn_transport_accepted(
         self,
         cfg_descr: ConfigDescriptor,
@@ -108,6 +97,7 @@ class TrafficFlowTests:
         network: testConfig.ConfUdnNetwork,
         network_name: str,
         is_primary: bool,
+        cidr: str,
     ) -> None:
         client = cfg_descr.tc.client_tenant
         network_label = network_name
@@ -116,7 +106,7 @@ class TrafficFlowTests:
         is_localnet = network.topology == tftbase.UdnNetworkTopology.LOCALNET
         is_no_overlay = network.transport == tftbase.UdnNetworkTransport.NO_OVERLAY
         physical_network_name = (
-            tftbase.get_udn_localnet_physical_network() if is_localnet else ""
+            tftbase.get_cudn_localnet_physical_network() if is_localnet else ""
         )
         no_overlay_outbound_snat = ""
         no_overlay_routing = ""
@@ -150,12 +140,7 @@ class TrafficFlowTests:
                 "topology": _j(topology_name),
                 "topology_name": topology_name,
                 "network_type": _j("Primary" if is_primary else "Secondary"),
-                "cidr": _j(
-                    self._udn_network_cidr(
-                        network,
-                        is_primary=is_primary,
-                    )
-                ),
+                "cidr": _j(cidr),
                 "physical_network_name": _j(physical_network_name),
                 "transport_name": transport_name,
                 "no_overlay_outbound_snat": _j(no_overlay_outbound_snat),
@@ -171,8 +156,13 @@ class TrafficFlowTests:
     def _setup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
         needs_primary = any(tc.is_udn_primary for tc in tft.test_cases)
+        secondary_networks: dict[str, tftbase.UDNSecondaryNetworkSpec] = {}
+        for test_case in tft.test_cases:
+            network = test_case.udn_network_spec
+            if network is not None:
+                secondary_networks[network.name] = network
 
-        if not needs_primary:
+        if not needs_primary and not secondary_networks:
             return
 
         udn_ns = tftbase.get_udn_namespace(tft.namespace)
@@ -222,6 +212,24 @@ class TrafficFlowTests:
                 network=tft.udn_primary_network,
                 network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
                 is_primary=True,
+                cidr=tftbase.get_udn_primary_cidr(),
+            )
+
+        for network in secondary_networks.values():
+            network_config = dataclasses.replace(
+                tft.udn_primary_network,
+                mode=network.mode,
+                topology=network.topology,
+                transport=network.transport,
+            )
+            self._setup_udn_network(
+                cfg_descr,
+                udn_ns=udn_ns,
+                resource_name=resource_name,
+                network=network_config,
+                network_name=network.name,
+                is_primary=False,
+                cidr=network.get_cidr(),
             )
 
         self._configure_namespace(cfg_descr, namespace=udn_ns)
