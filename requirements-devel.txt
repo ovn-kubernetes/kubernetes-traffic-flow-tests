@@ -1,7 +1,7 @@
 -r requirements.txt
 black
 flake8
-mypy
+mypy==2.1.0
 pytest
 types-PyYAML
 types-paramiko
