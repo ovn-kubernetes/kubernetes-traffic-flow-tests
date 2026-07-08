@@ -79,8 +79,13 @@ tft:
           node: "(29)"
     privileged_pod: (30)
     capabilities_pod: (31)
-kubeconfig: (32)
-kubeconfig_infra: (32)
+    udn_primary_network: # (32)
+      mode: "(33)"
+      topology: "(34)"
+      transport: "(35)"
+kubeconfig: (36)
+kubeconfig_infra: (36)
+dpu_node_host_label: (37)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -188,10 +193,14 @@ kubeconfig_infra: (32)
       EgressIP to. Defaults to the connection's client node if unset.
 30. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
 31. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
-32. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+32. "udn_primary_network" - (Optional) Test-level network configuration for primary UDN test cases. Defaults to `mode: udn`, `topology: layer3`, and `transport: overlay`.
+33. "mode" - (Optional) Field under `udn_primary_network`. Supported values are `udn` and `cudn`.
+34. "topology" - (Optional) Field under `udn_primary_network`. Supported values are `layer3` and `layer2`.
+35. "transport" - (Optional) Field under `udn_primary_network`. Supported values are `overlay` and `no-overlay`; `no-overlay` requires `mode: cudn` and `topology: layer3`.
+36. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-33. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+37. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 
@@ -206,7 +215,10 @@ Test cases 37-47 run traffic over OVN-Kubernetes User Defined Networks. The fram
   - **43**: pod-to-external (egress out of the UDN to the public internet).
   - **44-45**: NetworkPolicy enforcement on the primary UDN (deny / allow).
   - **46-47**: pod-to-LoadBalancer-to-pod (same / different node).
-CIDRs default to `15.1.0.0/16` (primary), `15.2.0.0/16` (secondary), and `15.3.0.0/24` (localnet), overridable via `TFT_UDN_PRIMARY_CIDR`, `TFT_UDN_SECONDARY_CIDR`, and `TFT_UDN_LOCALNET_CIDR`. The localnet physical network name defaults to `physnet`, overridable via `TFT_UDN_LOCALNET_PHYSICAL_NETWORK`. The primary UDN reference manifest is `manifests/udn-primary.yaml.j2`.
+
+CIDRs default to `15.1.0.0/16` (primary), `15.2.0.0/16` (secondary), and `15.3.0.0/24` (localnet), overridable via `TFT_UDN_PRIMARY_CIDR`, `TFT_UDN_SECONDARY_CIDR`, and `TFT_UDN_LOCALNET_CIDR`. The localnet physical network name defaults to `physnet`, overridable via `TFT_UDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
+
+`udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
 
 ## DPU Mode
 
@@ -412,6 +424,8 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_UDN_SECONDARY_CIDR` CIDR for secondary UDN tests. Defaults to `15.2.0.0/16`.
 - `TFT_UDN_LOCALNET_CIDR` CIDR for localnet UDN tests. Defaults to `15.3.0.0/24`.
 - `TFT_UDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet UDN tests. Defaults to `physnet`.
+- `TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED` outbound SNAT setting for no-overlay CUDNs. Defaults to `true`.
+- `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` routing mode for no-overlay CUDNs. Defaults to `false`.
 - `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
      Only effective when the connection type is `http` and the connection mode is `POD_TO_EXTERNAL`
      or `HOST_TO_EXTERNAL`. When set, no Podman server is started; the client pod curls this URL

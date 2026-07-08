@@ -1,0 +1,44 @@
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: {{ network_name }}
+  labels:
+    tft-tests: "udn"
+    tft-udn-network: {{ network_label }}
+{% if has_resource_name %}
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: {{ resource_name }}
+{% endif %}
+spec:
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: In
+      values:
+      - {{ name_space }}
+  network:
+    topology: {{ topology }}
+{% if topology_name == "Layer3" %}
+    layer3:
+      role: {{ network_type }}
+      subnets:
+      - cidr: {{ cidr }}
+        hostSubnet: 24
+{% elif topology_name == "Layer2" %}
+    layer2:
+      role: {{ network_type }}
+      subnets:
+      - {{ cidr }}
+{% elif topology_name == "Localnet" %}
+    localnet:
+      role: {{ network_type }}
+      physicalNetworkName: {{ physical_network_name }}
+      subnets:
+      - {{ cidr }}
+{% endif %}
+{% if transport_name == "NoOverlay" %}
+    transport: NoOverlay
+    noOverlay:
+      outboundSNAT: {{ no_overlay_outbound_snat }}
+      routing: {{ no_overlay_routing }}
+{% endif %}

@@ -1,0 +1,26 @@
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: {{ network_name }}
+  namespace: {{ name_space }}
+  labels:
+    tft-tests: "udn"
+    tft-udn-network: {{ network_label }}
+{% if has_resource_name %}
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: {{ resource_name }}
+{% endif %}
+spec:
+  topology: {{ topology }}
+{% if topology_name == "Layer3" %}
+  layer3:
+    role: {{ network_type }}
+    subnets:
+    - cidr: {{ cidr }}
+      hostSubnet: 24
+{% elif topology_name == "Layer2" %}
+  layer2:
+    role: {{ network_type }}
+    subnets:
+    - {{ cidr }}
+{% endif %}
