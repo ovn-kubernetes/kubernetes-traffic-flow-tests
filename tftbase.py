@@ -260,10 +260,17 @@ def get_tft_pod_bringup_timeout() -> str:
 
 TFT_TESTS = "tft-tests"
 
+UDN_PRIMARY_NETWORK_NAME = "tft-primary"
+UDN_TRANSPORT_ACCEPTED_TIMEOUT = 120
+
 ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
 ENV_TFT_UDN_SECONDARY_CIDR = "TFT_UDN_SECONDARY_CIDR"
 ENV_TFT_UDN_LOCALNET_CIDR = "TFT_UDN_LOCALNET_CIDR"
 ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK = "TFT_UDN_LOCALNET_PHYSICAL_NETWORK"
+ENV_TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED = (
+    "TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED"
+)
+ENV_TFT_UDN_NO_OVERLAY_ROUTING_MANAGED = "TFT_UDN_NO_OVERLAY_ROUTING_MANAGED"
 
 ENV_TFT_SECONDARY_NAD_SUBNETS = "TFT_SECONDARY_NAD_SUBNETS"
 ENV_TFT_SECONDARY_NAD_MTU = "TFT_SECONDARY_NAD_MTU"
@@ -307,6 +314,35 @@ def get_udn_localnet_physical_network() -> str:
     s = get_environ(ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK) or "physnet"
     logger.info(f"env: {ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK}={shlex.quote(s)}")
     return s
+
+
+def _get_bool_env(name: str, *, default: bool) -> bool:
+    raw = get_environ(name)
+    try:
+        value = common.str_to_bool(
+            None if raw == "<nil>" else raw,
+            on_default=default,
+        )
+    except ValueError as e:
+        raise ValueError(f"Invalid {name}: {shlex.quote(raw or '')}") from e
+    logger.info(f"env: {name}={shlex.quote(raw or '')} -> {value}")
+    return value
+
+
+@functools.cache
+def get_udn_no_overlay_outbound_snat_enabled() -> bool:
+    return _get_bool_env(
+        ENV_TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED,
+        default=True,
+    )
+
+
+@functools.cache
+def get_udn_no_overlay_routing_managed() -> bool:
+    return _get_bool_env(
+        ENV_TFT_UDN_NO_OVERLAY_ROUTING_MANAGED,
+        default=False,
+    )
 
 
 @functools.cache
@@ -459,6 +495,41 @@ class PodType(Enum):
     SRIOV = 2
     HOSTBACKED = 3
     SECONDARY = 4
+
+
+class UdnNetworkMode(Enum):
+    UDN = 1
+    CUDN = 2
+
+
+class UdnNetworkTopology(Enum):
+    LAYER3 = 1
+    LAYER2 = 2
+    LOCALNET = 3
+
+
+class UdnNetworkTransport(Enum):
+    OVERLAY = 1
+    NO_OVERLAY = 2
+
+
+def get_udn_network_topology_name(topology: UdnNetworkTopology) -> str:
+    return {
+        UdnNetworkTopology.LAYER3: "Layer3",
+        UdnNetworkTopology.LAYER2: "Layer2",
+        UdnNetworkTopology.LOCALNET: "Localnet",
+    }[topology]
+
+
+def get_udn_network_transport_name(
+    transport: Optional[UdnNetworkTransport],
+) -> str:
+    if transport is None:
+        return ""
+    return {
+        UdnNetworkTransport.OVERLAY: "Overlay",
+        UdnNetworkTransport.NO_OVERLAY: "NoOverlay",
+    }[transport]
 
 
 class TestCaseType(Enum):

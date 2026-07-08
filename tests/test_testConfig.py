@@ -15,6 +15,9 @@ import testConfig  # noqa: E402
 from testConfig import ConfEgressIP  # noqa: E402
 from tftbase import TestCaseType  # noqa: E402
 from tftbase import TestType  # noqa: E402
+from tftbase import UdnNetworkMode  # noqa: E402
+from tftbase import UdnNetworkTopology  # noqa: E402
+from tftbase import UdnNetworkTransport  # noqa: E402
 
 testConfigKubeconfigsArgs1 = ("/root/kubeconfig.x1", None)
 
@@ -410,3 +413,69 @@ tft:
     assert tc.config.tft[0].get_output_file() == pathlib.Path("/tmp/result2-000.json")
 
     _check_testConfig(tc)
+
+
+def test_udn_primary_network_defaults_preserve_existing_behavior() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - connections:
+    - {}
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+
+    primary = tc.config.tft[0].udn_primary_network
+    assert primary.mode == UdnNetworkMode.UDN
+    assert primary.topology == UdnNetworkTopology.LAYER3
+    assert primary.transport == UdnNetworkTransport.OVERLAY
+
+    _check_testConfig(tc)
+
+
+def test_udn_primary_network_config() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - test_cases:
+      - UDN_PRIMARY_POD_TO_POD_SAME_NODE
+    udn_primary_network:
+      mode: cudn
+      topology: layer3
+      transport: no-overlay
+    connections:
+    - {}
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+
+    primary = tc.config.tft[0].udn_primary_network
+    assert primary.mode == UdnNetworkMode.CUDN
+    assert primary.topology == UdnNetworkTopology.LAYER3
+    assert primary.transport == UdnNetworkTransport.NO_OVERLAY
+
+    _check_testConfig(tc)
+
+
+def test_udn_primary_network_rejects_layer2_no_overlay() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - test_cases:
+      - UDN_PRIMARY_POD_TO_POD_SAME_NODE
+    udn_primary_network:
+      mode: cudn
+      topology: layer2
+      transport: no-overlay
+    connections:
+    - {}
+""")
+    with pytest.raises(
+        ValueError,
+        match="no-overlay transport is only supported for layer3 primary CUDN",
+    ):
+        testConfig.TestConfig(
+            full_config=full_config,
+            kubeconfigs=testConfigKubeconfigsArgs1,
+        )
