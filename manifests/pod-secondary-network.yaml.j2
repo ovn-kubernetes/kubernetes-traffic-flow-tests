@@ -8,7 +8,7 @@ metadata:
     tft-pod-name: {{ pod_name }}
     tft-network: secondary
   annotations:
-    k8s.v1.cni.cncf.io/networks: {{ secondary_network_nad }}
+    k8s.v1.cni.cncf.io/networks: {{ secondary_network_nads }}
 spec:
   nodeSelector:
     kubernetes.io/hostname: {{ node_name }}

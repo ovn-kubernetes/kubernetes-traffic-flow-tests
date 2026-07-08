@@ -404,6 +404,16 @@ class Task(ABC):
         """Get the test image, auto-selecting RDMA image for ib-* test types."""
         return tftbase.get_tft_test_image_for_type(self.ts.connection.test_type)
 
+    def _shares_pre_provisioned_secondary_pod(self) -> bool:
+        tft = self.ts.cfg_descr.get_tft()
+        if not tft.pre_provision:
+            return False
+        is_udn = self.ts.test_case_id.is_udn
+        return any(
+            tc.info.uses_secondary_network_pod and tc.is_udn == is_udn
+            for tc in tft.test_cases
+        )
+
     def _get_effective_secondary_network_nad(self) -> str:
         if self.ts.test_case_id.is_udn_localnet:
             return f"{self.get_namespace()}/tft-localnet"
@@ -419,9 +429,20 @@ class Task(ABC):
             or self.ts.connection.effective_secondary_network_nad
         )
 
+    def _get_pod_secondary_network_nads(self) -> tuple[str, ...]:
+        if (
+            self._get_node_secondary_network_nad()
+            or self.ts.connection.secondary_network_nad
+            or self.ts.test_case_id.info.uses_secondary_network_pod
+            or self._shares_pre_provisioned_secondary_pod()
+        ):
+            return (self._get_effective_secondary_network_nad(),)
+        return ()
+
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
         conn = self.ts.connection
+        pod_secondary_network_nads = self._get_pod_secondary_network_nads()
         has_resources = any(
             v is not None
             for v in (
@@ -444,6 +465,7 @@ class Task(ABC):
             "capabilities_pod": _j(self._get_template_args_capabilities_pod()),
             "port": self._get_template_args_port(),
             "secondary_network_nad": _j(self._get_effective_secondary_network_nad()),
+            "secondary_network_nads": _j(",".join(pod_secondary_network_nads)),
             "use_secondary_network": (
                 bool(self._get_node_secondary_network_nad())
                 or bool(self.ts.connection.secondary_network_nad)
@@ -636,6 +658,8 @@ class Task(ABC):
                         )
                         pod_ip = y["status"]["podIP"]
                 elif self.uses_secondary_ip:
+                    if self.ts.test_case_id.is_udn:
+                        pod_ip = None
                     network_status_str = y["metadata"]["annotations"][
                         "k8s.v1.cni.cncf.io/network-status"
                     ]
@@ -662,29 +686,17 @@ class Task(ABC):
         return pod_ip
 
     def get_secondary_ip(self) -> str:
+        if self.ts.test_case_id.is_udn:
+            ip_address = self.get_pod_ip()
+            logger.info(f"Secondary IP: {ip_address}")
+            return ip_address
+
         jsonpath = "{.metadata.annotations.k8s\\.ovn\\.org\\/pod-networks}"
         r = self.run_oc(
             f"get pod {self.pod_name} -o jsonpath='{jsonpath}'", die_on_error=True
         )
 
         y = yaml.safe_load(r.out)
-
-        if self.ts.test_case_id.is_udn:
-            if not isinstance(y, dict):
-                raise RuntimeError(
-                    f"k8s.ovn.org/pod-networks annotation for pod {self.pod_name} "
-                    f"is not a valid dict (got {type(y).__name__})"
-                )
-            for net_info in y.values():
-                if net_info.get("role") == "secondary":
-                    ip_address_with_cidr = typing.cast(str, net_info["ip_address"])
-                    ip_address = ip_address_with_cidr.split("/")[0]
-                    logger.info(f"Secondary IP: {ip_address}")
-                    return ip_address
-            raise RuntimeError(
-                f"Could not find UDN secondary IP for pod {self.pod_name} "
-                f"in k8s.ovn.org/pod-networks annotation"
-            )
 
         nad = self._get_effective_secondary_network_nad()
         ip_address_with_cidr = typing.cast(str, y[nad]["ip_address"])
@@ -1141,9 +1153,7 @@ class ServerTask(Task, ABC):
             in_file_template = ""
             pod_name = EXTERNAL_PERF_SERVER
         elif pod_type == PodType.SECONDARY or (
-            pod_type == PodType.NORMAL
-            and ts.cfg_descr.get_tft().pre_provision
-            and ts.cfg_descr.get_tft().uses_secondary_network_pod
+            pod_type == PodType.NORMAL and self._shares_pre_provisioned_secondary_pod()
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-server-{port}"
@@ -1462,9 +1472,7 @@ class ClientTask(Task, ABC):
         port = server.port
 
         if pod_type == PodType.SECONDARY or (
-            pod_type == PodType.NORMAL
-            and ts.cfg_descr.get_tft().pre_provision
-            and ts.cfg_descr.get_tft().uses_secondary_network_pod
+            pod_type == PodType.NORMAL and self._shares_pre_provisioned_secondary_pod()
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-{node_location}-client"
