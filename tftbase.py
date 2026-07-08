@@ -509,18 +509,6 @@ class TestCaseType(Enum):
     UDN_PRIMARY_POD_TO_POD_NP_ALLOW = 45
     UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 46
     UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 47
-    UDN_SECONDARY_POD_TO_POD_SAME_NODE = 48
-    UDN_SECONDARY_POD_TO_POD_DIFF_NODE = 49
-    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 50
-    UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 51
-    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 52
-    UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 53
-    UDN_LOCALNET_POD_TO_POD_SAME_NODE = 54
-    UDN_LOCALNET_POD_TO_POD_DIFF_NODE = 55
-    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE = 56
-    UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE = 57
-    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE = 58
-    UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE = 59
     POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE = 60
     POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE = 61
     POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE = 62
@@ -1435,90 +1423,6 @@ _test_case_typ_infos = {
         TestCaseTypInfo(
             test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE,
             connection_mode=ConnectionMode.LOAD_BALANCER,
-            is_same_node=False,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_POD_SAME_NODE,
-            connection_mode=ConnectionMode.MULTI_HOME,
-            is_same_node=True,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_POD_DIFF_NODE,
-            connection_mode=ConnectionMode.MULTI_HOME,
-            is_same_node=False,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE,
-            connection_mode=ConnectionMode.CLUSTER_IP,
-            is_same_node=True,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE,
-            connection_mode=ConnectionMode.CLUSTER_IP,
-            is_same_node=False,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE,
-            connection_mode=ConnectionMode.NODE_PORT_IP,
-            is_same_node=True,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE,
-            connection_mode=ConnectionMode.NODE_PORT_IP,
-            is_same_node=False,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_POD_SAME_NODE,
-            connection_mode=ConnectionMode.MULTI_HOME,
-            is_same_node=True,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_POD_DIFF_NODE,
-            connection_mode=ConnectionMode.MULTI_HOME,
-            is_same_node=False,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE,
-            connection_mode=ConnectionMode.CLUSTER_IP,
-            is_same_node=True,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE,
-            connection_mode=ConnectionMode.CLUSTER_IP,
-            is_same_node=False,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE,
-            connection_mode=ConnectionMode.NODE_PORT_IP,
-            is_same_node=True,
-            is_server_hostbacked=False,
-            is_client_hostbacked=False,
-        ),
-        TestCaseTypInfo(
-            test_case_type=TestCaseType.UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE,
-            connection_mode=ConnectionMode.NODE_PORT_IP,
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,

@@ -60,10 +60,8 @@ class TrafficFlowTests:
     def _setup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
         needs_primary = any(tc.is_udn_primary for tc in tft.test_cases)
-        needs_secondary = any(tc.is_udn_secondary for tc in tft.test_cases)
-        needs_localnet = any(tc.is_udn_localnet for tc in tft.test_cases)
 
-        if not needs_primary and not needs_secondary and not needs_localnet:
+        if not needs_primary:
             return
 
         udn_ns = tftbase.get_udn_namespace(tft.namespace)
@@ -124,45 +122,6 @@ class TrafficFlowTests:
                 f'Generate Primary UDN Yaml "{out_yaml}" (from "{in_template}")'
             )
             client.oc(f"apply -f {out_yaml}", die_on_error=True)
-
-        if needs_secondary:
-            in_template = tftbase.get_manifest("udn-secondary.yaml.j2")
-            out_yaml = tftbase.get_manifest_renderpath("udn-secondary.yaml")
-            kjinja2.render_file(
-                in_template,
-                {
-                    "has_resource_name": resource_name is not None,
-                    "resource_name": resource_name or "",
-                    "name_space": _j(udn_ns),
-                    "secondary_cidr": _j(tftbase.get_udn_secondary_cidr()),
-                },
-                out_file=out_yaml,
-            )
-            logger.info(
-                f'Generate Secondary UDN Yaml "{out_yaml}" (from "{in_template}")'
-            )
-            client.oc(f"apply -f {out_yaml}", die_on_error=True)
-
-        if needs_localnet:
-            in_template = tftbase.get_manifest("udn-localnet.yaml.j2")
-            out_yaml = tftbase.get_manifest_renderpath("udn-localnet.yaml")
-            kjinja2.render_file(
-                in_template,
-                {
-                    "has_resource_name": resource_name is not None,
-                    "resource_name": resource_name or "",
-                    "name_space": _j(udn_ns),
-                    "localnet_cidr": _j(tftbase.get_udn_localnet_cidr()),
-                    "physical_network_name": _j(
-                        tftbase.get_udn_localnet_physical_network()
-                    ),
-                },
-                out_file=out_yaml,
-            )
-            logger.info(
-                f'Generate Localnet CUDN Yaml "{out_yaml}" (from "{in_template}")'
-            )
-            client.oc(f"apply -f {out_yaml}", die_on_error=True, namespace=None)
 
         self._configure_namespace(cfg_descr, namespace=udn_ns)
         self._udn_setup_done = True
