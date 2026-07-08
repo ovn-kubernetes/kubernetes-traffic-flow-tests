@@ -227,9 +227,12 @@ UDN_PRIMARY_NETWORK_NAME = "tft-primary"
 UDN_TRANSPORT_ACCEPTED_TIMEOUT = 120
 
 ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
-ENV_TFT_UDN_SECONDARY_CIDR = "TFT_UDN_SECONDARY_CIDR"
-ENV_TFT_UDN_LOCALNET_CIDR = "TFT_UDN_LOCALNET_CIDR"
-ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK = "TFT_UDN_LOCALNET_PHYSICAL_NETWORK"
+ENV_TFT_CUDN_SECONDARY_LAYER3_CIDR = "TFT_CUDN_SECONDARY_LAYER3_CIDR"
+ENV_TFT_UDN_SECONDARY_LAYER3_CIDR = "TFT_UDN_SECONDARY_LAYER3_CIDR"
+ENV_TFT_CUDN_SECONDARY_LAYER2_CIDR = "TFT_CUDN_SECONDARY_LAYER2_CIDR"
+ENV_TFT_UDN_SECONDARY_LAYER2_CIDR = "TFT_UDN_SECONDARY_LAYER2_CIDR"
+ENV_TFT_CUDN_SECONDARY_LOCALNET_CIDR = "TFT_CUDN_SECONDARY_LOCALNET_CIDR"
+ENV_TFT_CUDN_LOCALNET_PHYSICAL_NETWORK = "TFT_CUDN_LOCALNET_PHYSICAL_NETWORK"
 ENV_TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED = (
     "TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED"
 )
@@ -248,16 +251,37 @@ def get_udn_primary_cidr() -> str:
 
 
 @functools.cache
-def get_udn_secondary_cidr() -> str:
-    s = get_environ(ENV_TFT_UDN_SECONDARY_CIDR) or "15.2.0.0/16"
-    logger.info(f"env: {ENV_TFT_UDN_SECONDARY_CIDR}={shlex.quote(s)}")
+def get_cudn_secondary_layer3_cidr() -> str:
+    s = get_environ(ENV_TFT_CUDN_SECONDARY_LAYER3_CIDR) or "15.2.0.0/16"
+    logger.info(f"env: {ENV_TFT_CUDN_SECONDARY_LAYER3_CIDR}={shlex.quote(s)}")
     return s
 
 
 @functools.cache
-def get_udn_localnet_cidr() -> str:
-    s = get_environ(ENV_TFT_UDN_LOCALNET_CIDR) or "15.3.0.0/24"
-    logger.info(f"env: {ENV_TFT_UDN_LOCALNET_CIDR}={shlex.quote(s)}")
+def get_udn_secondary_layer3_cidr() -> str:
+    s = get_environ(ENV_TFT_UDN_SECONDARY_LAYER3_CIDR) or "15.3.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_SECONDARY_LAYER3_CIDR}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_cudn_secondary_layer2_cidr() -> str:
+    s = get_environ(ENV_TFT_CUDN_SECONDARY_LAYER2_CIDR) or "15.4.0.0/16"
+    logger.info(f"env: {ENV_TFT_CUDN_SECONDARY_LAYER2_CIDR}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_udn_secondary_layer2_cidr() -> str:
+    s = get_environ(ENV_TFT_UDN_SECONDARY_LAYER2_CIDR) or "15.5.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_SECONDARY_LAYER2_CIDR}={shlex.quote(s)}")
+    return s
+
+
+@functools.cache
+def get_cudn_secondary_localnet_cidr() -> str:
+    s = get_environ(ENV_TFT_CUDN_SECONDARY_LOCALNET_CIDR) or "15.6.0.0/24"
+    logger.info(f"env: {ENV_TFT_CUDN_SECONDARY_LOCALNET_CIDR}={shlex.quote(s)}")
     return s
 
 
@@ -273,9 +297,9 @@ def get_host_network_namespace() -> str:
 
 
 @functools.cache
-def get_udn_localnet_physical_network() -> str:
-    s = get_environ(ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK) or "physnet"
-    logger.info(f"env: {ENV_TFT_UDN_LOCALNET_PHYSICAL_NETWORK}={shlex.quote(s)}")
+def get_cudn_localnet_physical_network() -> str:
+    s = get_environ(ENV_TFT_CUDN_LOCALNET_PHYSICAL_NETWORK) or "physnet"
+    logger.info(f"env: {ENV_TFT_CUDN_LOCALNET_PHYSICAL_NETWORK}={shlex.quote(s)}")
     return s
 
 
@@ -495,6 +519,52 @@ def get_udn_network_transport_name(
     }[transport]
 
 
+@dataclass(frozen=True, kw_only=True)
+class UDNSecondaryNetworkSpec:
+    name: str
+    mode: UdnNetworkMode
+    topology: UdnNetworkTopology
+    transport: Optional[UdnNetworkTransport]
+    get_cidr: typing.Callable[[], str]
+
+
+CUDN_SECONDARY_LAYER3_NETWORK = UDNSecondaryNetworkSpec(
+    name="tft-cudn-layer3",
+    mode=UdnNetworkMode.CUDN,
+    topology=UdnNetworkTopology.LAYER3,
+    transport=UdnNetworkTransport.OVERLAY,
+    get_cidr=get_cudn_secondary_layer3_cidr,
+)
+UDN_SECONDARY_LAYER3_NETWORK = UDNSecondaryNetworkSpec(
+    name="tft-udn-layer3",
+    mode=UdnNetworkMode.UDN,
+    topology=UdnNetworkTopology.LAYER3,
+    transport=UdnNetworkTransport.OVERLAY,
+    get_cidr=get_udn_secondary_layer3_cidr,
+)
+CUDN_SECONDARY_LAYER2_NETWORK = UDNSecondaryNetworkSpec(
+    name="tft-cudn-layer2",
+    mode=UdnNetworkMode.CUDN,
+    topology=UdnNetworkTopology.LAYER2,
+    transport=UdnNetworkTransport.OVERLAY,
+    get_cidr=get_cudn_secondary_layer2_cidr,
+)
+UDN_SECONDARY_LAYER2_NETWORK = UDNSecondaryNetworkSpec(
+    name="tft-udn-layer2",
+    mode=UdnNetworkMode.UDN,
+    topology=UdnNetworkTopology.LAYER2,
+    transport=UdnNetworkTransport.OVERLAY,
+    get_cidr=get_udn_secondary_layer2_cidr,
+)
+CUDN_SECONDARY_LOCALNET_NETWORK = UDNSecondaryNetworkSpec(
+    name="tft-cudn-localnet",
+    mode=UdnNetworkMode.CUDN,
+    topology=UdnNetworkTopology.LOCALNET,
+    transport=None,
+    get_cidr=get_cudn_secondary_localnet_cidr,
+)
+
+
 class TestCaseType(Enum):
     POD_TO_POD_SAME_NODE = 1
     POD_TO_POD_DIFF_NODE = 2
@@ -553,6 +623,16 @@ class TestCaseType(Enum):
     HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE = 67
     POD_TO_EXTERNAL_EGRESS = 68
     HOST_TO_POD_NP_NS_SELECTOR_ALLOW = 69
+    CUDN_LAYER3_POD_TO_POD_SAME_NODE = 70
+    CUDN_LAYER3_POD_TO_POD_DIFF_NODE = 71
+    UDN_LAYER3_POD_TO_POD_SAME_NODE = 72
+    UDN_LAYER3_POD_TO_POD_DIFF_NODE = 73
+    CUDN_LAYER2_POD_TO_POD_SAME_NODE = 74
+    CUDN_LAYER2_POD_TO_POD_DIFF_NODE = 75
+    UDN_LAYER2_POD_TO_POD_SAME_NODE = 76
+    UDN_LAYER2_POD_TO_POD_DIFF_NODE = 77
+    CUDN_LOCALNET_POD_TO_POD_SAME_NODE = 78
+    CUDN_LOCALNET_POD_TO_POD_DIFF_NODE = 79
 
     @property
     def is_egress_ip(self) -> bool:
@@ -560,7 +640,7 @@ class TestCaseType(Enum):
 
     @property
     def is_udn(self) -> bool:
-        return self.name.startswith("UDN_")
+        return self.is_udn_primary or self.is_udn_secondary
 
     @property
     def is_udn_primary(self) -> bool:
@@ -568,11 +648,16 @@ class TestCaseType(Enum):
 
     @property
     def is_udn_secondary(self) -> bool:
-        return self.name.startswith("UDN_SECONDARY_")
+        return self.udn_network_spec is not None
 
     @property
     def is_udn_localnet(self) -> bool:
-        return self.name.startswith("UDN_LOCALNET_")
+        network = self.udn_network_spec
+        return network is not None and network.topology == UdnNetworkTopology.LOCALNET
+
+    @property
+    def udn_network_spec(self) -> Optional[UDNSecondaryNetworkSpec]:
+        return self.info.udn_network_spec
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -1034,6 +1119,7 @@ class TestCaseTypInfo:
     is_server_hostbacked: bool
     is_client_hostbacked: bool
     expects_blocked: bool = False
+    udn_network_spec: Optional[UDNSecondaryNetworkSpec] = None
 
     @property
     def node_location(self) -> str:
@@ -1474,6 +1560,86 @@ _test_case_typ_infos = {
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER3_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER3_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER3_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=UDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER3_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=UDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER2_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER2_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER2_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=UDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER2_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=UDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LOCALNET_POD_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LOCALNET_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LOCALNET_POD_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.MULTI_HOME,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LOCALNET_NETWORK,
         ),
     )
 }

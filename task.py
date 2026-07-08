@@ -415,10 +415,9 @@ class Task(ABC):
         )
 
     def _get_effective_secondary_network_nad(self) -> str:
-        if self.ts.test_case_id.is_udn_localnet:
-            return f"{self.get_namespace()}/tft-localnet"
-        if self.ts.test_case_id.is_udn_secondary:
-            return f"{self.get_namespace()}/tft-secondary"
+        udn_network_spec = self.ts.test_case_id.udn_network_spec
+        if udn_network_spec is not None:
+            return f"{self.get_namespace()}/{udn_network_spec.name}"
         nad = self._get_node_secondary_network_nad()
         if nad is not None:
             if "/" not in nad:
@@ -430,6 +429,15 @@ class Task(ABC):
         )
 
     def _get_pod_secondary_network_nads(self) -> tuple[str, ...]:
+        if self.ts.test_case_id.is_udn and self._shares_pre_provisioned_secondary_pod():
+            namespace = self.get_namespace()
+            return tuple(
+                dict.fromkeys(
+                    f"{namespace}/{network.name}"
+                    for test_case in self.ts.cfg_descr.get_tft().test_cases
+                    if (network := test_case.udn_network_spec) is not None
+                )
+            )
         if (
             self._get_node_secondary_network_nad()
             or self.ts.connection.secondary_network_nad
