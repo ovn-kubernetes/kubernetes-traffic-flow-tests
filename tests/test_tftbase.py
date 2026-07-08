@@ -130,8 +130,8 @@ def test_test_case_typ_infos() -> None:
         assert typ.info is ti
 
     assert list(TestCaseType)[-1].value == 69
-    list_numeric = list(range(1, list(TestCaseType)[-1].value + 1))
-    assert list_numeric == [typ.value for typ in tftbase.TestCaseType]
+    expected_values = [*range(1, 48), *range(60, 70)]
+    assert expected_values == [typ.value for typ in tftbase.TestCaseType]
 
     for typ in TestCaseType:
         if typ.is_udn_primary or typ.is_udn_secondary or typ.is_udn_localnet:
