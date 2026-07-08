@@ -74,10 +74,13 @@ tft:
         cpu_limit: "(25)"
         mem_request: "(26)"
         mem_limit: "(27)"
-    privileged_pod: (28)
-    capabilities_pod: (29)
-kubeconfig: (30)
-kubeconfig_infra: (30)
+        egress_ip:
+          ip: "(28)"
+          node: "(29)"
+    privileged_pod: (30)
+    capabilities_pod: (31)
+kubeconfig: (32)
+kubeconfig_infra: (32)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -154,6 +157,7 @@ kubeconfig_infra: (30)
     | 65 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
     | 66 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
     | 67 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
+    | 68 | POD_TO_EXTERNAL_EGRESS |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -186,12 +190,19 @@ kubeconfig_infra: (30)
 25. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
 26. "mem_request" - (Optional) Memory request for server and client pods (e.g. "50Mi", "100Mi"). No memory request is set if omitted.
 27. "mem_limit" - (Optional) Memory limit for server and client pods (e.g. "100Mi", "200Mi"). No memory limit is set if omitted.
-28. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
-29. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
-30. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+28. "egress_ip" - (Optional) Configures the connection to use an OVN-Kubernetes EgressIP. Only
+  applicable to the `POD_TO_EXTERNAL_EGRESS` (68) test case. See
+  [EgressIP Tests](#egressip-tests) below.
+    - "ip" - The EgressIP address to assign. Must fall within the egress node's
+      `k8s.ovn.org/host-cidrs` subnets.
+29. "node" - (Optional) The node to label as `k8s.ovn.org/egress-assignable` and to assign the
+      EgressIP to. Defaults to the connection's client node if unset.
+30. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
+31. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
+32. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-31. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+33. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 
@@ -353,6 +364,42 @@ tft:
         client:
           - name: "worker-2"
 ```
+
+## EgressIP Tests
+
+Test case `POD_TO_EXTERNAL_EGRESS` (68) is like `POD_TO_EXTERNAL`, but the client connection is
+configured to use an OVN-Kubernetes [EgressIP](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/cluster-egress-controls/egress-ip.md)
+and the source IP seen by the server is verified to match.
+
+Configure it via the `egress_ip` field on a connection:
+
+```yaml
+tft:
+  - name: "EgressIP Test"
+    test_cases: POD_TO_EXTERNAL_EGRESS
+    connections:
+      - name: "egressip-conn"
+        type: "iperf-tcp"
+        egress_ip:
+          ip: "192.168.1.100"
+          node: "worker-1"  # optional, defaults to the connection's client node
+        server:
+          - name: "worker-2"
+        client:
+          - name: "worker-1"
+```
+
+- `ip` - The EgressIP address to assign. It must fall within one of the egress node's
+  `k8s.ovn.org/host-cidrs` subnets, otherwise the test fails before running.
+- `node` - (Optional) The node to label `k8s.ovn.org/egress-assignable=true` and assign the
+  EgressIP to. Defaults to the connection's client node.
+
+Before the test runs, the framework labels the egress node, creates and applies an `EgressIP`
+custom resource (see `manifests/egressip.yaml.j2`) scoped to the test namespace, and polls its
+status for up to 120 seconds until the IP is assigned to a node. After the test runs, the
+server's captured output is parsed for the client's observed source IP (`remote_host` from the
+iperf3 JSON output) and compared against the configured EgressIP; the test fails if they don't
+match. The `EgressIP` resource and the egress node's labels are removed during cleanup.
 
 ## Environment variables
 
