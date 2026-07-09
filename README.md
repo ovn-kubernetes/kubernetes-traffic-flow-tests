@@ -20,7 +20,7 @@ pip3 install -r requirements.txt
 If you're planning to contribute or run tests/linters locally, install the developer dependencies to the environment. These include everything from `requirements.txt` (runtime) plus additional tools like `pytest`, `black`, `mypy`, and `flake8`:
 
 ```bash
-python -m venv tft-venv 
+python -m venv tft-venv
 source tft-venv/bin/activate
 pip3 install --upgrade pip
 pip3 install -r requirements-devel.txt
@@ -88,76 +88,77 @@ kubeconfig_infra: (32)
 3. "test_cases" - A list of the tests that can be run. This can be either a string
      that possibly contains ranges (comma separated, ranged separated by '-'), or a
      YAML list.
-    | ID | Test Name            |
-    | -- | -------------------- |
-    | 1  | POD_TO_POD_SAME_NODE |
-    | 2  | POD_TO_POD_DIFF_NODE |
-    | 3  | POD_TO_HOST_SAME_NODE |
-    | 4  | POD_TO_HOST_DIFF_NODE |
-    | 5  | POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 6  | POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 7  | POD_TO_CLUSTER_IP_TO_HOST_SAME_NODE |
-    | 8  | POD_TO_CLUSTER_IP_TO_HOST_DIFF_NODE |
-    | 9  | POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 10 | POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 11 | POD_TO_NODE_PORT_TO_HOST_SAME_NODE |
-    | 12 | POD_TO_NODE_PORT_TO_HOST_DIFF_NODE |
-    | 13 | HOST_TO_HOST_SAME_NODE |
-    | 14 | HOST_TO_HOST_DIFF_NODE |
-    | 15 | HOST_TO_POD_SAME_NODE |
-    | 16 | HOST_TO_POD_DIFF_NODE |
-    | 17 | HOST_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 18 | HOST_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 19 | HOST_TO_CLUSTER_IP_TO_HOST_SAME_NODE |
-    | 20 | HOST_TO_CLUSTER_IP_TO_HOST_DIFF_NODE |
-    | 21 | HOST_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 22 | HOST_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 23 | HOST_TO_NODE_PORT_TO_HOST_SAME_NODE |
-    | 24 | HOST_TO_NODE_PORT_TO_HOST_DIFF_NODE |
-    | 25 | POD_TO_EXTERNAL |
-    | 26 | HOST_TO_EXTERNAL |
-    | 27 | POD_TO_POD_2ND_INTERFACE_SAME_NODE |
-    | 28 | POD_TO_POD_2ND_INTERFACE_DIFF_NODE |
-    | 29 | POD_TO_POD_2ND_INTERFACE_MNP_ALLOW_2ND |
-    | 30 | POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND |
-    | 31 | POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND |
-    | 32 | POD_TO_POD_ANP_ALLOW |
-    | 33 | POD_TO_POD_ANP_DENY |
-    | 34 | POD_TO_POD_ANP_PASS_NP_DENY |
-    | 35 | POD_TO_POD_NP_DENY |
-    | 36 | POD_TO_POD_NP_ALLOW |
-    | 37 | UDN_PRIMARY_POD_TO_POD_SAME_NODE |
-    | 38 | UDN_PRIMARY_POD_TO_POD_DIFF_NODE |
-    | 39 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 40 | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 41 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 42 | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 43 | UDN_PRIMARY_POD_TO_EXTERNAL |
-    | 44 | UDN_PRIMARY_POD_TO_POD_NP_DENY |
-    | 45 | UDN_PRIMARY_POD_TO_POD_NP_ALLOW |
-    | 46 | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 47 | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 48 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
-    | 49 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
-    | 50 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 51 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 52 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 53 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 54 | UDN_LOCALNET_POD_TO_POD_SAME_NODE |
-    | 55 | UDN_LOCALNET_POD_TO_POD_DIFF_NODE |
-    | 56 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 57 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 58 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 59 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 60 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 61 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 62 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 63 | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
-    | 64 | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
-    | 65 | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 66 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
-    | 67 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
-    | 68 | POD_TO_EXTERNAL_EGRESS |
+    | ID  | Test Name                                         |
+    | --- | ------------------------------------------------- |
+    | 1   | POD_TO_POD_SAME_NODE                              |
+    | 2   | POD_TO_POD_DIFF_NODE                              |
+    | 3   | POD_TO_HOST_SAME_NODE                             |
+    | 4   | POD_TO_HOST_DIFF_NODE                             |
+    | 5   | POD_TO_CLUSTER_IP_TO_POD_SAME_NODE                |
+    | 6   | POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE                |
+    | 7   | POD_TO_CLUSTER_IP_TO_HOST_SAME_NODE               |
+    | 8   | POD_TO_CLUSTER_IP_TO_HOST_DIFF_NODE               |
+    | 9   | POD_TO_NODE_PORT_TO_POD_SAME_NODE                 |
+    | 10  | POD_TO_NODE_PORT_TO_POD_DIFF_NODE                 |
+    | 11  | POD_TO_NODE_PORT_TO_HOST_SAME_NODE                |
+    | 12  | POD_TO_NODE_PORT_TO_HOST_DIFF_NODE                |
+    | 13  | HOST_TO_HOST_SAME_NODE                            |
+    | 14  | HOST_TO_HOST_DIFF_NODE                            |
+    | 15  | HOST_TO_POD_SAME_NODE                             |
+    | 16  | HOST_TO_POD_DIFF_NODE                             |
+    | 17  | HOST_TO_CLUSTER_IP_TO_POD_SAME_NODE               |
+    | 18  | HOST_TO_CLUSTER_IP_TO_POD_DIFF_NODE               |
+    | 19  | HOST_TO_CLUSTER_IP_TO_HOST_SAME_NODE              |
+    | 20  | HOST_TO_CLUSTER_IP_TO_HOST_DIFF_NODE              |
+    | 21  | HOST_TO_NODE_PORT_TO_POD_SAME_NODE                |
+    | 22  | HOST_TO_NODE_PORT_TO_POD_DIFF_NODE                |
+    | 23  | HOST_TO_NODE_PORT_TO_HOST_SAME_NODE               |
+    | 24  | HOST_TO_NODE_PORT_TO_HOST_DIFF_NODE               |
+    | 25  | POD_TO_EXTERNAL                                   |
+    | 26  | HOST_TO_EXTERNAL                                  |
+    | 27  | POD_TO_POD_2ND_INTERFACE_SAME_NODE                |
+    | 28  | POD_TO_POD_2ND_INTERFACE_DIFF_NODE                |
+    | 29  | POD_TO_POD_2ND_INTERFACE_MNP_ALLOW_2ND            |
+    | 30  | POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND             |
+    | 31  | POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND         |
+    | 32  | POD_TO_POD_ANP_ALLOW                              |
+    | 33  | POD_TO_POD_ANP_DENY                               |
+    | 34  | POD_TO_POD_ANP_PASS_NP_DENY                       |
+    | 35  | POD_TO_POD_NP_DENY                                |
+    | 36  | POD_TO_POD_NP_ALLOW                               |
+    | 37  | UDN_PRIMARY_POD_TO_POD_SAME_NODE                  |
+    | 38  | UDN_PRIMARY_POD_TO_POD_DIFF_NODE                  |
+    | 39  | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE    |
+    | 40  | UDN_PRIMARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE    |
+    | 41  | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE     |
+    | 42  | UDN_PRIMARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE     |
+    | 43  | UDN_PRIMARY_POD_TO_EXTERNAL                       |
+    | 44  | UDN_PRIMARY_POD_TO_POD_NP_DENY                    |
+    | 45  | UDN_PRIMARY_POD_TO_POD_NP_ALLOW                   |
+    | 46  | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
+    | 47  | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
+    | 48  | UDN_SECONDARY_POD_TO_POD_SAME_NODE                |
+    | 49  | UDN_SECONDARY_POD_TO_POD_DIFF_NODE                |
+    | 50  | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE  |
+    | 51  | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE  |
+    | 52  | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE   |
+    | 53  | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE   |
+    | 54  | UDN_LOCALNET_POD_TO_POD_SAME_NODE                 |
+    | 55  | UDN_LOCALNET_POD_TO_POD_DIFF_NODE                 |
+    | 56  | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE   |
+    | 57  | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE   |
+    | 58  | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE    |
+    | 59  | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE    |
+    | 60  | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE             |
+    | 61  | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE             |
+    | 62  | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE            |
+    | 63  | POD_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE            |
+    | 64  | HOST_TO_LOAD_BALANCER_TO_POD_SAME_NODE            |
+    | 65  | HOST_TO_LOAD_BALANCER_TO_POD_DIFF_NODE            |
+    | 66  | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE           |
+    | 67  | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE           |
+    | 68  | POD_TO_EXTERNAL_EGRESS                            |
+    | 69  | HOST_TO_POD_NP_NS_SELECTOR_ALLOW                  |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -178,11 +179,11 @@ kubeconfig_infra: (32)
 18a. "args" - (Optional) Extra command-line arguments to pass to the test tool (iperf3, simple-tcp-server-client). Supported for iperf-tcp, iperf-udp, and simple test types. Can be a string or list of strings.
 19. "secondary_network_nad" - (Optional) The secondary network NAD for the client node. Overrides the connection-level `secondary_network_nad` for the client pod. Useful when server and client require different NADs.
 20. "name" - (Optional) list of plugin names
-    | Name             | Description          |
-    | ---------------- | -------------------- |
-    | measure_cpu      | Measure CPU Usage    |
-    | measure_power    | Measure Power Usage  |
-    | validate_offload | Verify OvS Offload   |
+    | Name             | Description         |
+    | ---------------- | ------------------- |
+    | measure_cpu      | Measure CPU Usage   |
+    | measure_power    | Measure Power Usage |
+    | validate_offload | Verify OvS Offload  |
 21. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
 22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-31, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-31 it defaults to "tft-secondary" if not set. Can be overridden per-node using the server/client level `secondary_network_nad` fields. The framework automatically creates and cleans up the NAD when these test cases are selected or when SRIOV nodes reference a secondary NAD. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
 23. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
@@ -320,11 +321,11 @@ traffic. Pass delegates the decision to NetworkPolicies in the namespace.
 
 Three test cases validate ANP behavior, each with the action baked into the test case type:
 
-| ID | Test Case | ANP Action | Expected Result |
-| -- | --------- | ---------- | --------------- |
-| 32 | `POD_TO_POD_ANP_ALLOW` | Allow | Traffic flows |
-| 33 | `POD_TO_POD_ANP_DENY` | Deny | Traffic blocked |
-| 34 | `POD_TO_POD_ANP_PASS_NP_DENY` | Pass (delegates to NP Deny) | Traffic blocked |
+| ID  | Test Case                     | ANP Action                  | Expected Result |
+| --- | ----------------------------- | --------------------------- | --------------- |
+| 32  | `POD_TO_POD_ANP_ALLOW`        | Allow                       | Traffic flows   |
+| 33  | `POD_TO_POD_ANP_DENY`         | Deny                        | Traffic blocked |
+| 34  | `POD_TO_POD_ANP_PASS_NP_DENY` | Pass (delegates to NP Deny) | Traffic blocked |
 
 Each test creates an AdminNetworkPolicy (priority 50) with ingress and egress rules targeting
 test pods in the namespace. For `POD_TO_POD_ANP_PASS_NP_DENY`, a deny-all NetworkPolicy is
@@ -359,6 +360,33 @@ tft:
     test_cases: POD_TO_POD_ANP_PASS_NP_DENY
     connections:
       - name: "anp-pass-np-deny"
+        server:
+          - name: "worker-1"
+        client:
+          - name: "worker-2"
+```
+
+## NetworkPolicy namespaceSelector Tests
+
+Test case `HOST_TO_POD_NP_NS_SELECTOR_ALLOW` (69) validates that a NetworkPolicy using a
+`namespaceSelector` correctly allows ingress traffic from host-network pods. This is useful
+because host-network pods (on upstream Kubernetes with OVNK pods in the `ovn-host-network`
+namespace, on OpenShift, pods in the `openshift-host-network` namespace) aren't matched by a
+`podSelector`, so a `namespaceSelector` is required to allow them through.
+
+The server pod gets a deny-all NetworkPolicy plus an allow NetworkPolicy scoped to
+`ingress.from.namespaceSelector` matching the host-network namespace, and the client runs as a
+host-networked pod. The test passes when traffic flows despite the deny-all policy.
+
+The host-network namespace defaults to `openshift-host-network`, overridable via
+`TFT_HOST_NETWORK_NAMESPACE`.
+
+```yaml
+tft:
+  - name: "NetworkPolicy namespaceSelector Test"
+    test_cases: HOST_TO_POD_NP_NS_SELECTOR_ALLOW
+    connections:
+      - name: "np-ns-selector"
         server:
           - name: "worker-1"
         client:
@@ -434,8 +462,10 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      `TFT_EXTERNAL_URL` is set. Defaults to `"The document has moved"` (the body of an HTTP 301
      redirect).
 - `TFT_LOG_PREAMBLE` enable or disable the timestamp and thread preamble that ktoolbox
-     prepends to every log record. Defaults to `true`, which keeps the existing ktoolbox format. 
+     prepends to every log record. Defaults to `true`, which keeps the existing ktoolbox format.
      Set to `false` to strip the preamble and log only `LEVEL: message`.
+- `TFT_HOST_NETWORK_NAMESPACE` the namespace used as the `namespaceSelector` target for the
+     `HOST_TO_POD_NP_NS_SELECTOR_ALLOW` test case. Defaults to `openshift-host-network`.
 
 ## File Transfer via magic-wormhole
 
