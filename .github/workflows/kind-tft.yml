@@ -15,25 +15,34 @@ jobs:
         include:
           - scenario: full-suite
             dpu_sim_config: ci/config-kind-ovnk-offload.yaml
+            deploy_mode: overlay
+            tft_config: ""
+            tft_env: ""
+          - scenario: full-suite
+            dpu_sim_config: ci/config-kind-ovnk-offload.yaml
+            deploy_mode: no-overlay
             tft_config: ""
             tft_env: ""
           - scenario: diverse-subset
             dpu_sim_config: ci/config-kind.yaml
+            deploy_mode: overlay
             tft_config: .github/tft-configs/diverse-subset.yaml
             tft_env: |
               TFT_LOG_PREAMBLE=false
           - scenario: resource-limits
             dpu_sim_config: ci/config-kind-ovnk-offload.yaml
+            deploy_mode: overlay
             tft_config: .github/tft-configs/resource-limits.yaml
             tft_env: ""
     concurrency:
-      group: kind-tft-${{ matrix.scenario }}-${{ github.ref }}
+      group: kind-tft-${{ matrix.scenario }}-${{ matrix.deploy_mode }}-${{ github.ref }}
       cancel-in-progress: true
-    uses: ovn-kubernetes/dpu-simulator/.github/workflows/kind-tft.yml@main
+    uses: Venkat-Kunaparaju/dpu-simulator/.github/workflows/kind-tft.yml@udn-test
     with:
       config: ${{ matrix.dpu_sim_config }}
+      deploy-mode: ${{ matrix.deploy_mode }}
       tft-config: ${{ matrix.tft_config }}
       tft-env: ${{ matrix.tft_env }}
       tft-repo-url: https://github.com/${{ github.event.pull_request.head.repo.full_name || github.repository }}
       tft-ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      artifact-prefix: kind-tft-${{ matrix.scenario }}
+      artifact-prefix: kind-tft-${{ matrix.scenario }}-${{ matrix.deploy_mode }}
