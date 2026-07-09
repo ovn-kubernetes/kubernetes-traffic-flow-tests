@@ -447,6 +447,22 @@ class Task(ABC):
             return (self._get_effective_secondary_network_nad(),)
         return ()
 
+    def _get_sriov_resource_quantity(
+        self,
+        secondary_network_nads: tuple[str, ...],
+    ) -> str:
+        if self.pod_type == PodType.SRIOV:
+            return str(1 + int(self.ts.test_case_id.is_udn_primary))
+        needs_primary_udn_vf = self.ts.test_case_id.is_udn_secondary and any(
+            test_case.is_udn_primary
+            for test_case in self.ts.cfg_descr.get_tft().test_cases
+        )
+        return str(
+            len(secondary_network_nads)
+            + int(self.node.sriov)
+            + int(needs_primary_udn_vf)
+        )
+
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
         conn = self.ts.connection
@@ -482,6 +498,9 @@ class Task(ABC):
             ),
             "has_resource_name": bool(resource_name),
             "resource_name": _j(resource_name),
+            "sriov_resource_quantity": _j(
+                self._get_sriov_resource_quantity(pod_secondary_network_nads)
+            ),
             "default_network": _j(self.node.default_network),
             "has_resources": has_resources,
             "cpu_request": conn.cpu_request or "",

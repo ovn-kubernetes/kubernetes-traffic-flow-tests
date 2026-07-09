@@ -21,12 +21,14 @@ spec:
     image: {{ test_image }}
     command: {{ command }}
     args: {{ args }}
-    imagePullPolicy: {{ image_pull_policy }}{% if has_resources %}
+    imagePullPolicy: {{ image_pull_policy }}{% if has_resource_name or has_resources %}
     resources:
-      requests: {% if cpu_request %}
+      requests: {% if has_resource_name %}
+        {{ resource_name }}: {{ sriov_resource_quantity }}{% endif %}{% if cpu_request %}
         cpu: {{ cpu_request }}{% endif %}{% if mem_request %}
         memory: {{ mem_request }}{% endif %}
-      limits: {% if cpu_limit %}
+      limits: {% if has_resource_name %}
+        {{ resource_name }}: {{ sriov_resource_quantity }}{% endif %}{% if cpu_limit %}
         cpu: {{ cpu_limit }}{% endif %}{% if mem_limit %}
         memory: {{ mem_limit }}{% endif %}{% endif %}
     securityContext:
