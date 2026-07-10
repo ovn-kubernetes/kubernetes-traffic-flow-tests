@@ -241,7 +241,7 @@ The primary CIDR defaults to `15.1.0.0/16`. Secondary CIDRs default to `15.2.0.0
 
 `udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
 
-For unmanaged no-overlay primary CUDNs, set `frr_configuration_selector` to create a RouteAdvertisements object that advertises the selected CUDN pod network. The selector is a map of `frrConfigurationSelector.matchLabels` labels. When `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` is true, RouteAdvertisements are not created.
+`TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` selects the CUDN's no-overlay routing mode. When it is true, OVN-Kubernetes manages routing and TFT does not create RouteAdvertisements. When it is false, routing is unmanaged; set `frr_configuration_selector` to have TFT create a RouteAdvertisements object, or leave the selector empty when routing is provisioned outside TFT. The selector is a map of `frrConfigurationSelector.matchLabels` labels.
 
 ```yaml
 udn_primary_network:
@@ -461,7 +461,7 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_CUDN_SECONDARY_LOCALNET_CIDR` CIDR for secondary localnet CUDN tests. Defaults to `15.6.0.0/24`.
 - `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet CUDN tests. Defaults to `physnet`.
 - `TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED` outbound SNAT setting for no-overlay CUDNs. Defaults to `true`.
-- `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` routing mode for no-overlay CUDNs. Defaults to `false`.
+- `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` whether OVN-Kubernetes manages routing for no-overlay CUDNs. Defaults to `false` (unmanaged).
 - `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
      Only effective when the connection type is `http` and the connection mode is `POD_TO_EXTERNAL`
      or `HOST_TO_EXTERNAL`. When set, no Podman server is started; the client pod curls this URL
