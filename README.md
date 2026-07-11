@@ -435,7 +435,7 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      `TFT_EXTERNAL_URL` is set. Defaults to `"The document has moved"` (the body of an HTTP 301
      redirect).
 - `TFT_LOG_PREAMBLE` enable or disable the timestamp and thread preamble that ktoolbox
-     prepends to every log record. Defaults to `true`, which keeps the existing ktoolbox format.
+     prepends to every log record. Defaults to `true`, which keeps the existing ktoolbox format. 
      Set to `false` to strip the preamble and log only `LEVEL: message`.
 - `TFT_HOST_NETWORK_NAMESPACE` the namespace used as the `namespaceSelector` target for the
      `HOST_TO_POD_NP_NS_SELECTOR_ALLOW` test case. Defaults to `openshift-host-network`.
