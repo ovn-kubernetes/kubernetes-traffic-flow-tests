@@ -22,7 +22,6 @@ jobs:
             tft_config: .github/tft-configs/diverse-subset.yaml
             tft_env: |
               TFT_LOG_PREAMBLE=false
-              TFT_HOST_NETWORK_NAMESPACE=ovn-host-network
           - scenario: resource-limits
             dpu_sim_config: ci/config-kind-ovnk-offload.yaml
             tft_config: .github/tft-configs/resource-limits.yaml
