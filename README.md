@@ -172,38 +172,38 @@ kubeconfig_infra: (32)
 14. "default_network" - (Optional) The name of the default network that the sriov pod would use.
 14a. "pod_port" - (Optional) The base port for pod-type servers. Defaults to 5201. When multiple connections are configured, each connection should use a unique port to avoid service conflicts.
 14b. "host_port" - (Optional) The base port for host-backed servers. Defaults to 5301. When multiple connections are configured, each connection should use a unique port to avoid service conflicts.
-1.  "secondary_network_nad" - (Optional) The secondary network NAD for the server node. Overrides the connection-level `secondary_network_nad` for the server pod. Useful when server and client require different NADs.
-2.  "name" - The node name of the client.
-3.  "sriov" - Whether SRIOV should be used for the client pod. Takes in "true/false"
-4.  "default_network" - (Optional) The name of the default network that the sriov pod would use.
+15. "secondary_network_nad" - (Optional) The secondary network NAD for the server node. Overrides the connection-level `secondary_network_nad` for the server pod. Useful when server and client require different NADs.
+16. "name" - The node name of the client.
+17. "sriov" - Whether SRIOV should be used for the client pod. Takes in "true/false"
+18. "default_network" - (Optional) The name of the default network that the sriov pod would use.
 18a. "args" - (Optional) Extra command-line arguments to pass to the test tool (iperf3, simple-tcp-server-client). Supported for iperf-tcp, iperf-udp, and simple test types. Can be a string or list of strings.
-1.  "secondary_network_nad" - (Optional) The secondary network NAD for the client node. Overrides the connection-level `secondary_network_nad` for the client pod. Useful when server and client require different NADs.
-2.  "name" - (Optional) list of plugin names
+19. "secondary_network_nad" - (Optional) The secondary network NAD for the client node. Overrides the connection-level `secondary_network_nad` for the client pod. Useful when server and client require different NADs.
+20. "name" - (Optional) list of plugin names
     | Name             | Description          |
     | ---------------- | -------------------- |
     | measure_cpu      | Measure CPU Usage    |
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
-3.  "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-4.  "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-31, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-31 it defaults to "tft-secondary" if not set. Can be overridden per-node using the server/client level `secondary_network_nad` fields. The framework automatically creates and cleans up the NAD when these test cases are selected or when SRIOV nodes reference a secondary NAD. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
-5.  "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
-6.  "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
-7.  "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
-8.  "mem_request" - (Optional) Memory request for server and client pods (e.g. "50Mi", "100Mi"). No memory request is set if omitted.
-9.  "mem_limit" - (Optional) Memory limit for server and client pods (e.g. "100Mi", "200Mi"). No memory limit is set if omitted.
-10. "egress_ip" - (Optional) Configures the connection to use an OVN-Kubernetes EgressIP. Only
+21. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
+22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-31, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-31 it defaults to "tft-secondary" if not set. Can be overridden per-node using the server/client level `secondary_network_nad` fields. The framework automatically creates and cleans up the NAD when these test cases are selected or when SRIOV nodes reference a secondary NAD. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
+23. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
+24. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
+25. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
+26. "mem_request" - (Optional) Memory request for server and client pods (e.g. "50Mi", "100Mi"). No memory request is set if omitted.
+27. "mem_limit" - (Optional) Memory limit for server and client pods (e.g. "100Mi", "200Mi"). No memory limit is set if omitted.
+28. "egress_ip" - (Optional) Configures the connection to use an OVN-Kubernetes EgressIP. Only
   applicable to the `POD_TO_EXTERNAL_EGRESS` (68) test case. See
   [EgressIP Tests](#egressip-tests) below.
     - "ip" - The EgressIP address to assign. Must fall within the egress node's
       `k8s.ovn.org/host-cidrs` subnets.
-1.  "node" - (Optional) The node to label as `k8s.ovn.org/egress-assignable` and to assign the
+29. "node" - (Optional) The node to label as `k8s.ovn.org/egress-assignable` and to assign the
       EgressIP to. Defaults to the connection's client node if unset.
-2.  "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
-3.  "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
-4.  "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+30. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
+31. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
+32. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-1.  "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+33. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 
