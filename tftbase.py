@@ -260,7 +260,7 @@ def get_udn_namespace(base_namespace: str) -> str:
 
 @functools.cache
 def get_host_network_namespace() -> str:
-    s = get_environ(ENV_TFT_HOST_NETWORK_NAMESPACE) or "openshift-host-network"
+    s = get_environ(ENV_TFT_HOST_NETWORK_NAMESPACE) or "ovn-host-network"
     logger.info(f"env: {ENV_TFT_HOST_NETWORK_NAMESPACE}={shlex.quote(s)}")
     return s
 

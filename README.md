@@ -438,7 +438,8 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      prepends to every log record. Defaults to `true`, which keeps the existing ktoolbox format. 
      Set to `false` to strip the preamble and log only `LEVEL: message`.
 - `TFT_HOST_NETWORK_NAMESPACE` the namespace used as the `namespaceSelector` target for the
-     `HOST_TO_POD_NP_NS_SELECTOR_ALLOW` test case. Defaults to `openshift-host-network`.
+     `HOST_TO_POD_NP_NS_SELECTOR_ALLOW` test case. Defaults to `ovn-host-network`.
+     For OpenShift clusters, it must be set to `openshift-host-network`.
 
 ## File Transfer via magic-wormhole
 
