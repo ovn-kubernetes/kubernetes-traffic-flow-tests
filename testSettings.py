@@ -152,7 +152,12 @@ class TestSettings:
         direction = ""
         if self.reverse:
             direction = "-REV"
-        return f"{self.test_case_id.name}-{self.client_pod_type.name}_TO_{self.connection_mode.name}_TO_{self.server_pod_type.name}-{self.test_case_id.info.node_location}{direction}-{self.target_access_mode.name}"
+        target_access = ""
+        if self.target_access_mode != tftbase.get_default_target_access_mode(
+            self.connection_mode
+        ):
+            target_access = f"-{self.target_access_mode.name}"
+        return f"{self.test_case_id.name}-{self.client_pod_type.name}_TO_{self.connection_mode.name}_TO_{self.server_pod_type.name}-{self.test_case_id.info.node_location}{direction}{target_access}"
 
     def get_test_metadata(self) -> TestMetadata:
         return TestMetadata(

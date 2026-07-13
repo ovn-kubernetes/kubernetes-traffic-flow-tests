@@ -584,9 +584,9 @@ def get_default_target_access_mode(
     connection_mode: ConnectionMode,
 ) -> TargetAccessMode:
     override = get_tft_default_target_access_mode_override()
-    if override == TargetAccessMode.IP:
-        return TargetAccessMode.IP
     if connection_mode in _SERVICE_TARGET_ACCESS_CONNECTION_MODES:
+        if override is not None:
+            return override
         if connection_mode == ConnectionMode.NODE_PORT_IP:
             return TargetAccessMode.SERVER_NODE_IP
         return TargetAccessMode.SERVICE_NAME
