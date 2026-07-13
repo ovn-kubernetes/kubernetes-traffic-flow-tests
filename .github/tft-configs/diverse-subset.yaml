@@ -15,6 +15,7 @@ tft:
       - POD_TO_EXTERNAL
       - POD_TO_POD_ANP_ALLOW
       - POD_TO_POD_NP_DENY
+      - HOST_TO_POD_NP_NS_SELECTOR_ALLOW
     duration: 5
     pre_provision: false
     connections:

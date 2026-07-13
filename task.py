@@ -906,9 +906,22 @@ class Task(ABC):
             die_on_error=True,
         ).out
 
-    def create_network_policy(self, port: int, action: str = NP_ACTION_DENY) -> str:
+    def create_network_policy_ns_selector(self, port: int, allow_namespace: str) -> str:
+        self.create_network_policy(port, NP_ACTION_DENY)
+        return self.create_network_policy(
+            port, NP_ACTION_ALLOW, ns_name=allow_namespace
+        )
+
+    def create_network_policy(
+        self,
+        port: int,
+        action: str = NP_ACTION_DENY,
+        *,
+        ns_name: Optional[str] = None,
+    ) -> str:
         action = action.lower()
-        np_name = f"tft-np-{action}-{self.index}"
+        np_prefix = "tft-np-nssel" if ns_name else "tft-np"
+        np_name = f"{np_prefix}-{action}-{self.index}"
         in_file_template = tftbase.get_manifest("network-policy.yaml.j2")
         out_file_yaml = tftbase.get_manifest_renderpath(
             f"np-{self.pod_name}-{action}.yaml"
@@ -919,10 +932,11 @@ class Task(ABC):
             "np_name": np_name,
             "np_action": action,
             "np_port": _j(port),
+            "np_ns_name": _j(ns_name) if ns_name else False,
         }
 
         self.render_file(
-            f"{action.title()} Network Policy",
+            f"{'Namespace Selector ' if ns_name else ''}{action.title()} Network Policy",
             in_file_template,
             out_file_yaml,
             template_args,
@@ -1373,6 +1387,10 @@ class ServerTask(Task, ABC):
                 self.create_network_policy(self.port, NP_ACTION_DENY)
             elif self.connection_mode == ConnectionMode.NP_ALLOW:
                 self.create_network_policy(self.port, NP_ACTION_ALLOW)
+            elif self.connection_mode == ConnectionMode.NP_NS_SELECTOR_ALLOW:
+                self.create_network_policy_ns_selector(
+                    self.port, tftbase.get_host_network_namespace()
+                )
 
             if self.connection_mode == ConnectionMode.LOAD_BALANCER:
                 self.create_load_balancer_service()

@@ -11,9 +11,21 @@ spec:
       tft-tests: {{ label_tft_tests }}
   policyTypes:
     - Ingress
+{%- if not np_ns_name %}
     - Egress
+{%- endif %}
   ingress:
-{% if np_action == "allow" %}
+{%- if np_ns_name %}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ np_ns_name }}
+      ports:
+        - port: {{ np_port }}
+          protocol: TCP
+        - port: {{ np_port }}
+          protocol: UDP
+{%- elif np_action == "allow" %}
     - from:
         - podSelector:
             matchLabels:
@@ -23,9 +35,10 @@ spec:
           protocol: TCP
         - port: {{ np_port }}
           protocol: UDP
-{% endif %}
+{%- endif %}
+{%- if not np_ns_name %}
   egress:
-{% if np_action == "allow" %}
+{%- if np_action == "allow" %}
     - to:
         - podSelector:
             matchLabels:
@@ -35,4 +48,5 @@ spec:
           protocol: TCP
         - port: {{ np_port }}
           protocol: UDP
-{% endif %}
+{%- endif %}
+{%- endif %}

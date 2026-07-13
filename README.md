@@ -158,6 +158,7 @@ kubeconfig_infra: (32)
     | 66 | HOST_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
     | 67 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
     | 68 | POD_TO_EXTERNAL_EGRESS |
+    | 69 | HOST_TO_POD_NP_NS_SELECTOR_ALLOW |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -436,6 +437,9 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_LOG_PREAMBLE` enable or disable the timestamp and thread preamble that ktoolbox
      prepends to every log record. Defaults to `true`, which keeps the existing ktoolbox format. 
      Set to `false` to strip the preamble and log only `LEVEL: message`.
+- `TFT_HOST_NETWORK_NAMESPACE` the namespace used as the `namespaceSelector` target for the
+     `HOST_TO_POD_NP_NS_SELECTOR_ALLOW` test case. Defaults to `ovn-host-network`.
+     For OpenShift clusters, it must be set to `openshift-host-network`.
 
 ## File Transfer via magic-wormhole
 
