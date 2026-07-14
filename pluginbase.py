@@ -75,6 +75,7 @@ def _get_plugin_registry() -> dict[str, Plugin]:
     # when being imported. Ensure they are imported.
     import pluginMeasureCpu  # noqa: F401
     import pluginMeasurePower  # noqa: F401
+    import pluginPingMgmtPort  # noqa: F401
     import pluginValidateOffload  # noqa: F401
 
     return _plugin_registry
