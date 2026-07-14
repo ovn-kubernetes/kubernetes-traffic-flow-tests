@@ -190,7 +190,7 @@ dpu_node_host_label: (40)
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
 21. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For mandatory tests 27-31 it defaults to "tft-secondary" if not set and can be overridden per-node using the server/client level `secondary_network_nad` fields. Tests 69-78 instead use the generated NAD selected by each test case and do not use this option. The framework automatically creates and cleans up the regular secondary NAD when required. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
+22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For mandatory tests 27-31 it defaults to "tft-secondary" if not set and can be overridden per-node using the server/client level `secondary_network_nad` fields. Tests 70-79 instead use the generated NAD selected by each test case and do not use this option. The framework automatically creates and cleans up the regular secondary NAD when required. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
 23. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
 24. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
 25. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
@@ -223,19 +223,19 @@ dpu_node_host_label: (40)
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 37-47 and 69-78 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
+Test cases 37-47 and 70-79 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
 
 - **37-47** (Primary UDN): Network replacing the pod's default network. Its mode, topology, and transport are configured through `udn_primary_network`.
   - **37-42**: pod-to-pod, ClusterIP, and NodePort.
   - **43**: pod-to-external (egress out of the UDN to the public internet).
   - **44-45**: NetworkPolicy enforcement on the primary UDN (deny / allow).
   - **46-47**: pod-to-LoadBalancer-to-pod (same / different node).
-- **69-78** (Secondary UDN/CUDN): Pod-to-pod tests over a second interface.
-  - **69-70**: Layer3 CUDN.
-  - **71-72**: Layer3 UDN.
-  - **73-74**: Layer2 CUDN.
-  - **75-76**: Layer2 UDN.
-  - **77-78**: Localnet CUDN.
+- **70-79** (Secondary UDN/CUDN): Pod-to-pod tests over a second interface.
+  - **70-71**: Layer3 CUDN.
+  - **72-73**: Layer3 UDN.
+  - **74-75**: Layer2 CUDN.
+  - **76-77**: Layer2 UDN.
+  - **78-79**: Localnet CUDN.
 
 The primary CIDR defaults to `15.1.0.0/16`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
 
