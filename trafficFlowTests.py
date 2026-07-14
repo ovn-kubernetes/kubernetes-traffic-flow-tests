@@ -31,6 +31,9 @@ class TrafficFlowTests:
         self._udn_ns_created: bool = False
         self._udn_setup_done: bool = False
 
+    def _has_non_udn_tests(self, cfg_descr: ConfigDescriptor) -> bool:
+        return any(not tc.is_udn for tc in cfg_descr.get_tft().test_cases)
+
     def _configure_namespace(
         self, cfg_descr: ConfigDescriptor, *, namespace: str | None = None
     ) -> bool:
@@ -166,6 +169,8 @@ class TrafficFlowTests:
 
     def _setup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
+        if not self._has_non_udn_tests(cfg_descr):
+            return
         if not any(
             not tc.is_udn
             and tc.info.connection_mode
@@ -242,7 +247,6 @@ class TrafficFlowTests:
     ) -> None:
         namespace = cfg_descr.get_tft().namespace
         client = cfg_descr.tc.client_tenant
-        # Cleanup per-test namespace or all namespaces if force_cleanup is True
         if force_cleanup:
             namespaces = [namespace]
             if self._udn_setup_done:
@@ -588,7 +592,9 @@ class TrafficFlowTests:
         evaluator: Evaluator,
     ) -> TftResults:
         test = cfg_descr.get_tft()
-        ns_created = self._configure_namespace(cfg_descr)
+        ns_created = False
+        if self._has_non_udn_tests(cfg_descr):
+            ns_created = self._configure_namespace(cfg_descr)
         self._cleanup_stale_udn(cfg_descr)
         self._cleanup_previous_testspace(cfg_descr, force_cleanup=True)
         self._setup_secondary_nad(cfg_descr)
