@@ -16,12 +16,14 @@ jobs:
           - scenario: full-suite
             dpu_sim_config: ci/config-kind-ovnk-offload.yaml
             tft_config: ""
-            tft_env: ""
+            tft_env: |
+              TFT_ENABLE_TARGET_ACCESS_SUBTESTS=true
           - scenario: diverse-subset
             dpu_sim_config: ci/config-kind.yaml
             tft_config: .github/tft-configs/diverse-subset.yaml
             tft_env: |
               TFT_LOG_PREAMBLE=false
+              TFT_DEFAULT_TARGET_ACCESS_MODE=IP
           - scenario: resource-limits
             dpu_sim_config: ci/config-kind-ovnk-offload.yaml
             tft_config: .github/tft-configs/resource-limits.yaml

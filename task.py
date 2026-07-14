@@ -38,6 +38,7 @@ from tftbase import ConnectionMode
 from tftbase import PluginOutput
 from tftbase import PodType
 from tftbase import TaskRole
+from tftbase import TargetAccessMode
 from tftbase import TestType
 
 _j = json.dumps
@@ -752,8 +753,14 @@ class Task(ABC):
             die_on_error=True,
         )
 
+    def get_cluster_ip_service_name(self) -> str:
+        return f"tft-clusterip-service-{self._svc_backend_label}"
+
+    def get_cluster_ip_service_dns_name(self) -> str:
+        return f"{self.get_cluster_ip_service_name()}.{self.get_namespace()}.svc"
+
     def get_cluster_ip(self) -> Optional[str]:
-        svc_name = f"tft-clusterip-service-{self._svc_backend_label}"
+        svc_name = self.get_cluster_ip_service_name()
         r = self.run_oc(
             f"get service {svc_name} -o=jsonpath='{{.spec.clusterIP}}'",
             may_fail=True,
@@ -781,13 +788,40 @@ class Task(ABC):
             die_on_error=True,
         )
 
+    def get_nodeport_service_name(self) -> str:
+        return f"tft-nodeport-service-{self._svc_backend_label}"
+
+    def get_nodeport_service_dns_name(self) -> str:
+        return f"{self.get_nodeport_service_name()}.{self.get_namespace()}.svc"
+
     def get_nodeport_ip(self) -> Optional[str]:
-        svc_name = f"tft-nodeport-service-{self._svc_backend_label}"
+        svc_name = self.get_nodeport_service_name()
         r = self.run_oc(
             f"get service {svc_name} -o=jsonpath='{{.spec.clusterIP}}'",
             may_fail=True,
         )
         return r.out if r.success else None
+
+    def get_nodeport_port(self, protocol: str) -> Optional[int]:
+        svc_name = self.get_nodeport_service_name()
+        r = self.run_oc(
+            f"get service {svc_name} -o=jsonpath='{{.spec.ports[?(@.protocol==\"{protocol}\")].nodePort}}'",
+            may_fail=True,
+        )
+        if not r.success or not r.out.strip():
+            return None
+        return int(r.out.strip().split()[0])
+
+    def get_node_internal_ip(self, node_name: Optional[str] = None) -> str:
+        node_name = node_name or self.node_name
+        r = self.run_oc(
+            f"get node {shlex.quote(node_name)} -o=jsonpath='{{.status.addresses[?(@.type==\"InternalIP\")].address}}'",
+            namespace=None,
+            may_fail=True,
+        )
+        if r.success and r.out.strip():
+            return r.out.strip().split()[0]
+        raise RuntimeError(f"InternalIP not found for node {node_name}")
 
     def create_load_balancer_service(self) -> None:
         in_file_template = tftbase.get_manifest("svc-loadbalancer.yaml.j2")
@@ -812,8 +846,14 @@ class Task(ABC):
             die_on_error=True,
         )
 
+    def get_load_balancer_service_name(self) -> str:
+        return f"tft-loadbalancer-service-{self._svc_backend_label}"
+
+    def get_load_balancer_service_dns_name(self) -> str:
+        return f"{self.get_load_balancer_service_name()}.{self.get_namespace()}.svc"
+
     def get_load_balancer_ip(self) -> Optional[str]:
-        svc_name = f"tft-loadbalancer-service-{self._svc_backend_label}"
+        svc_name = self.get_load_balancer_service_name()
         r = self.run_oc(
             f"get service {svc_name} -o=jsonpath='{{.status.loadBalancer.ingress[0].ip}}'",
             may_fail=True,
@@ -832,7 +872,7 @@ class Task(ABC):
             time.sleep(5)
         raise RuntimeError(
             f"LoadBalancer IP not assigned within {timeout}s "
-            f"for service tft-loadbalancer-service-{self._svc_backend_label}"
+            f"for service {self.get_load_balancer_service_name()}"
         )
 
     def _create_multi_network_policy(self, action: str, port: int) -> str:
@@ -1489,6 +1529,7 @@ class ClientTask(Task, ABC):
         self.test_type = ts.connection.test_type
         self.test_case_id = ts.test_case_id
         self.reverse = ts.reverse
+        self.target_access_mode = ts.target_access_mode
         self.in_file_template = in_file_template
         self.pod_name = pod_name
 
@@ -1578,29 +1619,57 @@ class ClientTask(Task, ABC):
             # URL is used directly by testTypeHttp; no IP needed.
             return ""
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
-            ip = self.server.get_cluster_ip()
-            if ip is None:
+            if self.target_access_mode == TargetAccessMode.SERVICE_NAME:
+                cluster_ip_service_name = self.server.get_cluster_ip_service_dns_name()
+                logger.debug(
+                    "get_target_ip() ClusterIP service name to "
+                    f"{cluster_ip_service_name}"
+                )
+                return cluster_ip_service_name
+            cluster_ip = self.server.get_cluster_ip()
+            if cluster_ip is None:
                 raise RuntimeError(
                     f"ClusterIP service not found for server {self.server.pod_name}"
                 )
-            logger.debug(f"get_target_ip() ClusterIP connection to {ip}")
-            return ip
+            logger.debug(f"get_target_ip() ClusterIP connection to {cluster_ip}")
+            return cluster_ip
         elif self.connection_mode == ConnectionMode.NODE_PORT_IP:
-            ip = self.server.get_nodeport_ip()
-            if ip is None:
+            if self.target_access_mode == TargetAccessMode.SERVICE_NAME:
+                nodeport_service_name = self.server.get_nodeport_service_dns_name()
+                logger.debug(
+                    f"get_target_ip() NodePort service name to {nodeport_service_name}"
+                )
+                return nodeport_service_name
+            if self.target_access_mode == TargetAccessMode.SERVER_NODE_IP:
+                nodeport_node_ip = self.server.get_node_internal_ip()
+                logger.debug(f"get_target_ip() NodePort node IP to {nodeport_node_ip}")
+                return nodeport_node_ip
+            nodeport_ip = self.server.get_nodeport_ip()
+            if nodeport_ip is None:
                 raise RuntimeError(
                     f"NodePort service not found for server {self.server.pod_name}"
                 )
-            logger.debug(f"get_target_ip() NodePortIP connection to {ip}")
-            return ip
+            logger.debug(f"get_target_ip() NodePortIP connection to {nodeport_ip}")
+            return nodeport_ip
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")
             return host_ip
         elif self.connection_mode == ConnectionMode.LOAD_BALANCER:
-            ip = self.server.wait_load_balancer_ip()
-            logger.debug(f"get_target_ip() LoadBalancer connection to {ip}")
-            return ip
+            if self.target_access_mode == TargetAccessMode.SERVICE_NAME:
+                load_balancer_service_name = (
+                    self.server.get_load_balancer_service_dns_name()
+                )
+                logger.debug(
+                    "get_target_ip() LoadBalancer service name to "
+                    f"{load_balancer_service_name}"
+                )
+                return load_balancer_service_name
+            load_balancer_ip = self.server.wait_load_balancer_ip()
+            logger.debug(
+                f"get_target_ip() LoadBalancer connection to {load_balancer_ip}"
+            )
+            return load_balancer_ip
         elif self.connection_mode in (
             ConnectionMode.MULTI_HOME,
             ConnectionMode.MNP_2ND_DENY,
@@ -1622,6 +1691,18 @@ class ClientTask(Task, ABC):
             return 0
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
             return self.server.external_port
+        if (
+            self.connection_mode == ConnectionMode.NODE_PORT_IP
+            and self.target_access_mode == TargetAccessMode.SERVER_NODE_IP
+        ):
+            node_port = self.server.get_nodeport_port(
+                tftbase.get_service_protocol(self.test_type)
+            )
+            if node_port is None:
+                raise RuntimeError(
+                    f"NodePort service port not found for server {self.server.pod_name}"
+                )
+            return node_port
         return self.port
 
     def get_host_ip(self) -> str:

@@ -427,6 +427,7 @@ class TrafficFlowTests:
         self,
         cfg_descr: ConfigDescriptor,
         instance_index: int,
+        target_access_mode: tftbase.TargetAccessMode,
         reverse: bool = False,
     ) -> TftResult:
         connection = cfg_descr.get_connection()
@@ -439,6 +440,7 @@ class TrafficFlowTests:
             cfg_descr=cfg_descr,
             instance_index=instance_index,
             reverse=reverse,
+            target_access_mode=target_access_mode,
         )
         logger.info(f"Starting test {ts.get_test_info()}")
         s, c = connection.test_type_handler.create_server_client(ts)
@@ -529,21 +531,27 @@ class TrafficFlowTests:
             connection = cfg_descr2.get_connection()
             logger.info(f"Starting {connection.name}")
             logger.info(f"Number Of Simultaneous connections {connection.instances}")
+            target_access_modes = tftbase.get_target_access_modes(
+                cfg_descr2.get_test_case().info.connection_mode
+            )
             for instance_index in range(connection.instances):
-                tft_results.append(
-                    self._run_test_case_instance(
-                        cfg_descr2,
-                        instance_index=instance_index,
-                    )
-                )
-                if connection.test_type_handler.can_run_reverse(connection):
+                for target_access_mode in target_access_modes:
                     tft_results.append(
                         self._run_test_case_instance(
                             cfg_descr2,
                             instance_index=instance_index,
-                            reverse=True,
+                            target_access_mode=target_access_mode,
                         )
                     )
+                    if connection.test_type_handler.can_run_reverse(connection):
+                        tft_results.append(
+                            self._run_test_case_instance(
+                                cfg_descr2,
+                                instance_index=instance_index,
+                                reverse=True,
+                                target_access_mode=target_access_mode,
+                            )
+                        )
                 self._cleanup_previous_testspace(cfg_descr2)
         return tft_results
 
