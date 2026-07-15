@@ -95,7 +95,18 @@ class TaskPingMgmtPort(PluginTask):
         def _thread_action() -> BaseOutput:
             self.ts.clmo_barrier.wait()
 
-            mgmt_ip = self._get_mgmt_port_ip()
+            try:
+                mgmt_ip = self._get_mgmt_port_ip()
+            except RuntimeError as e:
+                logger.error(str(e))
+                return PluginOutput(
+                    success=False,
+                    msg=str(e),
+                    plugin_metadata=self.get_plugin_metadata(),
+                    command="",
+                    result={},
+                )
+
             cmd = f"ping -c {PING_COUNT} -W {PING_TIMEOUT_SEC} {mgmt_ip}"
             r = self.run_oc_exec(cmd, may_fail=True)
 
