@@ -223,6 +223,26 @@ Test cases 37-59 run traffic over OVN-Kubernetes User Defined Networks. The fram
 
 CIDRs default to `15.1.0.0/16` (primary), `15.2.0.0/16` (secondary), and `15.3.0.0/24` (localnet), overridable via `TFT_UDN_PRIMARY_CIDR`, `TFT_UDN_SECONDARY_CIDR`, and `TFT_UDN_LOCALNET_CIDR`. The localnet physical network name defaults to `physnet`, overridable via `TFT_UDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn-primary.yaml.j2`, `manifests/udn-secondary.yaml.j2`, and `manifests/udn-localnet.yaml.j2`.
 
+## Management Port Reachability Plugin
+
+The `ping_mgmt_port` plugin checks that the client node can reach the `ovn-k8s-mp0`
+management port interface of the server node. The target IP is derived as the `.2`
+address of the server node's `k8s.ovn.org/node-subnets` annotation. Add it to a
+connection's plugin list:
+
+```yaml
+plugins:
+  - ping_mgmt_port
+```
+
+or scoped to specific test cases:
+
+```yaml
+plugins:
+  - name: ping_mgmt_port
+    test_cases: [POD_TO_POD_DIFF_NODE]
+```
+
 ## DPU Mode
 
 When running with a DPU (Data Processing Unit) cluster, the `validate_offload` plugin needs
