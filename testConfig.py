@@ -29,6 +29,7 @@ from ktoolbox.k8sClient import K8sClient
 from pluginbase import Plugin
 from testType import TestTypeHandler
 from tftbase import ClusterMode
+from tftbase import IpFamily
 from tftbase import PodType
 from tftbase import TestCaseType
 from tftbase import TestType
@@ -604,6 +605,7 @@ class ConfTest(StructParseBaseNamed):
     capabilities_pod: Mapping[str, tuple[str, ...]]
     connections: tuple[ConfConnection, ...]
     logs: pathlib.Path
+    ip_family: IpFamily
 
     def __post_init__(self) -> None:
         for c in self.connections:
@@ -624,6 +626,7 @@ class ConfTest(StructParseBaseNamed):
             "capabilities_pod": self.capabilities_pod,
             "connections": [c.serialize() for c in self.connections],
             "logs": str(self.logs),
+            "ip_family": self.ip_family.value,
         }
 
     @staticmethod
@@ -689,6 +692,12 @@ class ConfTest(StructParseBaseNamed):
                 default="ft-logs",
             )
 
+            ip_family = common.structparse_pop_enum(
+                varg.for_key("ip_family"),
+                enum_type=IpFamily,
+                default=IpFamily.AUTO,
+            )
+
         return ConfTest(
             yamlidx=pctx.yamlidx,
             yamlpath=pctx.yamlpath,
@@ -701,6 +710,7 @@ class ConfTest(StructParseBaseNamed):
             capabilities_pod=capabilities_pod,
             connections=connections,
             logs=pathlib.Path(logs),
+            ip_family=ip_family,
         )
 
     @property

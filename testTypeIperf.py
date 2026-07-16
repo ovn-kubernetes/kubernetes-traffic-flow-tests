@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import shlex
 import task
@@ -18,7 +19,9 @@ from testSettings import TestSettings
 from testType import TestTypeHandler
 from tftbase import BaseOutput
 from tftbase import Bitrate
+from tftbase import ConnectionMode
 from tftbase import FlowTestOutput
+from tftbase import IpFamily
 from tftbase import TestType
 
 logger = common.ExtendedLogger("tft." + __name__)
@@ -109,6 +112,25 @@ TestTypeHandler.register_test_type(TestTypeHandlerIperf(TestType.IPERF_TCP))
 TestTypeHandler.register_test_type(TestTypeHandlerIperf(TestType.IPERF_UDP))
 
 
+def _resolve_ip_family_opt(
+    ip_family: IpFamily,
+    connection_mode: ConnectionMode,
+    server: "task.ServerTask",
+) -> str:
+    if ip_family != IpFamily.AUTO:
+        return ip_family.iperf_opt
+    if connection_mode != ConnectionMode.CLUSTER_IP:
+        return ""
+    cluster_ip = server.get_cluster_ip()
+    if cluster_ip is None:
+        return ""
+    try:
+        addr = ipaddress.ip_address(cluster_ip.strip())
+    except ValueError:
+        return ""
+    return "-4" if addr.version == 4 else "-6"
+
+
 class IperfServer(task.ServerTask):
     def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
         if for_template:
@@ -116,8 +138,15 @@ class IperfServer(task.ServerTask):
         else:
             extra_args = ["--one-off", "--json"]
         server_args = self.ts.cfg_descr.get_server().args or ()
+        ip_opt = _resolve_ip_family_opt(
+            self.ts.cfg_descr.get_tft().ip_family,
+            self.connection_mode,
+            self,
+        )
+        ip_args = [ip_opt] if ip_opt else []
         return [
             IPERF_EXE,
+            *ip_args,
             "-s",
             "-p",
             f"{self.port}",
@@ -141,7 +170,13 @@ class IperfClient(task.ClientTask):
         server_ip = self.get_target_ip()
         target_port = self.get_target_port()
         timeout = self.get_duration() + IPERF_TIMEOUT
-        cmd = f"timeout {timeout} {IPERF_EXE} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
+        ip_opt = _resolve_ip_family_opt(
+            self.ts.cfg_descr.get_tft().ip_family,
+            self.connection_mode,
+            self.server,
+        )
+        ip_opt_str = f" {ip_opt}" if ip_opt else ""
+        cmd = f"timeout {timeout} {IPERF_EXE}{ip_opt_str} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
 
         connect_timeout_ms = int(self.get_duration() * 1.5 * 1000)
         cmd += f" --connect-timeout {connect_timeout_ms}"

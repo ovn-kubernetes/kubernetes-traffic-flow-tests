@@ -45,6 +45,7 @@ tft:
     test_cases: "(3)"
     duration: "(4)"
     pre_provision: (5)
+    ip_family: "(33)"
     # Location of artifacts from run can be specified: default <working-dir>/ft-logs/
     # logs: "/tmp/ft-logs"
     connections:
@@ -203,7 +204,12 @@ kubeconfig_infra: (32)
 32. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-33. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+33. "ip_family" - (Optional) Controls the `-4`/`-6` flag passed to iperf3. Accepted values:
+     `"auto"` (default), `"ipv4"`, `"ipv6"`, `"any"`. When set to `"auto"`, the IP family is
+     detected from the actual ClusterIP service address for ClusterIP connection modes; for
+     other connection modes no flag is passed. Set explicitly to `"ipv4"` or `"ipv6"` to force
+     the IP family regardless of connection mode, or `"any"` to let iperf3 auto-detect.
+34. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 

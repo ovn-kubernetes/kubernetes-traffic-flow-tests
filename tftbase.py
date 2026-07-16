@@ -567,6 +567,21 @@ class ConnectionMode(Enum):
     NP_NS_SELECTOR_ALLOW = 15
 
 
+class IpFamily(Enum):
+    AUTO = "auto"
+    IPV4 = "ipv4"
+    IPV6 = "ipv6"
+    ANY = "any"
+
+    @property
+    def iperf_opt(self) -> str:
+        if self == IpFamily.IPV4:
+            return "-4"
+        if self == IpFamily.IPV6:
+            return "-6"
+        return ""
+
+
 class TargetAccessMode(Enum):
     IP = 1
     SERVICE_NAME = 2

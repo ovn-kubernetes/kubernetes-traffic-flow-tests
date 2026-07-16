@@ -5,6 +5,11 @@ tft:
     # i.e. "1-9,15-19" or using the pretty names.
     test_cases: "1"
     duration: "30"
+    # ip_family: "auto" (default), "ipv4", "ipv6", or "any".
+    # Controls the -4/-6 flag passed to iperf3.
+    # "auto" detects the IP family from the ClusterIP service address;
+    # for non-ClusterIP connections it passes no flag.
+    # ip_family: "auto"
     # "logs": location of test results. Defaults to "<working-dir>/ft-logs/".
     # It is better to pass "--output-base" to ./tft.py.
     # "privileged_pod": whether to run test pods as privileged. Defaults to false.
