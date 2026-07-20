@@ -587,9 +587,7 @@ def get_default_target_access_mode(
     if connection_mode in _SERVICE_TARGET_ACCESS_CONNECTION_MODES:
         if override is not None:
             return override
-        if connection_mode == ConnectionMode.NODE_PORT_IP:
-            return TargetAccessMode.SERVER_NODE_IP
-        return TargetAccessMode.SERVICE_NAME
+        return TargetAccessMode.IP
     return TargetAccessMode.IP
 
 
