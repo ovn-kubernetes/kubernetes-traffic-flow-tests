@@ -466,6 +466,8 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_HOST_NETWORK_NAMESPACE` the namespace used as the `namespaceSelector` target for the
      `HOST_TO_POD_NP_NS_SELECTOR_ALLOW` test case. Defaults to `ovn-host-network`.
      For OpenShift clusters, it must be set to `openshift-host-network`.
+- `TFT_POD_BRINGUP_TIMEOUT` controls how long TFT waits for a pod to become ready. Accepts a
+     Kubernetes duration such as `30s` or `5m`. Defaults to `2m`.
 
 ## File Transfer via magic-wormhole
 

@@ -1029,14 +1029,17 @@ class Task(ABC):
         else:
             logger.info(f"Pod {self.pod_name} already exists.")
 
-        logger.info(f"Waiting for Pod {self.pod_name} to become ready.")
+        timeout = tftbase.get_tft_pod_bringup_timeout()
+        logger.info(f"Waiting up to {timeout} for Pod {self.pod_name} to become ready.")
         r = self.run_oc(
-            f"wait --for=condition=ready pod/{self.pod_name} --timeout=2m",
+            f"wait --for=condition=ready pod/{self.pod_name} "
+            f"--timeout={shlex.quote(timeout)}",
             may_fail=True,
         )
         if not r.success:
-            self._dump_pod_failure_diagnostics(reason="did not become Ready within 2m")
-            raise RuntimeError(f"Pod {self.pod_name} did not become Ready within 2m")
+            reason = f"did not become Ready within {timeout}"
+            self._dump_pod_failure_diagnostics(reason=reason)
+            raise RuntimeError(f"Pod {self.pod_name} {reason}")
 
     def _dump_pod_failure_diagnostics(self, *, reason: str) -> None:
         sep = "=" * 64
