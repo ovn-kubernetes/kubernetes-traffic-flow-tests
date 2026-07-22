@@ -96,9 +96,10 @@ class TrafficFlowTests:
         network_name: str,
         network_label: str,
     ) -> None:
-        if not network.frr_configuration_selector:
+        route_advertisement = network.route_advertisement
+        if route_advertisement is None:
             logger.info(
-                "No no-overlay FRRConfiguration selector configured; "
+                "No no-overlay RouteAdvertisements configuration provided; "
                 f"not creating RouteAdvertisements for {network_name}"
             )
             return
@@ -114,9 +115,11 @@ class TrafficFlowTests:
             {
                 "network_name": _j(network_name),
                 "network_label": _j(network_label),
+                "has_target_vrf": route_advertisement.target_vrf is not None,
+                "target_vrf": _j(route_advertisement.target_vrf or ""),
                 "frr_configuration_selector": [
                     (_j(k), _j(v))
-                    for k, v in network.frr_configuration_selector.items()
+                    for k, v in route_advertisement.frr_configuration_selector.items()
                 ],
             },
             out_file=out_yaml,
@@ -124,6 +127,41 @@ class TrafficFlowTests:
         logger.info(
             f'Generate {network_label} RouteAdvertisements "{out_yaml}" '
             f'(from "{in_template}")'
+        )
+        client.oc(f"apply -f {out_yaml}", die_on_error=True)
+
+    def _setup_udn_uplink(
+        self,
+        cfg_descr: ConfigDescriptor,
+        *,
+        uplink_name: str,
+        network_label: str,
+        uplink_interface: str,
+    ) -> None:
+        tft = cfg_descr.get_tft()
+        node_names = sorted(
+            {node.name for connection in tft.connections for node in connection.server}
+            | {
+                node.name
+                for connection in tft.connections
+                for node in connection.client
+            }
+        )
+        client = cfg_descr.tc.client_tenant
+        in_template = tftbase.get_manifest("udn-uplink.yaml.j2")
+        out_yaml = tftbase.get_manifest_renderpath(f"udn-uplink-{network_label}.yaml")
+        _j = json.dumps
+        kjinja2.render_file(
+            in_template,
+            {
+                "uplink_name": _j(uplink_name),
+                "node_names": [_j(node_name) for node_name in node_names],
+                "uplink_interface": _j(uplink_interface),
+            },
+            out_file=out_yaml,
+        )
+        logger.info(
+            f'Generate {network_label} Uplink "{out_yaml}" (from "{in_template}")'
         )
         client.oc(f"apply -f {out_yaml}", die_on_error=True)
 
@@ -158,6 +196,21 @@ class TrafficFlowTests:
                 else "Disabled"
             )
             no_overlay_routing = "Managed" if routing_managed else "Unmanaged"
+        if routing_managed and network.route_advertisement is not None:
+            raise RuntimeError(
+                "route_advertisement requires "
+                "TFT_UDN_NO_OVERLAY_ROUTING_MANAGED=false"
+            )
+        uplink_name = (
+            f"{network_name}-uplink" if network.uplink_interface is not None else ""
+        )
+        if network.uplink_interface is not None:
+            self._setup_udn_uplink(
+                cfg_descr,
+                uplink_name=uplink_name,
+                network_label=network_label,
+                uplink_interface=network.uplink_interface,
+            )
         template_name = (
             "cudn.yaml.j2"
             if network.mode == tftbase.UdnNetworkMode.CUDN
@@ -184,6 +237,8 @@ class TrafficFlowTests:
                 "transport_name": transport_name,
                 "no_overlay_outbound_snat": _j(no_overlay_outbound_snat),
                 "no_overlay_routing": _j(no_overlay_routing),
+                "has_uplink": bool(uplink_name),
+                "uplink_name": _j(uplink_name),
             },
             out_file=out_yaml,
         )
@@ -267,7 +322,8 @@ class TrafficFlowTests:
                 mode=network.mode,
                 topology=network.topology,
                 transport=network.transport,
-                frr_configuration_selector={},
+                uplink_interface=None,
+                route_advertisement=None,
             )
             self._setup_udn_network(
                 cfg_descr,
@@ -432,6 +488,11 @@ class TrafficFlowTests:
         )
         client.oc(
             "delete clusteruserdefinednetwork -l tft-tests --timeout=120s",
+            namespace=None,
+            may_fail=True,
+        )
+        client.oc(
+            "delete uplinks -l tft-tests --timeout=120s",
             namespace=None,
             may_fail=True,
         )

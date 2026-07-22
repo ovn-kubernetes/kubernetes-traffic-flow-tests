@@ -616,11 +616,54 @@ class ConfConnection(StructParseBaseNamed):
 
 @strict_dataclass
 @dataclass(frozen=True, kw_only=True)
+class ConfRouteAdvertisement(StructParseBase):
+    target_vrf: Optional[str]
+    frr_configuration_selector: Mapping[str, str]
+
+    def serialize(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "frr_configuration_selector": dict(self.frr_configuration_selector),
+        }
+        if self.target_vrf is not None:
+            data["targetVRF"] = self.target_vrf
+        return data
+
+    @staticmethod
+    def parse(pctx: StructParseParseContext) -> "ConfRouteAdvertisement":
+        with pctx.with_strdict() as varg:
+            target_vrf = common.structparse_pop_str(
+                varg.for_key("targetVRF"),
+                default=None,
+                allow_empty=False,
+            )
+            frr_configuration_selector = common.structparse_pop_obj(
+                varg.for_key("frr_configuration_selector"),
+                construct=_construct_str_mapping,
+            )
+
+        if not frr_configuration_selector:
+            raise pctx.value_error(
+                "route_advertisement requires a non-empty "
+                "frr_configuration_selector",
+                key="frr_configuration_selector",
+            )
+
+        return ConfRouteAdvertisement(
+            yamlidx=pctx.yamlidx,
+            yamlpath=pctx.yamlpath,
+            target_vrf=target_vrf,
+            frr_configuration_selector=frr_configuration_selector,
+        )
+
+
+@strict_dataclass
+@dataclass(frozen=True, kw_only=True)
 class ConfUdnNetwork(StructParseBase):
     mode: UdnNetworkMode
     topology: UdnNetworkTopology
     transport: Optional[UdnNetworkTransport]
-    frr_configuration_selector: Mapping[str, str]
+    uplink_interface: Optional[str]
+    route_advertisement: Optional[ConfRouteAdvertisement]
 
     def serialize(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -629,8 +672,10 @@ class ConfUdnNetwork(StructParseBase):
         }
         if self.transport is not None:
             data["transport"] = self.transport.name
-        if self.frr_configuration_selector:
-            data["frr_configuration_selector"] = dict(self.frr_configuration_selector)
+        if self.uplink_interface is not None:
+            data["uplinkInterface"] = self.uplink_interface
+        if self.route_advertisement is not None:
+            data["route_advertisement"] = self.route_advertisement.serialize()
         return data
 
     @staticmethod
@@ -647,7 +692,8 @@ class ConfUdnNetwork(StructParseBase):
             mode = UdnNetworkMode.UDN
             topology = default_topology
             transport: Optional[UdnNetworkTransport] = UdnNetworkTransport.OVERLAY
-            frr_configuration_selector: Mapping[str, str] = {}
+            uplink_interface: Optional[str] = None
+            route_advertisement: Optional[ConfRouteAdvertisement] = None
         else:
             with pctx.with_strdict() as varg:
                 transport_configured = "transport" in varg.vdict
@@ -666,10 +712,15 @@ class ConfUdnNetwork(StructParseBase):
                     enum_type=UdnNetworkTransport,
                     default=None,
                 )
-                frr_configuration_selector = common.structparse_pop_obj(
-                    varg.for_key("frr_configuration_selector"),
-                    construct=_construct_str_mapping,
-                    default={},
+                uplink_interface = common.structparse_pop_str(
+                    varg.for_key("uplinkInterface"),
+                    default=None,
+                    allow_empty=False,
+                )
+                route_advertisement = common.structparse_pop_obj(
+                    varg.for_key("route_advertisement"),
+                    construct=ConfRouteAdvertisement.parse,
+                    default=None,
                 )
             if transport is None and topology != UdnNetworkTopology.LOCALNET:
                 transport = UdnNetworkTransport.OVERLAY
@@ -701,10 +752,19 @@ class ConfUdnNetwork(StructParseBase):
                 "no-overlay transport is only supported for layer3 primary CUDN",
                 key="transport",
             )
-        if frr_configuration_selector and transport != UdnNetworkTransport.NO_OVERLAY:
+        if route_advertisement is not None and (
+            transport != UdnNetworkTransport.NO_OVERLAY
+        ):
             raise pctx.value_error(
-                "frr_configuration_selector requires transport no-overlay",
-                key="frr_configuration_selector",
+                "route_advertisement requires transport no-overlay",
+                key="route_advertisement",
+            )
+        if uplink_interface is not None and (
+            not is_primary or mode != UdnNetworkMode.CUDN
+        ):
+            raise pctx.value_error(
+                "uplinkInterface is only supported for a primary CUDN",
+                key="uplinkInterface",
             )
 
         return ConfUdnNetwork(
@@ -713,7 +773,8 @@ class ConfUdnNetwork(StructParseBase):
             mode=mode,
             topology=topology,
             transport=transport,
-            frr_configuration_selector=frr_configuration_selector,
+            uplink_interface=uplink_interface,
+            route_advertisement=route_advertisement,
         )
 
 

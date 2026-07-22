@@ -5,6 +5,9 @@ metadata:
   labels:
     tft-tests: "udn"
 spec:
+{% if has_target_vrf %}
+  targetVRF: {{ target_vrf }}
+{% endif %}
   advertisements:
   - PodNetwork
   frrConfigurationSelector:

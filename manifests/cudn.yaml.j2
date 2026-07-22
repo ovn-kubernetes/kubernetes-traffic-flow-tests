@@ -10,6 +10,10 @@ metadata:
     k8s.v1.cni.cncf.io/resourceName: {{ resource_name }}
 {% endif %}
 spec:
+{% if has_uplink %}
+  uplinks:
+  - {{ uplink_name }}
+{% endif %}
   namespaceSelector:
     matchExpressions:
     - key: kubernetes.io/metadata.name

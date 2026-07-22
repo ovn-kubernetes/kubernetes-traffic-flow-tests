@@ -11,6 +11,15 @@ tft:
     # "capabilities_pod": Linux capabilities for test pods. Format: {"add": ["CAP1", "CAP2"]}
     # capabilities_pod:
     #   add: ["NET_ADMIN", "SYS_TIME"]
+    # udn_primary_network:
+    #   mode: cudn
+    #   topology: layer3
+    #   transport: no-overlay
+    #   uplinkInterface: pf0hpf
+    #   route_advertisement:
+    #     targetVRF: auto
+    #     frr_configuration_selector:
+    #       routeAdvertisements: vpn-blue
     connections:
       - name: "Connection_1"
         # supported "type": iperf-tcp, iperf-udp, netperf-tcp-stream,
