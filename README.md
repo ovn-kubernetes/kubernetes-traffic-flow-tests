@@ -444,8 +444,8 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_KUBECONFIG`, `TFT_KUBECONFIG_INFRA` to overwrite the kubeconfigs from the configuration
      file. See also the "--kubeconfig" and "--kubeconfig-infra" command line options.
 - `TFT_DEFAULT_TARGET_ACCESS_MODE` controls the normal target access mode for service-backed
-     tests. Defaults to `SERVICE_NAME`; set to `IP` to use service IPs instead of service DNS
-     names. Accepted values are `IP` and `SERVICE_NAME`.
+     tests. Defaults to `IP`; set to `SERVICE_NAME` to use service DNS names instead of service
+     IPs. Accepted values are `IP` and `SERVICE_NAME`.
 - `TFT_ENABLE_TARGET_ACCESS_SUBTESTS` enables extra target access variants for service-backed
      tests. Defaults to `false`; when `true`, ClusterIP and LoadBalancer tests run both
      `IP` and `SERVICE_NAME`, while NodePort tests also include `SERVER_NODE_IP`.
