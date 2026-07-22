@@ -39,6 +39,7 @@ ENV_TFT_EXTERNAL_URL = "TFT_EXTERNAL_URL"
 ENV_TFT_EXTERNAL_SERVER_STRING = "TFT_EXTERNAL_SERVER_STRING"
 
 ENV_TFT_HOST_NETWORK_NAMESPACE = "TFT_HOST_NETWORK_NAMESPACE"
+ENV_TFT_POD_BRINGUP_TIMEOUT = "TFT_POD_BRINGUP_TIMEOUT"
 
 ENV_TFT_LOG_PREAMBLE = "TFT_LOG_PREAMBLE"
 ENV_TFT_ENABLE_TARGET_ACCESS_SUBTESTS = "TFT_ENABLE_TARGET_ACCESS_SUBTESTS"
@@ -248,6 +249,13 @@ def get_tft_external_server_string() -> Optional[str]:
     d = get_environ(ENV_TFT_EXTERNAL_SERVER_STRING)
     logger.info(f"env: {ENV_TFT_EXTERNAL_SERVER_STRING}={shlex.quote(d or '')}")
     return d or None
+
+
+@functools.cache
+def get_tft_pod_bringup_timeout() -> str:
+    timeout = get_environ(ENV_TFT_POD_BRINGUP_TIMEOUT) or "2m"
+    logger.info(f"env: {ENV_TFT_POD_BRINGUP_TIMEOUT}={shlex.quote(timeout)}")
+    return timeout
 
 
 TFT_TESTS = "tft-tests"
