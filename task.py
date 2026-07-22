@@ -405,11 +405,32 @@ class Task(ABC):
         """Get the test image, auto-selecting RDMA image for ib-* test types."""
         return tftbase.get_tft_test_image_for_type(self.ts.connection.test_type)
 
+    def _shares_pre_provisioned_secondary_pod(self) -> bool:
+        """Return whether this task's namespace needs a shared secondary pod.
+
+        During pre-provisioning, a namespace uses the secondary-pod template
+        only when its selected test cases include a secondary-network test.
+        UDN and non-UDN cases are checked separately because get_namespace()
+        places them in different namespaces with different NADs.
+        """
+        tft = self.ts.cfg_descr.get_tft()
+        if not tft.pre_provision:
+            return False
+        is_udn = self.ts.test_case_id.is_udn
+        return any(
+            tc.info.uses_secondary_network_pod and tc.is_udn == is_udn
+            for tc in tft.test_cases
+        )
+
     def _get_effective_secondary_network_nad(self) -> str:
-        if self.ts.test_case_id.is_udn_localnet:
-            return f"{self.get_namespace()}/tft-localnet"
-        if self.ts.test_case_id.is_udn_secondary:
-            return f"{self.get_namespace()}/tft-secondary"
+        """Return the single NAD whose address this test targets.
+
+        Secondary UDN cases use their test-defined network. Regular secondary
+        cases preserve the node-level override before the connection default.
+        """
+        udn_network_spec = self.ts.test_case_id.udn_network_spec
+        if udn_network_spec is not None:
+            return f"{self.get_namespace()}/{udn_network_spec.name}"
         nad = self._get_node_secondary_network_nad()
         if nad is not None:
             if "/" not in nad:
@@ -420,9 +441,57 @@ class Task(ABC):
             or self.ts.connection.effective_secondary_network_nad
         )
 
+    def _get_pod_secondary_network_nads(self) -> tuple[str, ...]:
+        """Return the NADs that must be attached to the pod in its namespace.
+
+        A pre-provisioned UDN pod is reused by all selected secondary UDN test
+        cases, so it receives each unique test-defined NAD in the UDN namespace.
+        Other pods receive only their effective NAD, or none.
+        """
+        if self.ts.test_case_id.is_udn and self._shares_pre_provisioned_secondary_pod():
+            namespace = self.get_namespace()
+            return tuple(
+                dict.fromkeys(
+                    f"{namespace}/{network.name}"
+                    for test_case in self.ts.cfg_descr.get_tft().test_cases
+                    if (network := test_case.udn_network_spec) is not None
+                )
+            )
+        if (
+            self._get_node_secondary_network_nad()
+            or self.ts.connection.secondary_network_nad
+            or self.ts.test_case_id.info.uses_secondary_network_pod
+            or self._shares_pre_provisioned_secondary_pod()
+        ):
+            return (self._get_effective_secondary_network_nad(),)
+        return ()
+
+    def _get_sriov_resource_quantity(
+        self,
+        secondary_network_nads: tuple[str, ...],
+    ) -> str:
+        """Count one requested VF for every offloaded network leg.
+
+        SR-IOV pods use one CDN VF and primary UDN tests add a UDN VF.
+        Secondary pods count their NADs, the optional CDN VF, and a primary
+        UDN VF when primary and secondary tests share the UDN namespace.
+        """
+        if self.pod_type == PodType.SRIOV:
+            return str(1 + int(self.ts.test_case_id.is_udn_primary))
+        needs_primary_udn_vf = self.ts.test_case_id.is_udn_secondary and any(
+            test_case.is_udn_primary
+            for test_case in self.ts.cfg_descr.get_tft().test_cases
+        )
+        return str(
+            len(secondary_network_nads)
+            + int(self.node.sriov)
+            + int(needs_primary_udn_vf)
+        )
+
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
         conn = self.ts.connection
+        pod_secondary_network_nads = self._get_pod_secondary_network_nads()
         has_resources = any(
             v is not None
             for v in (
@@ -445,6 +514,7 @@ class Task(ABC):
             "capabilities_pod": _j(self._get_template_args_capabilities_pod()),
             "port": self._get_template_args_port(),
             "secondary_network_nad": _j(self._get_effective_secondary_network_nad()),
+            "secondary_network_nads": _j(",".join(pod_secondary_network_nads)),
             "use_secondary_network": (
                 bool(self._get_node_secondary_network_nad())
                 or bool(self.ts.connection.secondary_network_nad)
@@ -453,6 +523,9 @@ class Task(ABC):
             ),
             "has_resource_name": bool(resource_name),
             "resource_name": _j(resource_name),
+            "sriov_resource_quantity": _j(
+                self._get_sriov_resource_quantity(pod_secondary_network_nads)
+            ),
             "default_network": _j(self.node.default_network),
             "has_resources": has_resources,
             "cpu_request": conn.cpu_request or "",
@@ -613,6 +686,12 @@ class Task(ABC):
         )
 
     def get_pod_ip(self) -> str:
+        """Return the pod IP on the network exercised by the current test.
+
+        Primary UDN tests use the primary-role network. Secondary UDN tests
+        match their exact NAD in Multus network-status. Other tests retain the
+        status.podIP or regular secondary-network behavior.
+        """
         y = self.run_oc_get(f"pod/{self.pod_name}", die_on_error=True)
         pod_ip = None
         try:
@@ -637,6 +716,8 @@ class Task(ABC):
                         )
                         pod_ip = y["status"]["podIP"]
                 elif self.uses_secondary_ip:
+                    if self.ts.test_case_id.is_udn:
+                        pod_ip = None
                     network_status_str = y["metadata"]["annotations"][
                         "k8s.v1.cni.cncf.io/network-status"
                     ]
@@ -663,29 +744,18 @@ class Task(ABC):
         return pod_ip
 
     def get_secondary_ip(self) -> str:
+        """Return the secondary target IP, matching the exact NAD for UDN tests."""
+        if self.ts.test_case_id.is_udn:
+            ip_address = self.get_pod_ip()
+            logger.info(f"Secondary IP: {ip_address}")
+            return ip_address
+
         jsonpath = "{.metadata.annotations.k8s\\.ovn\\.org\\/pod-networks}"
         r = self.run_oc(
             f"get pod {self.pod_name} -o jsonpath='{jsonpath}'", die_on_error=True
         )
 
         y = yaml.safe_load(r.out)
-
-        if self.ts.test_case_id.is_udn:
-            if not isinstance(y, dict):
-                raise RuntimeError(
-                    f"k8s.ovn.org/pod-networks annotation for pod {self.pod_name} "
-                    f"is not a valid dict (got {type(y).__name__})"
-                )
-            for net_info in y.values():
-                if net_info.get("role") == "secondary":
-                    ip_address_with_cidr = typing.cast(str, net_info["ip_address"])
-                    ip_address = ip_address_with_cidr.split("/")[0]
-                    logger.info(f"Secondary IP: {ip_address}")
-                    return ip_address
-            raise RuntimeError(
-                f"Could not find UDN secondary IP for pod {self.pod_name} "
-                f"in k8s.ovn.org/pod-networks annotation"
-            )
 
         nad = self._get_effective_secondary_network_nad()
         ip_address_with_cidr = typing.cast(str, y[nad]["ip_address"])
@@ -1204,9 +1274,7 @@ class ServerTask(Task, ABC):
             in_file_template = ""
             pod_name = EXTERNAL_PERF_SERVER
         elif pod_type == PodType.SECONDARY or (
-            pod_type == PodType.NORMAL
-            and ts.cfg_descr.get_tft().pre_provision
-            and ts.cfg_descr.get_tft().uses_secondary_network_pod
+            pod_type == PodType.NORMAL and self._shares_pre_provisioned_secondary_pod()
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-server-{port}"
@@ -1525,9 +1593,7 @@ class ClientTask(Task, ABC):
         port = server.port
 
         if pod_type == PodType.SECONDARY or (
-            pod_type == PodType.NORMAL
-            and ts.cfg_descr.get_tft().pre_provision
-            and ts.cfg_descr.get_tft().uses_secondary_network_pod
+            pod_type == PodType.NORMAL and self._shares_pre_provisioned_secondary_pod()
         ):
             in_file_template = "pod-secondary-network.yaml.j2"
             pod_name = f"normal-pod-secondary-{node_location}-client"

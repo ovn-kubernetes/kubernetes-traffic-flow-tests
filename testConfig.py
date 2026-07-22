@@ -32,6 +32,9 @@ from tftbase import ClusterMode
 from tftbase import PodType
 from tftbase import TestCaseType
 from tftbase import TestType
+from tftbase import UdnNetworkMode
+from tftbase import UdnNetworkTopology
+from tftbase import UdnNetworkTransport
 
 logger = common.ExtendedLogger("tft." + __name__)
 
@@ -93,6 +96,24 @@ def _construct_capabilities_pod(
             f'expects "add" to contain only non-empty strings but got {repr(arg["add"])}'
         )
     return {"add": tuple(arg["add"])}
+
+
+def _construct_str_mapping(pctx: StructParseParseContext) -> Mapping[str, str]:
+    arg = common.structparse_check_strdict(pctx.arg, pctx.yamlpath)
+    result: dict[str, str] = {}
+    for key, value in arg.items():
+        if not key:
+            raise pctx.value_error("label key cannot be empty")
+        if value is None:
+            result[key] = ""
+        elif isinstance(value, str):
+            result[key] = value
+        else:
+            raise pctx.value_error(
+                f"expects string label values but got {repr(value)}",
+                key=key,
+            )
+    return result
 
 
 T2 = TypeVar("T2", bound="ConfNodeServer | ConfNodeClient")
@@ -595,6 +616,109 @@ class ConfConnection(StructParseBaseNamed):
 
 @strict_dataclass
 @dataclass(frozen=True, kw_only=True)
+class ConfUdnNetwork(StructParseBase):
+    mode: UdnNetworkMode
+    topology: UdnNetworkTopology
+    transport: Optional[UdnNetworkTransport]
+    frr_configuration_selector: Mapping[str, str]
+
+    def serialize(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "mode": self.mode.name,
+            "topology": self.topology.name,
+        }
+        if self.transport is not None:
+            data["transport"] = self.transport.name
+        if self.frr_configuration_selector:
+            data["frr_configuration_selector"] = dict(self.frr_configuration_selector)
+        return data
+
+    @staticmethod
+    def parse(
+        pctx: StructParseParseContext,
+        *,
+        is_primary: bool,
+    ) -> "ConfUdnNetwork":
+        default_topology = (
+            UdnNetworkTopology.LAYER3 if is_primary else UdnNetworkTopology.LAYER2
+        )
+
+        if pctx.arg is None:
+            mode = UdnNetworkMode.UDN
+            topology = default_topology
+            transport: Optional[UdnNetworkTransport] = UdnNetworkTransport.OVERLAY
+            frr_configuration_selector: Mapping[str, str] = {}
+        else:
+            with pctx.with_strdict() as varg:
+                transport_configured = "transport" in varg.vdict
+                mode = common.structparse_pop_enum(
+                    varg.for_key("mode"),
+                    enum_type=UdnNetworkMode,
+                    default=UdnNetworkMode.UDN,
+                )
+                topology = common.structparse_pop_enum(
+                    varg.for_key("topology"),
+                    enum_type=UdnNetworkTopology,
+                    default=default_topology,
+                )
+                transport = common.structparse_pop_enum(
+                    varg.for_key("transport"),
+                    enum_type=UdnNetworkTransport,
+                    default=None,
+                )
+                frr_configuration_selector = common.structparse_pop_obj(
+                    varg.for_key("frr_configuration_selector"),
+                    construct=_construct_str_mapping,
+                    default={},
+                )
+            if transport is None and topology != UdnNetworkTopology.LOCALNET:
+                transport = UdnNetworkTransport.OVERLAY
+            if topology == UdnNetworkTopology.LOCALNET and transport_configured:
+                raise pctx.value_error(
+                    "localnet topology does not support transport",
+                    key="transport",
+                )
+
+        if topology == UdnNetworkTopology.LOCALNET and is_primary:
+            raise pctx.value_error(
+                "localnet topology is only supported for secondary networks",
+                key="topology",
+            )
+        if topology == UdnNetworkTopology.LOCALNET and mode != UdnNetworkMode.CUDN:
+            raise pctx.value_error(
+                "localnet topology requires mode CUDN",
+                key="mode",
+            )
+        if transport == UdnNetworkTransport.NO_OVERLAY and mode != UdnNetworkMode.CUDN:
+            raise pctx.value_error(
+                "no-overlay transport requires mode CUDN",
+                key="mode",
+            )
+        if transport == UdnNetworkTransport.NO_OVERLAY and (
+            not is_primary or topology != UdnNetworkTopology.LAYER3
+        ):
+            raise pctx.value_error(
+                "no-overlay transport is only supported for layer3 primary CUDN",
+                key="transport",
+            )
+        if frr_configuration_selector and transport != UdnNetworkTransport.NO_OVERLAY:
+            raise pctx.value_error(
+                "frr_configuration_selector requires transport no-overlay",
+                key="frr_configuration_selector",
+            )
+
+        return ConfUdnNetwork(
+            yamlidx=pctx.yamlidx,
+            yamlpath=pctx.yamlpath,
+            mode=mode,
+            topology=topology,
+            transport=transport,
+            frr_configuration_selector=frr_configuration_selector,
+        )
+
+
+@strict_dataclass
+@dataclass(frozen=True, kw_only=True)
 class ConfTest(StructParseBaseNamed):
     namespace: str
     test_cases: tuple[TestCaseType, ...]
@@ -604,6 +728,7 @@ class ConfTest(StructParseBaseNamed):
     capabilities_pod: Mapping[str, tuple[str, ...]]
     connections: tuple[ConfConnection, ...]
     logs: pathlib.Path
+    udn_primary_network: ConfUdnNetwork
 
     def __post_init__(self) -> None:
         for c in self.connections:
@@ -624,6 +749,7 @@ class ConfTest(StructParseBaseNamed):
             "capabilities_pod": self.capabilities_pod,
             "connections": [c.serialize() for c in self.connections],
             "logs": str(self.logs),
+            "udn_primary_network": self.udn_primary_network.serialize(),
         }
 
     @staticmethod
@@ -689,6 +815,15 @@ class ConfTest(StructParseBaseNamed):
                 default="ft-logs",
             )
 
+            udn_primary_network = common.structparse_pop_obj(
+                varg.for_key("udn_primary_network"),
+                construct=lambda pctx2: ConfUdnNetwork.parse(
+                    pctx2,
+                    is_primary=True,
+                ),
+                construct_default=True,
+            )
+
         return ConfTest(
             yamlidx=pctx.yamlidx,
             yamlpath=pctx.yamlpath,
@@ -701,6 +836,7 @@ class ConfTest(StructParseBaseNamed):
             capabilities_pod=capabilities_pod,
             connections=connections,
             logs=pathlib.Path(logs),
+            udn_primary_network=udn_primary_network,
         )
 
     @property

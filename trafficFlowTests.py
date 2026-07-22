@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import logging
 import print_results
@@ -57,13 +58,157 @@ class TrafficFlowTests:
         )
         return not existing
 
+    def _wait_for_cudn_transport_accepted(
+        self,
+        cfg_descr: ConfigDescriptor,
+        cudn_name: str,
+    ) -> None:
+        client = cfg_descr.tc.client_tenant
+        deadline = _time.monotonic() + tftbase.UDN_TRANSPORT_ACCEPTED_TIMEOUT
+        while _time.monotonic() < deadline:
+            data = (
+                client.oc_get(
+                    f"clusteruserdefinednetwork/{cudn_name}",
+                    may_fail=True,
+                )
+                or {}
+            )
+            conditions = data.get("status", {}).get("conditions", [])
+            if isinstance(conditions, list):
+                for condition in conditions:
+                    if (
+                        isinstance(condition, dict)
+                        and condition.get("type") == "TransportAccepted"
+                    ):
+                        if condition.get("status") == "True":
+                            return
+                        break
+            _time.sleep(2)
+        logger.info(
+            f"ClusterUserDefinedNetwork/{cudn_name} TransportAccepted not True, continuing"
+        )
+
+    def _setup_udn_route_advertisements(
+        self,
+        cfg_descr: ConfigDescriptor,
+        *,
+        network: testConfig.ConfUdnNetwork,
+        network_name: str,
+        network_label: str,
+    ) -> None:
+        if not network.frr_configuration_selector:
+            logger.info(
+                "No no-overlay FRRConfiguration selector configured; "
+                f"not creating RouteAdvertisements for {network_name}"
+            )
+            return
+
+        client = cfg_descr.tc.client_tenant
+        in_template = tftbase.get_manifest("udn-route-advertisements.yaml.j2")
+        out_yaml = tftbase.get_manifest_renderpath(
+            f"udn-route-advertisements-{network_label}.yaml"
+        )
+        _j = json.dumps
+        kjinja2.render_file(
+            in_template,
+            {
+                "network_name": _j(network_name),
+                "network_label": _j(network_label),
+                "frr_configuration_selector": [
+                    (_j(k), _j(v))
+                    for k, v in network.frr_configuration_selector.items()
+                ],
+            },
+            out_file=out_yaml,
+        )
+        logger.info(
+            f'Generate {network_label} RouteAdvertisements "{out_yaml}" '
+            f'(from "{in_template}")'
+        )
+        client.oc(f"apply -f {out_yaml}", die_on_error=True)
+
+    def _setup_udn_network(
+        self,
+        cfg_descr: ConfigDescriptor,
+        *,
+        udn_ns: str,
+        resource_name: str | None,
+        network: testConfig.ConfUdnNetwork,
+        network_name: str,
+        is_primary: bool,
+        cidr: str,
+    ) -> None:
+        client = cfg_descr.tc.client_tenant
+        network_label = network_name
+        topology_name = tftbase.get_udn_network_topology_name(network.topology)
+        transport_name = tftbase.get_udn_network_transport_name(network.transport)
+        is_localnet = network.topology == tftbase.UdnNetworkTopology.LOCALNET
+        is_no_overlay = network.transport == tftbase.UdnNetworkTransport.NO_OVERLAY
+        physical_network_name = (
+            tftbase.get_cudn_localnet_physical_network() if is_localnet else ""
+        )
+        no_overlay_outbound_snat = ""
+        no_overlay_routing = ""
+        routing_managed = False
+        if is_no_overlay:
+            routing_managed = tftbase.get_udn_no_overlay_routing_managed()
+            no_overlay_outbound_snat = (
+                "Enabled"
+                if tftbase.get_udn_no_overlay_outbound_snat_enabled()
+                else "Disabled"
+            )
+            no_overlay_routing = "Managed" if routing_managed else "Unmanaged"
+        template_name = (
+            "cudn.yaml.j2"
+            if network.mode == tftbase.UdnNetworkMode.CUDN
+            else "udn.yaml.j2"
+        )
+        in_template = tftbase.get_manifest(template_name)
+        out_yaml = tftbase.get_manifest_renderpath(
+            f"{network.mode.name.lower()}-{network_label}.yaml"
+        )
+        _j = json.dumps
+        kjinja2.render_file(
+            in_template,
+            {
+                "has_resource_name": resource_name is not None,
+                "resource_name": _j(resource_name or ""),
+                "network_name": _j(network_name),
+                "network_label": _j(network_label),
+                "name_space": _j(udn_ns),
+                "topology": _j(topology_name),
+                "topology_name": topology_name,
+                "network_type": _j("Primary" if is_primary else "Secondary"),
+                "cidr": _j(cidr),
+                "physical_network_name": _j(physical_network_name),
+                "transport_name": transport_name,
+                "no_overlay_outbound_snat": _j(no_overlay_outbound_snat),
+                "no_overlay_routing": _j(no_overlay_routing),
+            },
+            out_file=out_yaml,
+        )
+        logger.info(f'Generate {network_label} "{out_yaml}" (from "{in_template}")')
+        client.oc(f"apply -f {out_yaml}", die_on_error=True)
+        if is_no_overlay and not routing_managed:
+            self._setup_udn_route_advertisements(
+                cfg_descr,
+                network=network,
+                network_name=network_name,
+                network_label=network_label,
+            )
+        if is_no_overlay:
+            self._wait_for_cudn_transport_accepted(cfg_descr, network_name)
+
     def _setup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
         needs_primary = any(tc.is_udn_primary for tc in tft.test_cases)
-        needs_secondary = any(tc.is_udn_secondary for tc in tft.test_cases)
-        needs_localnet = any(tc.is_udn_localnet for tc in tft.test_cases)
+        secondary_networks: dict[str, tftbase.UDNSecondaryNetworkSpec] = {}
+        for test_case in tft.test_cases:
+            network = test_case.udn_network_spec
+            if network is not None:
+                secondary_networks[network.name] = network
 
-        if not needs_primary and not needs_secondary and not needs_localnet:
+        if not needs_primary and not secondary_networks:
             return
 
         udn_ns = tftbase.get_udn_namespace(tft.namespace)
@@ -80,8 +225,6 @@ class TrafficFlowTests:
             if len(resource_names) == 1 and None not in resource_names
             else None
         )
-
-        _j = json.dumps
 
         self._udn_ns = udn_ns
 
@@ -108,61 +251,33 @@ class TrafficFlowTests:
             self._udn_ns_created = True
 
         if needs_primary:
-            in_template = tftbase.get_manifest("udn-primary.yaml.j2")
-            out_yaml = tftbase.get_manifest_renderpath("udn-primary.yaml")
-            kjinja2.render_file(
-                in_template,
-                {
-                    "has_resource_name": resource_name is not None,
-                    "resource_name": resource_name or "",
-                    "name_space": _j(udn_ns),
-                    "primary_cidr": _j(tftbase.get_udn_primary_cidr()),
-                },
-                out_file=out_yaml,
+            self._setup_udn_network(
+                cfg_descr,
+                udn_ns=udn_ns,
+                resource_name=resource_name,
+                network=tft.udn_primary_network,
+                network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
+                is_primary=True,
+                cidr=tftbase.get_udn_primary_cidr(),
             )
-            logger.info(
-                f'Generate Primary UDN Yaml "{out_yaml}" (from "{in_template}")'
-            )
-            client.oc(f"apply -f {out_yaml}", die_on_error=True)
 
-        if needs_secondary:
-            in_template = tftbase.get_manifest("udn-secondary.yaml.j2")
-            out_yaml = tftbase.get_manifest_renderpath("udn-secondary.yaml")
-            kjinja2.render_file(
-                in_template,
-                {
-                    "has_resource_name": resource_name is not None,
-                    "resource_name": resource_name or "",
-                    "name_space": _j(udn_ns),
-                    "secondary_cidr": _j(tftbase.get_udn_secondary_cidr()),
-                },
-                out_file=out_yaml,
+        for network in secondary_networks.values():
+            network_config = dataclasses.replace(
+                tft.udn_primary_network,
+                mode=network.mode,
+                topology=network.topology,
+                transport=network.transport,
+                frr_configuration_selector={},
             )
-            logger.info(
-                f'Generate Secondary UDN Yaml "{out_yaml}" (from "{in_template}")'
+            self._setup_udn_network(
+                cfg_descr,
+                udn_ns=udn_ns,
+                resource_name=resource_name,
+                network=network_config,
+                network_name=network.name,
+                is_primary=False,
+                cidr=network.get_cidr(),
             )
-            client.oc(f"apply -f {out_yaml}", die_on_error=True)
-
-        if needs_localnet:
-            in_template = tftbase.get_manifest("udn-localnet.yaml.j2")
-            out_yaml = tftbase.get_manifest_renderpath("udn-localnet.yaml")
-            kjinja2.render_file(
-                in_template,
-                {
-                    "has_resource_name": resource_name is not None,
-                    "resource_name": resource_name or "",
-                    "name_space": _j(udn_ns),
-                    "localnet_cidr": _j(tftbase.get_udn_localnet_cidr()),
-                    "physical_network_name": _j(
-                        tftbase.get_udn_localnet_physical_network()
-                    ),
-                },
-                out_file=out_yaml,
-            )
-            logger.info(
-                f'Generate Localnet CUDN Yaml "{out_yaml}" (from "{in_template}")'
-            )
-            client.oc(f"apply -f {out_yaml}", die_on_error=True, namespace=None)
 
         self._configure_namespace(cfg_descr, namespace=udn_ns)
         self._udn_setup_done = True
@@ -310,6 +425,11 @@ class TrafficFlowTests:
                     namespace=None,
                     may_fail=True,
                 )
+        client.oc(
+            "delete routeadvertisements -l tft-tests",
+            namespace=None,
+            may_fail=True,
+        )
         client.oc(
             "delete clusteruserdefinednetwork -l tft-tests --timeout=120s",
             namespace=None,

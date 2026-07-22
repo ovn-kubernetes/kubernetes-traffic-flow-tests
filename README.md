@@ -79,8 +79,15 @@ tft:
           node: "(29)"
     privileged_pod: (30)
     capabilities_pod: (31)
-kubeconfig: (32)
-kubeconfig_infra: (32)
+    udn_primary_network: # (32)
+      mode: "(33)"
+      topology: "(34)"
+      transport: "(35)"
+      frr_configuration_selector: # (36)
+        "(37)": "(38)"
+kubeconfig: (39)
+kubeconfig_infra: (39)
+dpu_node_host_label: (40)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -137,18 +144,6 @@ kubeconfig_infra: (32)
     | 45 | UDN_PRIMARY_POD_TO_POD_NP_ALLOW |
     | 46 | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
     | 47 | UDN_PRIMARY_POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
-    | 48 | UDN_SECONDARY_POD_TO_POD_SAME_NODE |
-    | 49 | UDN_SECONDARY_POD_TO_POD_DIFF_NODE |
-    | 50 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 51 | UDN_SECONDARY_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 52 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 53 | UDN_SECONDARY_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
-    | 54 | UDN_LOCALNET_POD_TO_POD_SAME_NODE |
-    | 55 | UDN_LOCALNET_POD_TO_POD_DIFF_NODE |
-    | 56 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_SAME_NODE |
-    | 57 | UDN_LOCALNET_POD_TO_CLUSTER_IP_TO_POD_DIFF_NODE |
-    | 58 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_SAME_NODE |
-    | 59 | UDN_LOCALNET_POD_TO_NODE_PORT_TO_POD_DIFF_NODE |
     | 60 | POD_TO_LOAD_BALANCER_TO_POD_SAME_NODE |
     | 61 | POD_TO_LOAD_BALANCER_TO_POD_DIFF_NODE |
     | 62 | POD_TO_LOAD_BALANCER_TO_HOST_SAME_NODE |
@@ -159,6 +154,16 @@ kubeconfig_infra: (32)
     | 67 | HOST_TO_LOAD_BALANCER_TO_HOST_DIFF_NODE |
     | 68 | POD_TO_EXTERNAL_EGRESS |
     | 69 | HOST_TO_POD_NP_NS_SELECTOR_ALLOW |
+    | 70 | CUDN_LAYER3_POD_TO_POD_SAME_NODE |
+    | 71 | CUDN_LAYER3_POD_TO_POD_DIFF_NODE |
+    | 72 | UDN_LAYER3_POD_TO_POD_SAME_NODE |
+    | 73 | UDN_LAYER3_POD_TO_POD_DIFF_NODE |
+    | 74 | CUDN_LAYER2_POD_TO_POD_SAME_NODE |
+    | 75 | CUDN_LAYER2_POD_TO_POD_DIFF_NODE |
+    | 76 | UDN_LAYER2_POD_TO_POD_SAME_NODE |
+    | 77 | UDN_LAYER2_POD_TO_POD_DIFF_NODE |
+    | 78 | CUDN_LOCALNET_POD_TO_POD_SAME_NODE |
+    | 79 | CUDN_LOCALNET_POD_TO_POD_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -185,7 +190,7 @@ kubeconfig_infra: (32)
     | measure_power    | Measure Power Usage  |
     | validate_offload | Verify OvS Offload   |
 21. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For tests except 27-31, the primary network will be used if unspecified (the default which is None). For mandatory tests 27-31 it defaults to "tft-secondary" if not set. Can be overridden per-node using the server/client level `secondary_network_nad` fields. The framework automatically creates and cleans up the NAD when these test cases are selected or when SRIOV nodes reference a secondary NAD. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
+22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For mandatory tests 27-31 it defaults to "tft-secondary" if not set and can be overridden per-node using the server/client level `secondary_network_nad` fields. Tests 70-79 instead use the generated NAD selected by each test case and do not use this option. The framework automatically creates and cleans up the regular secondary NAD when required. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
 23. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
 24. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
 25. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
@@ -200,10 +205,17 @@ kubeconfig_infra: (32)
       EgressIP to. Defaults to the connection's client node if unset.
 30. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
 31. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
-32. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+32. "udn_primary_network" - (Optional) Test-level network configuration for primary UDN test cases. Defaults to `mode: udn`, `topology: layer3`, and `transport: overlay`.
+33. "mode" - (Optional) Field under `udn_primary_network`. Supported values are `udn` and `cudn`.
+34. "topology" - (Optional) Field under `udn_primary_network`. Supported values are `layer3` and `layer2`.
+35. "transport" - (Optional) Field under `udn_primary_network`. Supported values are `overlay` and `no-overlay`; `no-overlay` requires `mode: cudn` and `topology: layer3`.
+36. "frr_configuration_selector" - (Optional) Field under `udn_primary_network`. Map of `frrConfigurationSelector.matchLabels` labels used to create RouteAdvertisements for unmanaged no-overlay CUDNs. If omitted or empty, RouteAdvertisements are not created.
+37. selector label key - A Kubernetes label key under `frr_configuration_selector`.
+38. selector label value - A Kubernetes label value under `frr_configuration_selector`. Empty string values are supported.
+39. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-33. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+40. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 
@@ -211,17 +223,35 @@ kubeconfig_infra: (32)
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 37-59 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
+Test cases 37-47 and 70-79 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
 
-- **37-47** (Primary UDN): Layer3 network replacing the pod's default network.
+- **37-47** (Primary UDN): Network replacing the pod's default network. Its mode, topology, and transport are configured through `udn_primary_network`.
   - **37-42**: pod-to-pod, ClusterIP, and NodePort.
   - **43**: pod-to-external (egress out of the UDN to the public internet).
   - **44-45**: NetworkPolicy enforcement on the primary UDN (deny / allow).
   - **46-47**: pod-to-LoadBalancer-to-pod (same / different node).
-- **48-53** (Secondary UDN): Layer2 network attached as a 2nd interface. Supports pod-to-pod, ClusterIP, and NodePort.
-- **54-59** (Localnet UDN): Localnet topology secondary network via ClusterUserDefinedNetwork, providing direct L2 access. Supports pod-to-pod, ClusterIP, and NodePort.
+- **70-79** (Secondary UDN/CUDN): Pod-to-pod tests over a second interface.
+  - **70-71**: Layer3 CUDN.
+  - **72-73**: Layer3 UDN.
+  - **74-75**: Layer2 CUDN.
+  - **76-77**: Layer2 UDN.
+  - **78-79**: Localnet CUDN.
 
-CIDRs default to `15.1.0.0/16` (primary), `15.2.0.0/16` (secondary), and `15.3.0.0/24` (localnet), overridable via `TFT_UDN_PRIMARY_CIDR`, `TFT_UDN_SECONDARY_CIDR`, and `TFT_UDN_LOCALNET_CIDR`. The localnet physical network name defaults to `physnet`, overridable via `TFT_UDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn-primary.yaml.j2`, `manifests/udn-secondary.yaml.j2`, and `manifests/udn-localnet.yaml.j2`.
+The primary CIDR defaults to `15.1.0.0/16`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
+
+`udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
+
+`TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` selects the CUDN's no-overlay routing mode. When it is true, OVN-Kubernetes manages routing and TFT does not create RouteAdvertisements. When it is false, routing is unmanaged; set `frr_configuration_selector` to have TFT create a RouteAdvertisements object, or leave the selector empty when routing is provisioned outside TFT. The selector is a map of `frrConfigurationSelector.matchLabels` labels.
+
+```yaml
+udn_primary_network:
+  mode: cudn
+  topology: layer3
+  transport: no-overlay
+  frr_configuration_selector:
+    network: blue
+    ra.k8s.ovn.org/example: ""
+```
 
 ## Management Port Reachability Plugin
 
@@ -450,9 +480,14 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      tests. Defaults to `false`; when `true`, ClusterIP and LoadBalancer tests run both
      `IP` and `SERVICE_NAME`, while NodePort tests also include `SERVER_NODE_IP`.
 - `TFT_UDN_PRIMARY_CIDR` CIDR for primary UDN tests. Defaults to `15.1.0.0/16`.
-- `TFT_UDN_SECONDARY_CIDR` CIDR for secondary UDN tests. Defaults to `15.2.0.0/16`.
-- `TFT_UDN_LOCALNET_CIDR` CIDR for localnet UDN tests. Defaults to `15.3.0.0/24`.
-- `TFT_UDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet UDN tests. Defaults to `physnet`.
+- `TFT_CUDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 CUDN tests. Defaults to `15.2.0.0/16`.
+- `TFT_UDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 UDN tests. Defaults to `15.3.0.0/16`.
+- `TFT_CUDN_SECONDARY_LAYER2_CIDR` CIDR for secondary Layer2 CUDN tests. Defaults to `15.4.0.0/16`.
+- `TFT_UDN_SECONDARY_LAYER2_CIDR` CIDR for secondary Layer2 UDN tests. Defaults to `15.5.0.0/16`.
+- `TFT_CUDN_SECONDARY_LOCALNET_CIDR` CIDR for secondary localnet CUDN tests. Defaults to `15.6.0.0/24`.
+- `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet CUDN tests. Defaults to `physnet`.
+- `TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED` outbound SNAT setting for no-overlay CUDNs. Defaults to `true`.
+- `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` whether OVN-Kubernetes manages routing for no-overlay CUDNs. Defaults to `false` (unmanaged).
 - `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
      Only effective when the connection type is `http` and the connection mode is `POD_TO_EXTERNAL`
      or `HOST_TO_EXTERNAL`. When set, no Podman server is started; the client pod curls this URL
