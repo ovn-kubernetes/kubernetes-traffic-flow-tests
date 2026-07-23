@@ -84,7 +84,7 @@ tft:
       mode: "(34)"
       topology: "(35)"
       transport: "(36)"
-      uplinkInterface: "(37)"
+      hostInterfaceName: "(37)"
       route_advertisement: # (38)
         targetVRF: "(39)"
         frr_configuration_selector: # (40)
@@ -214,7 +214,7 @@ dpu_node_host_label: (44)
 34. "mode" - (Optional) Field under `udn_primary_network`. Supported values are `udn` and `cudn`.
 35. "topology" - (Optional) Field under `udn_primary_network`. Supported values are `layer3` and `layer2`.
 36. "transport" - (Optional) Field under `udn_primary_network`. Supported values are `overlay` and `no-overlay`; `no-overlay` requires `mode: cudn` and `topology: layer3`.
-37. "uplinkInterface" - (Optional) Host-visible gateway interface for a primary CUDN. TFT creates an `OVSBridge` Uplink that selects the configured server and client nodes by `kubernetes.io/hostname`, then references it from the CUDN. The interface and backing OVS bridge must already exist on each selected node.
+37. "hostInterfaceName" - (Optional) Host-visible gateway interface for a primary CUDN. TFT creates an `OVSBridge` Uplink that selects the configured server and client nodes by `kubernetes.io/hostname`, then references it from the CUDN. The interface and backing OVS bridge must already exist on each selected node.
 38. "route_advertisement" - (Optional) RouteAdvertisements configuration for an unmanaged no-overlay primary CUDN. When specified, `frr_configuration_selector` is required and must not be empty.
 39. "targetVRF" - (Optional) Value copied to `RouteAdvertisements.spec.targetVRF`. TFT accepts any non-empty value, but it must be `auto`, `default`, or the name of a VRF configured on a router in the selected `FRRConfiguration`. If omitted, TFT omits the field and preserves the API's existing behavior.
 40. "frr_configuration_selector" - Required under `route_advertisement`. Map copied to `RouteAdvertisements.spec.frrConfigurationSelector.matchLabels` to select the base `FRRConfiguration`.
@@ -251,7 +251,7 @@ The primary CIDR defaults to `15.1.0.0/16`. Secondary CIDRs default to `15.2.0.0
 
 `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` selects the CUDN's no-overlay routing mode. When it is true, OVN-Kubernetes manages routing and `route_advertisement` must not be set. When it is false, routing is unmanaged; set `route_advertisement` to have TFT create a RouteAdvertisements object, or omit it when routing is provisioned outside TFT. Its required `frr_configuration_selector` map selects the base FRRConfigurations through `frrConfigurationSelector.matchLabels`. Its optional `targetVRF` is copied directly to `RouteAdvertisements.spec.targetVRF`; omitting it preserves the existing API behavior.
 
-Set `uplinkInterface` on a primary CUDN to have TFT create an `OVSBridge` Uplink and add its name to `CUDN.spec.uplinks`. The Uplink selects every configured TFT server and client node by the standard `kubernetes.io/hostname` label. TFT does not create the interface or its backing OVS bridge; those must be provisioned before the test.
+Set `hostInterfaceName` on a primary CUDN to have TFT create an `OVSBridge` Uplink and add its name to `CUDN.spec.uplinks`. The Uplink selects every configured TFT server and client node by the standard `kubernetes.io/hostname` label. TFT does not create the interface or its backing OVS bridge; those must be provisioned before the test.
 
 ```yaml
 udn_primary_network:
@@ -259,7 +259,7 @@ udn_primary_network:
   mode: cudn
   topology: layer3
   transport: no-overlay
-  uplinkInterface: pf0hpf
+  hostInterfaceName: pf0hpf
   route_advertisement:
     targetVRF: auto
     frr_configuration_selector:

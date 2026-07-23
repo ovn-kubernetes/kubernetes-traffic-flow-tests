@@ -16,7 +16,7 @@ tft:
     #   mode: cudn
     #   topology: layer3
     #   transport: no-overlay
-    #   uplinkInterface: pf0hpf
+    #   hostInterfaceName: pf0hpf
     #   route_advertisement:
     #     targetVRF: auto
     #     frr_configuration_selector:

@@ -675,7 +675,7 @@ class ConfUdnNetwork(StructParseBase):
         if self.transport is not None:
             data["transport"] = self.transport.name
         if self.uplink_interface is not None:
-            data["uplinkInterface"] = self.uplink_interface
+            data["hostInterfaceName"] = self.uplink_interface
         if self.route_advertisement is not None:
             data["route_advertisement"] = self.route_advertisement.serialize()
         return data
@@ -722,7 +722,7 @@ class ConfUdnNetwork(StructParseBase):
                     default=None,
                 )
                 uplink_interface = common.structparse_pop_str(
-                    varg.for_key("uplinkInterface"),
+                    varg.for_key("hostInterfaceName"),
                     default=None,
                     allow_empty=False,
                 )
@@ -772,8 +772,8 @@ class ConfUdnNetwork(StructParseBase):
             not is_primary or mode != UdnNetworkMode.CUDN
         ):
             raise pctx.value_error(
-                "uplinkInterface is only supported for a primary CUDN",
-                key="uplinkInterface",
+                "hostInterfaceName is only supported for a primary CUDN",
+                key="hostInterfaceName",
             )
 
         return ConfUdnNetwork(
