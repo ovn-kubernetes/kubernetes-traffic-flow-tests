@@ -12,6 +12,7 @@ tft:
     # capabilities_pod:
     #   add: ["NET_ADMIN", "SYS_TIME"]
     # udn_primary_network:
+    #   name: blue
     #   mode: cudn
     #   topology: layer3
     #   transport: no-overlay
@@ -19,7 +20,7 @@ tft:
     #   route_advertisement:
     #     targetVRF: auto
     #     frr_configuration_selector:
-    #       routeAdvertisements: vpn-blue
+    #       network: blue
     connections:
       - name: "Connection_1"
         # supported "type": iperf-tcp, iperf-udp, netperf-tcp-stream,

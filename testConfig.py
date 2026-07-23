@@ -659,6 +659,7 @@ class ConfRouteAdvertisement(StructParseBase):
 @strict_dataclass
 @dataclass(frozen=True, kw_only=True)
 class ConfUdnNetwork(StructParseBase):
+    name: str
     mode: UdnNetworkMode
     topology: UdnNetworkTopology
     transport: Optional[UdnNetworkTransport]
@@ -667,6 +668,7 @@ class ConfUdnNetwork(StructParseBase):
 
     def serialize(self) -> dict[str, Any]:
         data: dict[str, Any] = {
+            "name": self.name,
             "mode": self.mode.name,
             "topology": self.topology.name,
         }
@@ -684,11 +686,13 @@ class ConfUdnNetwork(StructParseBase):
         *,
         is_primary: bool,
     ) -> "ConfUdnNetwork":
+        default_name = "tft-primary"
         default_topology = (
             UdnNetworkTopology.LAYER3 if is_primary else UdnNetworkTopology.LAYER2
         )
 
         if pctx.arg is None:
+            name = default_name
             mode = UdnNetworkMode.UDN
             topology = default_topology
             transport: Optional[UdnNetworkTransport] = UdnNetworkTransport.OVERLAY
@@ -697,6 +701,11 @@ class ConfUdnNetwork(StructParseBase):
         else:
             with pctx.with_strdict() as varg:
                 transport_configured = "transport" in varg.vdict
+                name = common.structparse_pop_str(
+                    varg.for_key("name"),
+                    default=default_name,
+                    allow_empty=False,
+                )
                 mode = common.structparse_pop_enum(
                     varg.for_key("mode"),
                     enum_type=UdnNetworkMode,
@@ -770,6 +779,7 @@ class ConfUdnNetwork(StructParseBase):
         return ConfUdnNetwork(
             yamlidx=pctx.yamlidx,
             yamlpath=pctx.yamlpath,
+            name=name,
             mode=mode,
             topology=topology,
             transport=transport,

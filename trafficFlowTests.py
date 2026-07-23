@@ -311,7 +311,7 @@ class TrafficFlowTests:
                 udn_ns=udn_ns,
                 resource_name=resource_name,
                 network=tft.udn_primary_network,
-                network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
+                network_name=tft.udn_primary_network.name,
                 is_primary=True,
                 cidr=tftbase.get_udn_primary_cidr(),
             )
