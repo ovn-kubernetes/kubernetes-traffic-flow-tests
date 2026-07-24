@@ -18,6 +18,7 @@ jobs:
             tft_config: ""
             tft_env: |
               TFT_ENABLE_TARGET_ACCESS_SUBTESTS=true
+              TFT_UDN_PRIMARY_CIDR=15.1.0.0/17/24,15.1.128.0/17/24
           - scenario: diverse-subset
             dpu_sim_config: ci/config-kind.yaml
             tft_config: .github/tft-configs/diverse-subset.yaml

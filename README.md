@@ -237,7 +237,7 @@ Test cases 37-47 and 70-79 run traffic over OVN-Kubernetes User Defined Networks
   - **76-77**: Layer2 UDN.
   - **78-79**: Localnet CUDN.
 
-The primary CIDR defaults to `15.1.0.0/16`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
+The primary CIDR defaults to `15.1.0.0/16` with host subnet `24`. `TFT_UDN_PRIMARY_CIDR` accepts comma-separated entries, for example `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry can include an optional host subnet length as `15.1.0.0/16/24`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
 
 `udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
 
@@ -479,7 +479,7 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_ENABLE_TARGET_ACCESS_SUBTESTS` enables extra target access variants for service-backed
      tests. Defaults to `false`; when `true`, ClusterIP and LoadBalancer tests run both
      `IP` and `SERVICE_NAME`, while NodePort tests also include `SERVER_NODE_IP`.
-- `TFT_UDN_PRIMARY_CIDR` CIDR for primary UDN tests. Defaults to `15.1.0.0/16`.
+- `TFT_UDN_PRIMARY_CIDR` comma-separated CIDR entries for primary UDN tests, e.g. `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry supports an optional host subnet length, e.g. `15.1.0.0/16/24`; entries without one use `24`. Defaults to a single `15.1.0.0/16` entry.
 - `TFT_CUDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 CUDN tests. Defaults to `15.2.0.0/16`.
 - `TFT_UDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 UDN tests. Defaults to `15.3.0.0/16`.
 - `TFT_CUDN_SECONDARY_LAYER2_CIDR` CIDR for secondary Layer2 CUDN tests. Defaults to `15.4.0.0/16`.
