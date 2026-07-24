@@ -294,6 +294,7 @@ def test_udn_primary_cidr_list(monkeypatch: pytest.MonkeyPatch) -> None:
         ("10.10.0.0/16", 24),
         ("10.11.0.0/16", 25),
     )
+    tftbase.get_udn_primary_subnets.cache_clear()
 
 
 def test_str_sanitize() -> None:
