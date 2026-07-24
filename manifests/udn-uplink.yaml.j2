@@ -1,0 +1,18 @@
+apiVersion: k8s.ovn.org/v1alpha1
+kind: Uplink
+metadata:
+  name: {{ uplink_name }}
+  labels:
+    tft-tests: "udn"
+spec:
+  nodeConfigs:
+  - type: OVSBridge
+    nodeSelector:
+      matchExpressions:
+      - key: kubernetes.io/hostname
+        operator: In
+        values:
+{% for node_name in node_names %}
+        - {{ node_name }}
+{% endfor %}
+    hostInterfaceName: {{ uplink_interface }}

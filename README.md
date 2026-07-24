@@ -80,14 +80,18 @@ tft:
     privileged_pod: (30)
     capabilities_pod: (31)
     udn_primary_network: # (32)
-      mode: "(33)"
-      topology: "(34)"
-      transport: "(35)"
-      frr_configuration_selector: # (36)
-        "(37)": "(38)"
-kubeconfig: (39)
-kubeconfig_infra: (39)
-dpu_node_host_label: (40)
+      name: "(33)"
+      mode: "(34)"
+      topology: "(35)"
+      transport: "(36)"
+      hostInterfaceName: "(37)"
+      route_advertisement: # (38)
+        targetVRF: "(39)"
+        frr_configuration_selector: # (40)
+          "(41)": "(42)"
+kubeconfig: (43)
+kubeconfig_infra: (43)
+dpu_node_host_label: (44)
 ```
 
 1. "name" - This is the name of the test. Any string value to identify the test.
@@ -206,16 +210,20 @@ dpu_node_host_label: (40)
 30. "privileged_pod" - (Optional) - Whether to run test pods as privileged. Defaults to false. Can be set at test level or per-node (server/client).
 31. "capabilities_pod" - (Optional) - Linux capabilities for test pods. Format: `{"add": ["NET_ADMIN", "SYS_TIME"]}`. Can be set at test level (applies to all pods) or per-node (server/client) for fine-grained control. Per-node settings take precedence over test-level settings.
 32. "udn_primary_network" - (Optional) Test-level network configuration for primary UDN test cases. Defaults to `mode: udn`, `topology: layer3`, and `transport: overlay`.
-33. "mode" - (Optional) Field under `udn_primary_network`. Supported values are `udn` and `cudn`.
-34. "topology" - (Optional) Field under `udn_primary_network`. Supported values are `layer3` and `layer2`.
-35. "transport" - (Optional) Field under `udn_primary_network`. Supported values are `overlay` and `no-overlay`; `no-overlay` requires `mode: cudn` and `topology: layer3`.
-36. "frr_configuration_selector" - (Optional) Field under `udn_primary_network`. Map of `frrConfigurationSelector.matchLabels` labels used to create RouteAdvertisements for unmanaged no-overlay CUDNs. If omitted or empty, RouteAdvertisements are not created.
-37. selector label key - A Kubernetes label key under `frr_configuration_selector`.
-38. selector label value - A Kubernetes label value under `frr_configuration_selector`. Empty string values are supported.
-39. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
+33. "name" - (Optional) Name of the primary UDN or CUDN. Defaults to `tft-primary`. TFT passes the name through to the generated resources; the user is responsible for choosing a value accepted by Kubernetes and OVN-Kubernetes.
+34. "mode" - (Optional) Field under `udn_primary_network`. Supported values are `udn` and `cudn`.
+35. "topology" - (Optional) Field under `udn_primary_network`. Supported values are `layer3` and `layer2`.
+36. "transport" - (Optional) Field under `udn_primary_network`. Supported values are `overlay` and `no-overlay`; `no-overlay` requires `mode: cudn` and `topology: layer3`.
+37. "hostInterfaceName" - (Optional) Host-visible gateway interface for a primary CUDN. TFT creates an `OVSBridge` Uplink that selects the configured server and client nodes by `kubernetes.io/hostname`, then references it from the CUDN. The interface and backing OVS bridge must already exist on each selected node.
+38. "route_advertisement" - (Optional) RouteAdvertisements configuration for an unmanaged no-overlay primary CUDN. When specified, `frr_configuration_selector` is required and must not be empty.
+39. "targetVRF" - (Optional) Value copied to `RouteAdvertisements.spec.targetVRF`. TFT accepts any non-empty value, but it must be `auto`, `default`, or the name of a VRF configured on a router in the selected `FRRConfiguration`. If omitted, TFT omits the field and preserves the API's existing behavior.
+40. "frr_configuration_selector" - Required under `route_advertisement`. Map copied to `RouteAdvertisements.spec.frrConfigurationSelector.matchLabels` to select the base `FRRConfiguration`.
+41. selector label key - A Kubernetes label key under `frr_configuration_selector`.
+42. selector label value - A Kubernetes label value under `frr_configuration_selector`. Empty string values are supported.
+43. "kubeconfig", "kubeconfig_infra": if set to non-empty strings, then these are the KUBECONFIG
   files. "kubeconfig_infra" must be set for DPU cluster mode. If both are empty, the configs
   are detected based on the files we find at /root/kubeconfig.*.
-40. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
+44. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
 
 
@@ -239,19 +247,26 @@ Test cases 37-47 and 70-79 run traffic over OVN-Kubernetes User Defined Networks
 
 The primary CIDR defaults to `15.1.0.0/16` with host subnet `24`. `TFT_UDN_PRIMARY_CIDR` accepts comma-separated entries, for example `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry can include an optional host subnet length as `15.1.0.0/16/24`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
 
-`udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
+`udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. Its `name` defaults to `tft-primary`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
 
-`TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` selects the CUDN's no-overlay routing mode. When it is true, OVN-Kubernetes manages routing and TFT does not create RouteAdvertisements. When it is false, routing is unmanaged; set `frr_configuration_selector` to have TFT create a RouteAdvertisements object, or leave the selector empty when routing is provisioned outside TFT. The selector is a map of `frrConfigurationSelector.matchLabels` labels.
+`TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` selects the CUDN's no-overlay routing mode. When it is true, OVN-Kubernetes manages routing and `route_advertisement` must not be set. When it is false, routing is unmanaged; set `route_advertisement` to have TFT create a RouteAdvertisements object, or omit it when routing is provisioned outside TFT. Its required `frr_configuration_selector` map selects the base FRRConfigurations through `frrConfigurationSelector.matchLabels`. Its optional `targetVRF` is copied directly to `RouteAdvertisements.spec.targetVRF`; omitting it preserves the existing API behavior.
+
+Set `hostInterfaceName` on a primary CUDN to have TFT create an `OVSBridge` Uplink and add its name to `CUDN.spec.uplinks`. The Uplink selects every configured TFT server and client node by the standard `kubernetes.io/hostname` label. TFT does not create the interface or its backing OVS bridge; those must be provisioned before the test.
 
 ```yaml
 udn_primary_network:
+  name: blue
   mode: cudn
   topology: layer3
   transport: no-overlay
-  frr_configuration_selector:
-    network: blue
-    ra.k8s.ovn.org/example: ""
+  hostInterfaceName: pf0hpf
+  route_advertisement:
+    targetVRF: auto
+    frr_configuration_selector:
+      network: blue
 ```
+
+With this configuration, OVN-Kubernetes creates the CUDN VRF as `blue`. The selected base `FRRConfiguration` must have a matching label such as `network: blue` and a BGP router configured with `vrf: blue`. The selector label only selects the `FRRConfiguration`; the CUDN name determines the VRF used by `targetVRF: auto`. This exact name matching applies to CUDNs; namespaced UDNs use an OVN-Kubernetes-generated VRF name.
 
 ## Management Port Reachability Plugin
 

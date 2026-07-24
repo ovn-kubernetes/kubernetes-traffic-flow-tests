@@ -260,7 +260,6 @@ def get_tft_pod_bringup_timeout() -> str:
 
 TFT_TESTS = "tft-tests"
 
-UDN_PRIMARY_NETWORK_NAME = "tft-primary"
 UDN_TRANSPORT_ACCEPTED_TIMEOUT = 120
 
 ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
