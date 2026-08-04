@@ -140,10 +140,10 @@ class HttpClient(task.ClientTask):
             if test_metadata.expects_blocked:
                 if success:
                     success = False
-                    msg = "Traffic was not blocked as expected (policy not enforced)"
+                    msg = "Traffic was not blocked as expected"
                 else:
                     success = True
-                    msg = "Traffic was blocked as expected (deny policy active)"
+                    msg = "Traffic was blocked as expected"
 
             return FlowTestOutput(
                 success=success,
