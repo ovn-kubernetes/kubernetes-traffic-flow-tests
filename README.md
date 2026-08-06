@@ -491,7 +491,7 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_EXTERNAL_SERVER` address of a pre-existing external server in `host[:port]` format
      (e.g. `192.168.1.100:5201`). Works with any test type (iperf, netperf, http).
      When set and the connection mode is `EXTERNAL_IP` (`POD_TO_EXTERNAL`, `HOST_TO_EXTERNAL`,
-     `UDN_PRIMARY_POD_TO_EXTERNAL`, `POD_TO_EXTERNAL_EGRESS`), no local Podman container is
+     `UDN_PRIMARY_POD_TO_EXTERNAL`), no local Podman container is
      started; the client pod connects directly to the specified server. If port is omitted,
      the configured `pod_port` is used (defaults to `5201`). IPv6 addresses use bracket notation
      (e.g. `[fd00::1]:5201`). To start an iperf3 server on the remote host:

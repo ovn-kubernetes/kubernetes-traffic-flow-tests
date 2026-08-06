@@ -1269,6 +1269,13 @@ class ServerTask(Task, ABC):
             )
         )
 
+        if use_external and ts.connection.has_egress_ip:
+            raise ValueError(
+                "TFT_EXTERNAL_SERVER cannot be used with EgressIP tests"
+                " because the external server's output is not available"
+                " for source-IP verification"
+            )
+
         if use_external:
             in_file_template = ""
             pod_name = ""
