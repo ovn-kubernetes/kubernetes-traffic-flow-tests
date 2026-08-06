@@ -1298,6 +1298,7 @@ class ServerTask(Task, ABC):
         self.exec_persistent = ts.node_server.is_persistent_server
         self.pre_provisioning: bool = False
         self.port = port
+        self.port_base = port_base
         # external_port is discovered dynamically for EXTERNAL_IP mode
         self.external_port: int = 0
         self.pod_type = pod_type
@@ -1782,7 +1783,7 @@ class ClientTask(Task, ABC):
                 _, port = external_server
                 if port is not None:
                     return port
-                return self.server.port
+                return self.server.port_base
             return 0
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
             return self.server.external_port

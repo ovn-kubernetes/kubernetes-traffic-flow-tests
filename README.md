@@ -495,7 +495,7 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      started; the client pod connects directly to the specified server. If port is omitted,
      the configured `pod_port` is used (defaults to `5201`). IPv6 addresses use bracket notation
      (e.g. `[fd00::1]:5201`). To start an iperf3 server on the remote host:
-     ```
+     ```bash
      podman run --rm -p 5201:5201 ghcr.io/ovn-kubernetes/kubernetes-traffic-flow-tests:latest iperf3 -s -p 5201
      ```
 - `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
