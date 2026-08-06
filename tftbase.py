@@ -36,6 +36,7 @@ ENV_TFT_MANIFESTS_OVERRIDES = "TFT_MANIFESTS_OVERRIDES"
 ENV_TFT_MANIFESTS_YAMLS = "TFT_MANIFESTS_YAMLS"
 
 ENV_TFT_EXTERNAL_URL = "TFT_EXTERNAL_URL"
+ENV_TFT_EXTERNAL_SERVER = "TFT_EXTERNAL_SERVER"
 ENV_TFT_EXTERNAL_SERVER_STRING = "TFT_EXTERNAL_SERVER_STRING"
 
 ENV_TFT_HOST_NETWORK_NAMESPACE = "TFT_HOST_NETWORK_NAMESPACE"
@@ -242,6 +243,29 @@ def get_tft_external_url() -> Optional[str]:
     d = get_environ(ENV_TFT_EXTERNAL_URL)
     logger.info(f"env: {ENV_TFT_EXTERNAL_URL}={shlex.quote(d or '')}")
     return d or None
+
+
+@functools.cache
+def get_tft_external_server() -> Optional[tuple[str, Optional[int]]]:
+    d = get_environ(ENV_TFT_EXTERNAL_SERVER)
+    logger.info(f"env: {ENV_TFT_EXTERNAL_SERVER}={shlex.quote(d or '')}")
+    if not d:
+        return None
+    if d.startswith("["):
+        bracket_end = d.find("]")
+        if bracket_end == -1:
+            return (d, None)
+        host = d[1:bracket_end]
+        rest = d[bracket_end + 1 :]
+        if rest.startswith(":"):
+            return (host, int(rest[1:]))
+        return (host, None)
+    if d.count(":") == 1:
+        host, port_str = d.split(":", 1)
+        return (host, int(port_str))
+    if ":" in d:
+        return (d, None)
+    return (d, None)
 
 
 @functools.cache
