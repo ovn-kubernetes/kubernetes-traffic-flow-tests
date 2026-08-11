@@ -138,11 +138,13 @@ class TestSettings:
     def connection_mode(self) -> tftbase.ConnectionMode:
         return self.test_case_id.info.connection_mode
 
-    def get_test_info(self) -> str:
+    def get_test_info(self, *, client_pod_name: str, server_pod_name: str) -> str:
         return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}, target-access={self.target_access_mode.name}
+        Client Pod: {client_pod_name}
         Client Node: {self.node_client.name}
             Tenant={self.client_is_tenant}
             Index={self.client_index}
+        Server Pod: {server_pod_name}
         Server Node: {self.node_server.name}
             Exec Persistence: {self.node_server.is_persistent_server}
             Tenant={self.server_is_tenant}
