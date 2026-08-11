@@ -1157,6 +1157,7 @@ class Task(ABC):
                 log_level = logging.ERROR
                 log_msg = "failure"
             logger.log(log_level, f"Results of {self.ts.get_test_str()}: {log_msg}")
+            logger.log(log_level, f"Command: {result.command}")
             logger.debug(f"result: {common.dataclass_to_json(result)}")
         elif isinstance(result, PluginOutput):
             tft_result_builder.add_plugin(result)
