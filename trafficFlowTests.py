@@ -588,8 +588,10 @@ class TrafficFlowTests:
             reverse=reverse,
             target_access_mode=target_access_mode,
         )
-        logger.info(f"Starting test {ts.get_test_info()}")
         s, c = connection.test_type_handler.create_server_client(ts)
+        logger.info(
+            f"Starting test {ts.get_test_info(client_pod_name=c.pod_name, server_pod_name=s.pod_name)}"
+        )
         servers.append(s)
         clients.append(c)
         current_test_case = cfg_descr.get_test_case()
