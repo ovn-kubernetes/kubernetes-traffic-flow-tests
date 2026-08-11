@@ -1261,13 +1261,22 @@ class ServerTask(Task, ABC):
         )
         port = port_base + self.index
 
-        use_internet = (
-            connection_mode == ConnectionMode.EXTERNAL_IP
-            and tftbase.get_tft_external_url() is not None
-            and ts.connection.test_type == TestType.HTTP
+        use_external = connection_mode == ConnectionMode.EXTERNAL_IP and (
+            tftbase.get_tft_external_server() is not None
+            or (
+                tftbase.get_tft_external_url() is not None
+                and ts.connection.test_type == TestType.HTTP
+            )
         )
 
-        if use_internet:
+        if use_external and ts.connection.has_egress_ip:
+            raise ValueError(
+                "TFT_EXTERNAL_SERVER cannot be used with EgressIP tests"
+                " because the external server's output is not available"
+                " for source-IP verification"
+            )
+
+        if use_external:
             in_file_template = ""
             pod_name = ""
         elif connection_mode == ConnectionMode.EXTERNAL_IP:
@@ -1296,11 +1305,12 @@ class ServerTask(Task, ABC):
         self.exec_persistent = ts.node_server.is_persistent_server
         self.pre_provisioning: bool = False
         self.port = port
+        self.port_base = port_base
         # external_port is discovered dynamically for EXTERNAL_IP mode
         self.external_port: int = 0
         self.pod_type = pod_type
         self.connection_mode = ts.connection_mode
-        self.use_internet = use_internet
+        self.use_external = use_external
         self.in_file_template = in_file_template
         self.pod_name = pod_name
         self.server_stdout: Optional[str] = None
@@ -1338,8 +1348,7 @@ class ServerTask(Task, ABC):
         return self.cmd_line_args(for_template=True)
 
     def confirm_server_alive(self) -> None:
-        if self.use_internet:
-            # No server to wait for; client curls external URL directly.
+        if self.use_external:
             self.ts.event_server_alive.set()
             return
 
@@ -1468,8 +1477,7 @@ class ServerTask(Task, ABC):
 
         self.pre_provisioning = provisioning
 
-        if self.use_internet:
-            # No server needed; client curls external URL directly.
+        if self.use_external:
             self.ts.event_server_alive.set()
             return None
 
@@ -1704,8 +1712,10 @@ class ClientTask(Task, ABC):
         self.render_pod_file("Client Pod Yaml")
 
     def get_target_ip(self) -> str:
-        if self.server.use_internet:
-            # URL is used directly by testTypeHttp; no IP needed.
+        if self.server.use_external:
+            external_server = tftbase.get_tft_external_server()
+            if external_server is not None:
+                return external_server[0]
             return ""
         if self.connection_mode == ConnectionMode.CLUSTER_IP:
             if self.target_access_mode == TargetAccessMode.SERVICE_NAME:
@@ -1774,9 +1784,13 @@ class ClientTask(Task, ABC):
         return server_ip
 
     def get_target_port(self) -> int:
-        """Get the port to connect to. For EXTERNAL_IP, use discovered external_port."""
-        if self.server.use_internet:
-            # URL is used directly by testTypeHttp; no port needed.
+        if self.server.use_external:
+            external_server = tftbase.get_tft_external_server()
+            if external_server is not None:
+                _, port = external_server
+                if port is not None:
+                    return port
+                return self.server.port_base
             return 0
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
             return self.server.external_port

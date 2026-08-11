@@ -297,6 +297,46 @@ def test_udn_primary_cidr_list(monkeypatch: pytest.MonkeyPatch) -> None:
     tftbase.get_udn_primary_subnets.cache_clear()
 
 
+def test_get_tft_external_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.delenv(tftbase.ENV_TFT_EXTERNAL_SERVER, raising=False)
+    assert tftbase.get_tft_external_server() is None
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "")
+    assert tftbase.get_tft_external_server() is None
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "192.168.1.100")
+    assert tftbase.get_tft_external_server() == ("192.168.1.100", None)
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "192.168.1.100:5201")
+    assert tftbase.get_tft_external_server() == ("192.168.1.100", 5201)
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "myhost")
+    assert tftbase.get_tft_external_server() == ("myhost", None)
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "myhost:12865")
+    assert tftbase.get_tft_external_server() == ("myhost", 12865)
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "fd00::1")
+    assert tftbase.get_tft_external_server() == ("fd00::1", None)
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "[fd00::1]:5201")
+    assert tftbase.get_tft_external_server() == ("fd00::1", 5201)
+
+    tftbase.get_tft_external_server.cache_clear()
+    monkeypatch.setenv(tftbase.ENV_TFT_EXTERNAL_SERVER, "[fd00::1]")
+    assert tftbase.get_tft_external_server() == ("fd00::1", None)
+
+    tftbase.get_tft_external_server.cache_clear()
+
+
 def test_str_sanitize() -> None:
     assert tftbase.str_sanitize("") == ""
     assert tftbase.str_sanitize("hello!wo_rld@12.3") == "hello-z21-wo-z5f-rld-z40-12-03"

@@ -488,6 +488,16 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet CUDN tests. Defaults to `physnet`.
 - `TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED` outbound SNAT setting for no-overlay CUDNs. Defaults to `true`.
 - `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` whether OVN-Kubernetes manages routing for no-overlay CUDNs. Defaults to `false` (unmanaged).
+- `TFT_EXTERNAL_SERVER` address of a pre-existing external server in `host[:port]` format
+     (e.g. `192.168.1.100:5201`). Works with any test type (iperf, netperf, http).
+     When set and the connection mode is `EXTERNAL_IP` (`POD_TO_EXTERNAL`, `HOST_TO_EXTERNAL`,
+     `UDN_PRIMARY_POD_TO_EXTERNAL`), no local Podman container is
+     started; the client pod connects directly to the specified server. If port is omitted,
+     the configured `pod_port` is used (defaults to `5201`). IPv6 addresses use bracket notation
+     (e.g. `[fd00::1]:5201`). To start an iperf3 server on the remote host:
+     ```bash
+     podman run --rm -p 5201:5201 ghcr.io/ovn-kubernetes/kubernetes-traffic-flow-tests:latest iperf3 -s -p 5201
+     ```
 - `TFT_EXTERNAL_URL` URL to curl for external connectivity tests (e.g. `http://google.com`).
      Only effective when the connection type is `http` and the connection mode is `POD_TO_EXTERNAL`
      or `HOST_TO_EXTERNAL`. When set, no Podman server is started; the client pod curls this URL
