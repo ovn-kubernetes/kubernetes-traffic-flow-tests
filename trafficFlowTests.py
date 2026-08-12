@@ -446,10 +446,8 @@ class TrafficFlowTests:
         if client.oc_get(f"namespace/{udn_ns}", may_fail=True) is None:
             self._cleanup_udn_resources(cfg_descr, None, delete_namespace=False)
             return
-        logger.info(
-            f"Found existing UDN namespace {udn_ns} from a previous run, cleaning up"
-        )
-        self._cleanup_udn_resources(cfg_descr, udn_ns, delete_namespace=True)
+        logger.info(f"Found existing UDN namespace {udn_ns}, cleaning up TFT resources")
+        self._cleanup_udn_resources(cfg_descr, udn_ns, delete_namespace=False)
 
     def _cleanup_previous_testspace(
         self, cfg_descr: ConfigDescriptor, force_cleanup: bool = False
