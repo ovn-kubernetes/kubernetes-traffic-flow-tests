@@ -239,6 +239,8 @@ Test cases 37-47 and 70-79 run traffic over OVN-Kubernetes User Defined Networks
 
 The primary CIDR defaults to `15.1.0.0/16` with host subnet `24`. `TFT_UDN_PRIMARY_CIDR` accepts comma-separated entries, for example `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry can include an optional host subnet length as `15.1.0.0/16/24`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
 
+Secondary Layer2 and Localnet IPAM modes can be passed through with the corresponding environment variables listed below. TFT does not validate their values. When a variable is unset, TFT omits `ipam` from that UDN/CUDN. TFT includes `subnets` only when the mode is unset or `Enabled`, as required by the OVN-Kubernetes API.
+
 `udn_primary_network` supports `mode` values `udn` and `cudn`, `topology` values `layer3` and `layer2`, and `transport` values `overlay` and `no-overlay`. `no-overlay` requires `mode: cudn` and `topology: layer3`.
 
 `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` selects the CUDN's no-overlay routing mode. When it is true, OVN-Kubernetes manages routing and TFT does not create RouteAdvertisements. When it is false, routing is unmanaged; set `frr_configuration_selector` to have TFT create a RouteAdvertisements object, or leave the selector empty when routing is provisioned outside TFT. The selector is a map of `frrConfigurationSelector.matchLabels` labels.
@@ -485,6 +487,9 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_CUDN_SECONDARY_LAYER2_CIDR` CIDR for secondary Layer2 CUDN tests. Defaults to `15.4.0.0/16`.
 - `TFT_UDN_SECONDARY_LAYER2_CIDR` CIDR for secondary Layer2 UDN tests. Defaults to `15.5.0.0/16`.
 - `TFT_CUDN_SECONDARY_LOCALNET_CIDR` CIDR for secondary localnet CUDN tests. Defaults to `15.6.0.0/24`.
+- `TFT_CUDN_SECONDARY_LAYER2_IPAM_MODE` `ipam.mode` for secondary Layer2 CUDN tests. Omitted when unset.
+- `TFT_UDN_SECONDARY_LAYER2_IPAM_MODE` `ipam.mode` for secondary Layer2 UDN tests. Omitted when unset.
+- `TFT_CUDN_SECONDARY_LOCALNET_IPAM_MODE` `ipam.mode` for secondary Localnet CUDN tests. Omitted when unset.
 - `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK` physical network name for localnet CUDN tests. Defaults to `physnet`.
 - `TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED` outbound SNAT setting for no-overlay CUDNs. Defaults to `true`.
 - `TFT_UDN_NO_OVERLAY_ROUTING_MANAGED` whether OVN-Kubernetes manages routing for no-overlay CUDNs. Defaults to `false` (unmanaged).
