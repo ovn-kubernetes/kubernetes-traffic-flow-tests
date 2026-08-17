@@ -31,6 +31,9 @@ class TrafficFlowTests:
         self._udn_ns: str | None = None
         self._udn_ns_created: bool = False
         self._udn_setup_done: bool = False
+        self._original_primary_cudn_namespace_selector: (
+            tuple[str, dict[str, object]] | None
+        ) = None
 
     def _has_non_udn_tests(self, cfg_descr: ConfigDescriptor) -> bool:
         return any(not tc.is_udn for tc in cfg_descr.get_tft().test_cases)
@@ -202,6 +205,52 @@ class TrafficFlowTests:
         if is_no_overlay:
             self._wait_for_cudn_transport_accepted(cfg_descr, network_name)
 
+    def _set_primary_cudn_namespace_selector(
+        self,
+        cfg_descr: ConfigDescriptor,
+        *,
+        cudn_name: str,
+        namespace_selector: dict[str, object],
+    ) -> None:
+        namespace_selector_patch = json.dumps(
+            [
+                {
+                    "op": "replace",
+                    "path": "/spec/namespaceSelector",
+                    "value": namespace_selector,
+                }
+            ]
+        )
+        cfg_descr.tc.client_tenant.oc(
+            [
+                "patch",
+                f"clusteruserdefinednetwork/{cudn_name}",
+                "--type=json",
+                "-p",
+                namespace_selector_patch,
+            ],
+            namespace=None,
+            die_on_error=True,
+        )
+
+    def _restore_primary_cudn_namespace_selector(
+        self, cfg_descr: ConfigDescriptor
+    ) -> None:
+        original = self._original_primary_cudn_namespace_selector
+        if original is None:
+            return
+        cudn_name, namespace_selector = original
+        logger.info(
+            "Restoring namespace selector for existing "
+            f"ClusterUserDefinedNetwork/{cudn_name}"
+        )
+        self._set_primary_cudn_namespace_selector(
+            cfg_descr,
+            cudn_name=cudn_name,
+            namespace_selector=namespace_selector,
+        )
+        self._original_primary_cudn_namespace_selector = None
+
     def _setup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
         needs_primary = any(tc.is_udn_primary for tc in tft.test_cases)
@@ -216,6 +265,17 @@ class TrafficFlowTests:
 
         udn_ns = tftbase.get_udn_namespace(tft.namespace)
         client = cfg_descr.tc.client_tenant
+        existing_primary_cudn = (
+            tftbase.get_existing_primary_cudn() if needs_primary else None
+        )
+        if (
+            existing_primary_cudn is not None
+            and existing_primary_cudn in secondary_networks
+        ):
+            raise RuntimeError(
+                "TFT cannot create a secondary network with the same name as "
+                f"the existing primary CUDN: {existing_primary_cudn}"
+            )
 
         logger.info(f"Setting up UDN in namespace {udn_ns}")
 
@@ -254,15 +314,55 @@ class TrafficFlowTests:
             self._udn_ns_created = True
 
         if needs_primary:
-            self._setup_udn_network(
-                cfg_descr,
-                udn_ns=udn_ns,
-                resource_name=resource_name,
-                network=tft.udn_primary_network,
-                network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
-                is_primary=True,
-                subnets=tftbase.get_udn_primary_subnets(),
-            )
+            if existing_primary_cudn is not None:
+                logger.info(
+                    "Configuring existing "
+                    f"ClusterUserDefinedNetwork/{existing_primary_cudn} "
+                    f"for namespace {udn_ns}"
+                )
+                cudn = client.oc_get(
+                    f"clusteruserdefinednetwork/{existing_primary_cudn}",
+                    namespace=None,
+                    die_on_error=True,
+                )
+                if cudn is None:
+                    raise RuntimeError(
+                        "Failed to get existing "
+                        f"ClusterUserDefinedNetwork/{existing_primary_cudn}"
+                    )
+                cudn_spec = cudn.get("spec")
+                namespace_selector = (
+                    cudn_spec.get("namespaceSelector")
+                    if isinstance(cudn_spec, dict)
+                    else None
+                )
+                if not isinstance(namespace_selector, dict):
+                    raise RuntimeError(
+                        "Existing "
+                        f"ClusterUserDefinedNetwork/{existing_primary_cudn} "
+                        "has no namespace selector"
+                    )
+                self._original_primary_cudn_namespace_selector = (
+                    existing_primary_cudn,
+                    namespace_selector,
+                )
+                self._set_primary_cudn_namespace_selector(
+                    cfg_descr,
+                    cudn_name=existing_primary_cudn,
+                    namespace_selector={
+                        "matchLabels": {"kubernetes.io/metadata.name": udn_ns}
+                    },
+                )
+            else:
+                self._setup_udn_network(
+                    cfg_descr,
+                    udn_ns=udn_ns,
+                    resource_name=resource_name,
+                    network=tft.udn_primary_network,
+                    network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
+                    is_primary=True,
+                    subnets=tftbase.get_udn_primary_subnets(),
+                )
 
         for network in secondary_networks.values():
             network_config = dataclasses.replace(
@@ -755,4 +855,7 @@ class TrafficFlowTests:
                 filename=str(log_file),
             )
         finally:
-            self._final_cleanup(cfg_descr, ns_created)
+            try:
+                self._final_cleanup(cfg_descr, ns_created)
+            finally:
+                self._restore_primary_cudn_namespace_selector(cfg_descr)

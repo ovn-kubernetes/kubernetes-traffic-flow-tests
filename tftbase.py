@@ -263,6 +263,7 @@ TFT_TESTS = "tft-tests"
 UDN_PRIMARY_NETWORK_NAME = "tft-primary"
 UDN_TRANSPORT_ACCEPTED_TIMEOUT = 120
 
+ENV_TFT_EXISTING_PRIMARY_CUDN = "TFT_EXISTING_PRIMARY_CUDN"
 ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
 ENV_TFT_CUDN_SECONDARY_LAYER3_CIDR = "TFT_CUDN_SECONDARY_LAYER3_CIDR"
 ENV_TFT_UDN_SECONDARY_LAYER3_CIDR = "TFT_UDN_SECONDARY_LAYER3_CIDR"
@@ -295,6 +296,13 @@ def get_udn_primary_subnets() -> tuple[tuple[str, int], ...]:
     return tuple(
         _parse_udn_primary_subnet(cidr.strip()) for cidr in s.split(",") if cidr.strip()
     )
+
+
+@functools.cache
+def get_existing_primary_cudn() -> Optional[str]:
+    s = get_environ(ENV_TFT_EXISTING_PRIMARY_CUDN)
+    logger.info(f"env: {ENV_TFT_EXISTING_PRIMARY_CUDN}={shlex.quote(s or '')}")
+    return s or None
 
 
 @functools.cache
