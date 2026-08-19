@@ -96,9 +96,10 @@ class TrafficFlowTests:
         network_name: str,
         network_label: str,
     ) -> None:
-        if not network.frr_configuration_selector:
+        route_advertisement = network.route_advertisement
+        if route_advertisement is None:
             logger.info(
-                "No no-overlay FRRConfiguration selector configured; "
+                "No no-overlay RouteAdvertisements configuration provided; "
                 f"not creating RouteAdvertisements for {network_name}"
             )
             return
@@ -114,9 +115,11 @@ class TrafficFlowTests:
             {
                 "network_name": _j(network_name),
                 "network_label": _j(network_label),
+                "has_target_vrf": route_advertisement.target_vrf is not None,
+                "target_vrf": _j(route_advertisement.target_vrf or ""),
                 "frr_configuration_selector": [
                     (_j(k), _j(v))
-                    for k, v in network.frr_configuration_selector.items()
+                    for k, v in route_advertisement.frr_configuration_selector.items()
                 ],
             },
             out_file=out_yaml,
@@ -158,6 +161,12 @@ class TrafficFlowTests:
                 else "Disabled"
             )
             no_overlay_routing = "Managed" if routing_managed else "Unmanaged"
+        if routing_managed and network.route_advertisement is not None:
+            raise RuntimeError(
+                "route_advertisement requires "
+                "TFT_UDN_NO_OVERLAY_ROUTING_MANAGED=false"
+            )
+        uplink_name = network.uplink_name or ""
         template_name = (
             "cudn.yaml.j2"
             if network.mode == tftbase.UdnNetworkMode.CUDN
@@ -187,6 +196,8 @@ class TrafficFlowTests:
                 "transport_name": transport_name,
                 "no_overlay_outbound_snat": _j(no_overlay_outbound_snat),
                 "no_overlay_routing": _j(no_overlay_routing),
+                "has_uplink": bool(uplink_name),
+                "uplink_name": _j(uplink_name),
             },
             out_file=out_yaml,
         )
@@ -259,7 +270,7 @@ class TrafficFlowTests:
                 udn_ns=udn_ns,
                 resource_name=resource_name,
                 network=tft.udn_primary_network,
-                network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
+                network_name=tft.udn_primary_network.name,
                 is_primary=True,
                 subnets=tftbase.get_udn_primary_subnets(),
             )
@@ -270,7 +281,8 @@ class TrafficFlowTests:
                 mode=network.mode,
                 topology=network.topology,
                 transport=network.transport,
-                frr_configuration_selector={},
+                uplink_name=None,
+                route_advertisement=None,
             )
             self._setup_udn_network(
                 cfg_descr,
