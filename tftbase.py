@@ -293,6 +293,9 @@ ENV_TFT_UDN_SECONDARY_LAYER3_CIDR = "TFT_UDN_SECONDARY_LAYER3_CIDR"
 ENV_TFT_CUDN_SECONDARY_LAYER2_CIDR = "TFT_CUDN_SECONDARY_LAYER2_CIDR"
 ENV_TFT_UDN_SECONDARY_LAYER2_CIDR = "TFT_UDN_SECONDARY_LAYER2_CIDR"
 ENV_TFT_CUDN_SECONDARY_LOCALNET_CIDR = "TFT_CUDN_SECONDARY_LOCALNET_CIDR"
+ENV_TFT_CUDN_SECONDARY_LAYER2_IPAM_MODE = "TFT_CUDN_SECONDARY_LAYER2_IPAM_MODE"
+ENV_TFT_UDN_SECONDARY_LAYER2_IPAM_MODE = "TFT_UDN_SECONDARY_LAYER2_IPAM_MODE"
+ENV_TFT_CUDN_SECONDARY_LOCALNET_IPAM_MODE = "TFT_CUDN_SECONDARY_LOCALNET_IPAM_MODE"
 ENV_TFT_CUDN_LOCALNET_PHYSICAL_NETWORK = "TFT_CUDN_LOCALNET_PHYSICAL_NETWORK"
 ENV_TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED = (
     "TFT_UDN_NO_OVERLAY_OUTBOUND_SNAT_ENABLED"
@@ -354,6 +357,28 @@ def get_cudn_secondary_localnet_cidr() -> str:
     s = get_environ(ENV_TFT_CUDN_SECONDARY_LOCALNET_CIDR) or "15.6.0.0/24"
     logger.info(f"env: {ENV_TFT_CUDN_SECONDARY_LOCALNET_CIDR}={shlex.quote(s)}")
     return s
+
+
+def _get_udn_ipam_mode(name: str) -> Optional[str]:
+    mode = get_environ(name)
+    if mode is not None:
+        logger.info(f"env: {name}={shlex.quote(mode)}")
+    return mode
+
+
+@functools.cache
+def get_cudn_secondary_layer2_ipam_mode() -> Optional[str]:
+    return _get_udn_ipam_mode(ENV_TFT_CUDN_SECONDARY_LAYER2_IPAM_MODE)
+
+
+@functools.cache
+def get_udn_secondary_layer2_ipam_mode() -> Optional[str]:
+    return _get_udn_ipam_mode(ENV_TFT_UDN_SECONDARY_LAYER2_IPAM_MODE)
+
+
+@functools.cache
+def get_cudn_secondary_localnet_ipam_mode() -> Optional[str]:
+    return _get_udn_ipam_mode(ENV_TFT_CUDN_SECONDARY_LOCALNET_IPAM_MODE)
 
 
 def get_udn_namespace(base_namespace: str) -> str:
@@ -597,6 +622,7 @@ class UDNSecondaryNetworkSpec:
     topology: UdnNetworkTopology
     transport: Optional[UdnNetworkTransport]
     get_cidr: typing.Callable[[], str]
+    get_ipam_mode: Optional[typing.Callable[[], Optional[str]]] = None
 
 
 CUDN_SECONDARY_LAYER3_NETWORK = UDNSecondaryNetworkSpec(
@@ -619,6 +645,7 @@ CUDN_SECONDARY_LAYER2_NETWORK = UDNSecondaryNetworkSpec(
     topology=UdnNetworkTopology.LAYER2,
     transport=UdnNetworkTransport.OVERLAY,
     get_cidr=get_cudn_secondary_layer2_cidr,
+    get_ipam_mode=get_cudn_secondary_layer2_ipam_mode,
 )
 UDN_SECONDARY_LAYER2_NETWORK = UDNSecondaryNetworkSpec(
     name="tft-udn-layer2",
@@ -626,6 +653,7 @@ UDN_SECONDARY_LAYER2_NETWORK = UDNSecondaryNetworkSpec(
     topology=UdnNetworkTopology.LAYER2,
     transport=UdnNetworkTransport.OVERLAY,
     get_cidr=get_udn_secondary_layer2_cidr,
+    get_ipam_mode=get_udn_secondary_layer2_ipam_mode,
 )
 CUDN_SECONDARY_LOCALNET_NETWORK = UDNSecondaryNetworkSpec(
     name="tft-cudn-localnet",
@@ -633,6 +661,7 @@ CUDN_SECONDARY_LOCALNET_NETWORK = UDNSecondaryNetworkSpec(
     topology=UdnNetworkTopology.LOCALNET,
     transport=None,
     get_cidr=get_cudn_secondary_localnet_cidr,
+    get_ipam_mode=get_cudn_secondary_localnet_ipam_mode,
 )
 
 

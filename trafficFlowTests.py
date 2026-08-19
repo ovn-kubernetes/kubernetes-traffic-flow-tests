@@ -137,6 +137,7 @@ class TrafficFlowTests:
         network_name: str,
         is_primary: bool,
         subnets: tuple[tuple[str, int], ...],
+        ipam_mode: str | None,
     ) -> None:
         client = cfg_descr.tc.client_tenant
         network_label = network_name
@@ -179,6 +180,9 @@ class TrafficFlowTests:
                 "topology": _j(topology_name),
                 "topology_name": topology_name,
                 "network_type": _j("Primary" if is_primary else "Secondary"),
+                "has_ipam_mode": ipam_mode is not None,
+                "ipam_mode": _j(ipam_mode or ""),
+                "has_subnets": ipam_mode in (None, "Enabled"),
                 "subnets": [
                     {"cidr": _j(cidr), "host_subnet": host_subnet}
                     for cidr, host_subnet in subnets
@@ -262,6 +266,7 @@ class TrafficFlowTests:
                 network_name=tftbase.UDN_PRIMARY_NETWORK_NAME,
                 is_primary=True,
                 subnets=tftbase.get_udn_primary_subnets(),
+                ipam_mode=None,
             )
 
         for network in secondary_networks.values():
@@ -280,6 +285,11 @@ class TrafficFlowTests:
                 network_name=network.name,
                 is_primary=False,
                 subnets=((network.get_cidr(), tftbase.UDN_DEFAULT_HOST_SUBNET),),
+                ipam_mode=(
+                    network.get_ipam_mode()
+                    if network.get_ipam_mode is not None
+                    else None
+                ),
             )
 
         self._configure_namespace(cfg_descr, namespace=udn_ns)
