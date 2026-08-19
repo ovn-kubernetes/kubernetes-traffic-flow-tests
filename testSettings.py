@@ -139,7 +139,13 @@ class TestSettings:
         return self.test_case_id.info.connection_mode
 
     def get_test_info(self) -> str:
-        return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}, target-access={self.target_access_mode.name}
+        target_access_name = self.target_access_mode.name
+        if (
+            self.target_access_mode == tftbase.TargetAccessMode.IP
+            and self.connection_mode == tftbase.ConnectionMode.NODE_PORT_IP
+        ):
+            target_access_name = tftbase.ConnectionMode.CLUSTER_IP.name
+        return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}, target-access={target_access_name}
         Client Node: {self.node_client.name}
             Tenant={self.client_is_tenant}
             Index={self.client_index}
