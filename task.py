@@ -346,10 +346,14 @@ class Task(ABC):
         return "same-node" if self.ts.test_case_id.info.is_same_node else "diff-node"
 
     def get_namespace(self) -> str:
-        ns = self.ts.cfg_descr.get_tft().namespace
-        if self.ts.test_case_id.is_udn:
-            return tftbase.get_udn_namespace(ns)
-        return ns
+        return self.ts.test_case_id.info.get_namespace(
+            self.ts.cfg_descr.get_tft().namespace,
+            self.task_role,
+        )
+
+    @property
+    def uses_primary_udn(self) -> bool:
+        return self.ts.test_case_id.info.uses_primary_udn(self.task_role)
 
     def get_duration(self) -> int:
         conn_duration = self.ts.cfg_descr.get_connection().duration
@@ -416,9 +420,11 @@ class Task(ABC):
         tft = self.ts.cfg_descr.get_tft()
         if not tft.pre_provision:
             return False
-        is_udn = self.ts.test_case_id.is_udn
+        namespace = self.get_namespace()
+        base_namespace = tft.namespace
         return any(
-            tc.info.uses_secondary_network_pod and tc.is_udn == is_udn
+            tc.info.uses_secondary_network_pod
+            and tc.info.get_namespace(base_namespace, self.task_role) == namespace
             for tc in tft.test_cases
         )
 
@@ -448,7 +454,11 @@ class Task(ABC):
         cases, so it receives each unique test-defined NAD in the UDN namespace.
         Other pods receive only their effective NAD, or none.
         """
-        if self.ts.test_case_id.is_udn and self._shares_pre_provisioned_secondary_pod():
+        if (
+            self.get_namespace()
+            == tftbase.get_udn_namespace(self.ts.cfg_descr.get_tft().namespace)
+            and self._shares_pre_provisioned_secondary_pod()
+        ):
             namespace = self.get_namespace()
             return tuple(
                 dict.fromkeys(
@@ -477,7 +487,7 @@ class Task(ABC):
         UDN VF when primary and secondary tests share the UDN namespace.
         """
         if self.pod_type == PodType.SRIOV:
-            return str(1 + int(self.ts.test_case_id.is_udn_primary))
+            return str(1 + int(self.uses_primary_udn))
         needs_primary_udn_vf = self.ts.test_case_id.is_udn_secondary and any(
             test_case.is_udn_primary
             for test_case in self.ts.cfg_descr.get_tft().test_cases
@@ -697,7 +707,7 @@ class Task(ABC):
         try:
             if y:
                 pod_ip = y["status"]["podIP"]
-                if self.ts.test_case_id.is_udn_primary:
+                if self.uses_primary_udn:
                     pod_networks_str = y["metadata"]["annotations"].get(
                         "k8s.ovn.org/pod-networks", ""
                     )

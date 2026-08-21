@@ -704,6 +704,8 @@ class TestCaseType(Enum):
     UDN_LAYER2_POD_TO_POD_DIFF_NODE = 77
     CUDN_LOCALNET_POD_TO_POD_SAME_NODE = 78
     CUDN_LOCALNET_POD_TO_POD_DIFF_NODE = 79
+    UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE = 80
+    UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE = 81
 
     @property
     def is_egress_ip(self) -> bool:
@@ -729,6 +731,10 @@ class TestCaseType(Enum):
     @property
     def udn_network_spec(self) -> Optional[UDNSecondaryNetworkSpec]:
         return self.info.udn_network_spec
+
+    @property
+    def uses_base_namespace(self) -> bool:
+        return self.info.uses_base_namespace
 
     @property
     def info(self) -> "TestCaseTypInfo":
@@ -1247,6 +1253,7 @@ class TestCaseTypInfo:
     is_client_hostbacked: bool
     expects_blocked: bool = False
     udn_network_spec: Optional[UDNSecondaryNetworkSpec] = None
+    server_uses_default_network: bool = False
 
     @property
     def node_location(self) -> str:
@@ -1261,6 +1268,27 @@ class TestCaseTypInfo:
             or self.test_case_type.is_udn_secondary
             or self.test_case_type.is_udn_localnet
         )
+
+    @property
+    def uses_base_namespace(self) -> bool:
+        return not self.test_case_type.is_udn or self.server_uses_default_network
+
+    def uses_primary_udn(self, task_role: TaskRole) -> bool:
+        if task_role == TaskRole.CLIENT:
+            return self.test_case_type.is_udn_primary
+        if task_role == TaskRole.SERVER:
+            return (
+                self.test_case_type.is_udn_primary
+                and not self.server_uses_default_network
+            )
+        raise ValueError(f"Invalid task role {task_role}")
+
+    def get_namespace(self, base_namespace: str, task_role: TaskRole) -> str:
+        if self.uses_primary_udn(task_role):
+            return get_udn_namespace(base_namespace)
+        if self.test_case_type.is_udn_secondary:
+            return get_udn_namespace(base_namespace)
+        return base_namespace
 
     def get_server_pod_type(self, pod_type: PodType) -> PodType:
         if self.is_server_hostbacked:
@@ -1767,6 +1795,24 @@ _test_case_typ_infos = {
             is_server_hostbacked=False,
             is_client_hostbacked=False,
             udn_network_spec=CUDN_SECONDARY_LOCALNET_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            server_uses_default_network=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            server_uses_default_network=True,
         ),
     )
 }

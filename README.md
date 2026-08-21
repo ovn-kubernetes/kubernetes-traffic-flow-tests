@@ -164,6 +164,8 @@ dpu_node_host_label: (40)
     | 77 | UDN_LAYER2_POD_TO_POD_DIFF_NODE |
     | 78 | CUDN_LOCALNET_POD_TO_POD_SAME_NODE |
     | 79 | CUDN_LOCALNET_POD_TO_POD_DIFF_NODE |
+    | 80 | UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE |
+    | 81 | UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -223,7 +225,7 @@ dpu_node_host_label: (40)
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 37-47 and 70-79 run traffic over OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
+Test cases 37-47 and 70-81 use OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
 
 - **37-47** (Primary UDN): Network replacing the pod's default network. Its mode, topology, and transport are configured through `udn_primary_network`.
   - **37-42**: pod-to-pod, ClusterIP, and NodePort.
@@ -236,6 +238,9 @@ Test cases 37-47 and 70-79 run traffic over OVN-Kubernetes User Defined Networks
   - **74-75**: Layer2 CUDN.
   - **76-77**: Layer2 UDN.
   - **78-79**: Localnet CUDN.
+- **80-81** (Primary UDN isolation): Expected-block tests from a primary UDN pod to a cluster default network pod using direct pod IPs (same / different node).
+
+In the names of cases 80-81, `CDN` means cluster default network and is distinct from `CUDN`.
 
 The primary CIDR defaults to `15.1.0.0/16` with host subnet `24`. `TFT_UDN_PRIMARY_CIDR` accepts comma-separated entries, for example `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry can include an optional host subnet length as `15.1.0.0/16/24`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
 
