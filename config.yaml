@@ -26,6 +26,9 @@ tft:
         # supported "type": iperf-tcp, iperf-udp, netperf-tcp-stream,
         # netperf-tcp-rr, http, simple, ib-write-bw, ib-read-bw, ib-send-bw.
         type: "iperf-tcp"
+        # "skip_tests" uses the same format as "test_cases" and applies only
+        # to this connection.
+        skip_tests: []
         instances: 1
         server:
           - name: "worker-229"

@@ -405,6 +405,7 @@ class ConfEgressIP:
 class ConfConnection(StructParseBaseNamed):
     test_type: TestType
     test_type_handler: TestTypeHandler
+    skip_tests: tuple[TestCaseType, ...]
     instances: int
     reverse: bool
     server: tuple[ConfNodeServer, ...]
@@ -444,6 +445,9 @@ class ConfConnection(StructParseBaseNamed):
             return self.egress_ip.node
         return client_node
 
+    def skips_test_case(self, test_case: TestCaseType) -> bool:
+        return test_case in self.skip_tests
+
     def serialize(self) -> dict[str, Any]:
         extra: dict[str, Any] = {}
         common.dict_add_optional(
@@ -455,6 +459,8 @@ class ConfConnection(StructParseBaseNamed):
         common.dict_add_optional(extra, "cpu_limit", self.cpu_limit)
         common.dict_add_optional(extra, "mem_request", self.mem_request)
         common.dict_add_optional(extra, "mem_limit", self.mem_limit)
+        if self.skip_tests:
+            extra["skip_tests"] = [t.name for t in self.skip_tests]
         if self.egress_ip is not None:
             extra["egress_ip"] = self.egress_ip.serialize()
         return {
@@ -503,6 +509,12 @@ class ConfConnection(StructParseBaseNamed):
                 raise pctx.value_error(
                     f"{repr(test_type.name)} is not implemented", key="type"
                 ) from None
+
+            skip_tests = common.structparse_pop_obj(
+                varg.for_key("skip_tests"),
+                construct=_construct_test_cases,
+                default=(),
+            )
 
             instances = common.structparse_pop_int(
                 varg.for_key("instances"),
@@ -597,6 +609,7 @@ class ConfConnection(StructParseBaseNamed):
             name=name,
             test_type=test_type,
             test_type_handler=test_type_handler,
+            skip_tests=skip_tests,
             instances=instances,
             reverse=reverse,
             server=server,
