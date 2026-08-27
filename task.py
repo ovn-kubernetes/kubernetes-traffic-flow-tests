@@ -965,10 +965,13 @@ class Task(ABC):
 
         client_cidrs: list[str] = []
         if action == NP_ACTION_ALLOW.lower():
-            client_nad = (
-                self.ts.connection.client[0].effective_secondary_network_nad
-                or self.ts.connection.effective_secondary_network_nad
-            )
+            if self.ts.test_case_id.is_udn_secondary:
+                client_nad = self._get_effective_secondary_network_nad()
+            else:
+                client_nad = (
+                    self.ts.connection.client[0].effective_secondary_network_nad
+                    or self.ts.connection.effective_secondary_network_nad
+                )
             client_cidrs = self.get_nad_cidrs(client_nad)
 
         template_args: dict[str, typing.Any] = {

@@ -170,6 +170,16 @@ dpu_node_host_label: (44)
     | 79 | CUDN_LOCALNET_POD_TO_POD_DIFF_NODE |
     | 80 | UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE |
     | 81 | UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE |
+    | 82 | CUDN_LAYER3_POD_TO_POD_MNP_DENY |
+    | 83 | CUDN_LAYER3_POD_TO_POD_MNP_ALLOW |
+    | 84 | UDN_LAYER3_POD_TO_POD_MNP_DENY |
+    | 85 | UDN_LAYER3_POD_TO_POD_MNP_ALLOW |
+    | 86 | CUDN_LAYER2_POD_TO_POD_MNP_DENY |
+    | 87 | CUDN_LAYER2_POD_TO_POD_MNP_ALLOW |
+    | 88 | UDN_LAYER2_POD_TO_POD_MNP_DENY |
+    | 89 | UDN_LAYER2_POD_TO_POD_MNP_ALLOW |
+    | 90 | CUDN_LOCALNET_POD_TO_POD_MNP_DENY |
+    | 91 | CUDN_LOCALNET_POD_TO_POD_MNP_ALLOW |
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -197,7 +207,7 @@ dpu_node_host_label: (44)
     | validate_offload           | Verify OvS Offload               |
     | ovs_doca_validate_offload  | Verify OVS-DOCA Offload          |
 21. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For mandatory tests 27-31 it defaults to "tft-secondary" if not set and can be overridden per-node using the server/client level `secondary_network_nad` fields. Tests 70-79 instead use the generated NAD selected by each test case and do not use this option. The framework automatically creates and cleans up the regular secondary NAD when required. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
+22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For mandatory tests 27-31 it defaults to "tft-secondary" if not set and can be overridden per-node using the server/client level `secondary_network_nad` fields. Tests 70-79 and 82-91 instead use the generated NAD selected by each test case and do not use this option. The framework automatically creates and cleans up the regular secondary NAD when required. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
 23. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
 24. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
 25. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
@@ -234,7 +244,7 @@ dpu_node_host_label: (44)
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 37-47 and 70-81 use OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
+Test cases 37-47 and 70-91 use OVN-Kubernetes User Defined Networks. The framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies, MultiNetworkPolicies, and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
 
 - **37-47** (Primary UDN): Network replacing the pod's default network. Its mode, topology, and transport are configured through `udn_primary_network`.
   - **37-42**: pod-to-pod, ClusterIP, and NodePort.
@@ -248,6 +258,7 @@ Test cases 37-47 and 70-81 use OVN-Kubernetes User Defined Networks. The framewo
   - **76-77**: Layer2 UDN.
   - **78-79**: Localnet CUDN.
 - **80-81** (Primary UDN isolation): Expected-block tests from a primary UDN pod to a cluster default network pod using direct pod IPs (same / different node).
+- **82-91** (Secondary UDN/CUDN MultiNetworkPolicy): Different-node deny and allow variants on the second interface.
 
 In the names of cases 80-81, `CDN` means cluster default network and is distinct from `CUDN`.
 
