@@ -655,7 +655,9 @@ class TaskValidateOffload(PluginTask):
                     m2 = check_no_traffic_on_vf_rep(parsed_data, "tx", stats_backend)
                     if m1 is not None or m2 is not None:
                         success_result = False
-                        msg = m1 if m1 is not None else m2
+                        msg = "; ".join(
+                            message for message in (m1, m2) if message is not None
+                        )
 
             return PluginOutput(
                 success=success_result,
