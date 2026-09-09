@@ -29,18 +29,30 @@ spec:
 {% elif topology_name == "Layer2" %}
     layer2:
       role: {{ network_type }}
+{% if has_subnets %}
       subnets:
 {% for subnet in subnets %}
       - {{ subnet.cidr }}
 {% endfor %}
+{% endif %}
+{% if has_ipam_mode %}
+      ipam:
+        mode: {{ ipam_mode }}
+{% endif %}
 {% elif topology_name == "Localnet" %}
     localnet:
       role: {{ network_type }}
       physicalNetworkName: {{ physical_network_name }}
+{% if has_subnets %}
       subnets:
 {% for subnet in subnets %}
       - {{ subnet.cidr }}
 {% endfor %}
+{% endif %}
+{% if has_ipam_mode %}
+      ipam:
+        mode: {{ ipam_mode }}
+{% endif %}
 {% endif %}
 {% if transport_name == "NoOverlay" %}
     transport: NoOverlay
