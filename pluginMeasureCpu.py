@@ -14,6 +14,7 @@ from task import PluginTask
 from task import TaskOperation
 from testSettings import TestSettings
 from tftbase import BaseOutput
+from tftbase import ClusterMode
 from tftbase import PluginOutput
 from tftbase import TaskRole
 
@@ -31,6 +32,8 @@ class PluginMeasureCpu(pluginbase.Plugin):
         perf_client: task.ClientTask,
         tenant: bool,
     ) -> list[PluginTask]:
+        if ts.cfg_descr.tc.mode == ClusterMode.DPU:
+            tenant = False
         return [
             TaskMeasureCPU(ts, TaskRole.SERVER, tenant),
             TaskMeasureCPU(ts, TaskRole.CLIENT, tenant),
@@ -42,10 +45,19 @@ plugin = pluginbase.register_plugin(PluginMeasureCpu())
 
 class TaskMeasureCPU(PluginTask):
     @property
+    def _is_dpu_mode(self) -> bool:
+        return self.tc.mode == ClusterMode.DPU
+
+    @property
+    def node_name(self) -> str:
+        return self._dpu_node_name or super().node_name
+
+    @property
     def plugin(self) -> pluginbase.Plugin:
         return plugin
 
     def __init__(self, ts: TestSettings, task_role: TaskRole, tenant: bool):
+        self._dpu_node_name: Optional[str] = None
         super().__init__(
             ts=ts,
             index=0,
@@ -53,10 +65,62 @@ class TaskMeasureCPU(PluginTask):
             tenant=tenant,
         )
 
+        if self._is_dpu_mode:
+            # OVS, VF representors, and slow-path packet processing run on the DPU,
+            # so measure the paired DPU instead of the host worker.
+            self._dpu_node_name = self._get_dpu_node_name()
+            logger.info(
+                f"Measuring CPU on DPU node {self._dpu_node_name} "
+                f"paired with {super().node_name}"
+            )
+
         self.pod_name = (
             f"tools-pod-{self.node_location}-{self.task_role.name.lower()}-measure-cpu"
         )
         self.in_file_template = tftbase.get_manifest("tools-pod.yaml.j2")
+
+    def _get_dpu_node_name(self) -> str:
+        """Get the DPU node corresponding to the configured host worker.
+
+        DPU nodes are paired to host workers through dpu_node_host_label.
+        """
+        host_node_name = super().node_name
+        host_label = self.tc.dpu_node_host_label
+        if not host_label:
+            raise ValueError(
+                "dpu_node_host_label must be configured when running in DPU mode. "
+                "Set it in config.yaml (e.g., dpu_node_host_label: "
+                "'provisioning.dpu.nvidia.com/host')"
+            )
+
+        selector = f"{host_label}={host_node_name}"
+        result = self.tc.client_infra.oc(
+            f"get nodes -l {selector} -o jsonpath='{{.items[*].metadata.name}}'",
+            may_fail=True,
+        )
+        if not result.success:
+            raise RuntimeError(
+                f"Failed to query DPU nodes by label {selector}: {result.err}"
+            )
+
+        dpu_nodes = result.out.strip().strip("'\"").split()
+        if not dpu_nodes:
+            raise RuntimeError(
+                f"No DPU node found with label {selector}. "
+                f"Ensure DPU nodes have label '{host_label}' set to the worker node name."
+            )
+        if len(dpu_nodes) == 1:
+            logger.info(
+                f"Found DPU node {dpu_nodes[0]} for worker {host_node_name} via label"
+            )
+            return dpu_nodes[0]
+
+        if len(dpu_nodes) > 1:
+            logger.warning(
+                f"Multiple DPU nodes found with label {selector}: {dpu_nodes}. "
+                f"Using first: {dpu_nodes[0]}"
+            )
+        return dpu_nodes[0]
 
     def initialize(self) -> None:
         super().initialize()
