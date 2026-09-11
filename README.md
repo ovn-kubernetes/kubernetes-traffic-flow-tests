@@ -507,11 +507,12 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
 - `TFT_KUBECONFIG`, `TFT_KUBECONFIG_INFRA` to overwrite the kubeconfigs from the configuration
      file. See also the "--kubeconfig" and "--kubeconfig-infra" command line options.
 - `TFT_DEFAULT_TARGET_ACCESS_MODE` controls the normal target access mode for service-backed
-     tests. Defaults to `IP`; set to `SERVICE_NAME` to use service DNS names instead of service
-     IPs. Accepted values are `IP` and `SERVICE_NAME`.
+     tests. ClusterIP and LoadBalancer tests default to `IP` (service IP), while NodePort tests
+     default to `CLIENT_NODE_IP`. Set to `IP` or `SERVICE_NAME` to override the default for
+     all service-backed tests.
 - `TFT_ENABLE_TARGET_ACCESS_SUBTESTS` enables extra target access variants for service-backed
      tests. Defaults to `false`; when `true`, ClusterIP and LoadBalancer tests run both
-     `IP` and `SERVICE_NAME`, while NodePort tests also include `SERVER_NODE_IP`.
+     `IP` and `SERVICE_NAME`, while NodePort tests also include `CLIENT_NODE_IP`.
 - `TFT_UDN_PRIMARY_CIDR` comma-separated CIDR entries for primary UDN tests, e.g. `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry supports an optional host subnet length, e.g. `15.1.0.0/16/24`; entries without one use `24`. Defaults to a single `15.1.0.0/16` entry.
 - `TFT_CUDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 CUDN tests. Defaults to `15.2.0.0/16`.
 - `TFT_UDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 UDN tests. Defaults to `15.3.0.0/16`.

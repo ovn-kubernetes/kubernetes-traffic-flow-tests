@@ -874,7 +874,7 @@ class Task(ABC):
     def get_nodeport_service_dns_name(self) -> str:
         return f"{self.get_nodeport_service_name()}.{self.get_namespace()}.svc"
 
-    def get_nodeport_ip(self) -> Optional[str]:
+    def get_nodeport_cluster_ip(self) -> Optional[str]:
         svc_name = self.get_nodeport_service_name()
         r = self.run_oc(
             f"get service {svc_name} -o=jsonpath='{{.spec.clusterIP}}'",
@@ -1351,7 +1351,7 @@ class ServerTask(Task, ABC):
         if self.in_file_template != "":
             if self.get_cluster_ip() is None:
                 self.create_cluster_ip_service()
-            if self.get_nodeport_ip() is None:
+            if self.get_nodeport_cluster_ip() is None:
                 self.create_node_port_service()
 
     def initialize(self) -> None:
@@ -1758,17 +1758,23 @@ class ClientTask(Task, ABC):
                     f"get_target_ip() NodePort service name to {nodeport_service_name}"
                 )
                 return nodeport_service_name
-            if self.target_access_mode == TargetAccessMode.SERVER_NODE_IP:
-                nodeport_node_ip = self.server.get_node_internal_ip()
+            if self.target_access_mode == TargetAccessMode.CLIENT_NODE_IP:
+                (configured_client_node,) = self.ts.connection.client
+                nodeport_node_ip = self.get_node_internal_ip(
+                    configured_client_node.name
+                )
                 logger.debug(f"get_target_ip() NodePort node IP to {nodeport_node_ip}")
                 return nodeport_node_ip
-            nodeport_ip = self.server.get_nodeport_ip()
-            if nodeport_ip is None:
+            nodeport_cluster_ip = self.server.get_nodeport_cluster_ip()
+            if nodeport_cluster_ip is None:
                 raise RuntimeError(
                     f"NodePort service not found for server {self.server.pod_name}"
                 )
-            logger.debug(f"get_target_ip() NodePortIP connection to {nodeport_ip}")
-            return nodeport_ip
+            logger.debug(
+                "get_target_ip() NodePort ClusterIP connection to "
+                f"{nodeport_cluster_ip}"
+            )
+            return nodeport_cluster_ip
         elif self.connection_mode == ConnectionMode.EXTERNAL_IP:
             host_ip = self.get_host_ip()
             logger.debug(f"get_target_ip() External connection to host {host_ip}")
@@ -1815,7 +1821,7 @@ class ClientTask(Task, ABC):
             return self.server.external_port
         if (
             self.connection_mode == ConnectionMode.NODE_PORT_IP
-            and self.target_access_mode == TargetAccessMode.SERVER_NODE_IP
+            and self.target_access_mode == TargetAccessMode.CLIENT_NODE_IP
         ):
             node_port = self.server.get_nodeport_port(
                 tftbase.get_service_protocol(self.test_type)
