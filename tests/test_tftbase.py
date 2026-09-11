@@ -129,8 +129,8 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 79
-    expected_values = [*range(1, 48), *range(60, 80)]
+    assert list(TestCaseType)[-1].value == 81
+    expected_values = [*range(1, 48), *range(60, 82)]
     assert expected_values == [typ.value for typ in tftbase.TestCaseType]
 
     for typ in TestCaseType:
@@ -224,6 +224,26 @@ def test_secondary_udn_test_case_info() -> None:
 
     networks = tuple(network for _, _, network in expected)
     assert len({network.name for network in networks}) == len(networks)
+
+
+def test_primary_udn_to_cdn_test_case_info() -> None:
+    cases = (
+        (
+            TestCaseType.UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE,
+            True,
+        ),
+        (
+            TestCaseType.UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE,
+            False,
+        ),
+    )
+
+    for test_case, is_same_node in cases:
+        info = test_case.info
+        assert info.connection_mode == ConnectionMode.POD_IP
+        assert info.is_same_node is is_same_node
+        assert info.expects_blocked is True
+        assert test_case.is_udn_primary
 
 
 def test_anp_test_case_info() -> None:

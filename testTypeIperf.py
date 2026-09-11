@@ -233,7 +233,7 @@ class IperfClient(task.ClientTask):
                     msg = f"Expected traffic to be blocked but got throughput {bitrate_gbps}"
                 else:
                     success = True
-                    msg = "Traffic was blocked as expected (deny policy active)"
+                    msg = "Traffic was blocked as expected"
 
             return FlowTestOutput(
                 success=success,

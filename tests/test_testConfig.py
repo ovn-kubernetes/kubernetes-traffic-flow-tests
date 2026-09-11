@@ -487,3 +487,23 @@ tft:
             full_config=full_config,
             kubeconfigs=testConfigKubeconfigsArgs1,
         )
+
+
+def test_primary_udn_to_cdn_config() -> None:
+    full_config = yaml.safe_load("""
+tft:
+  - test_cases:
+      - UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE
+      - UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE
+    connections:
+    - type: iperf-tcp
+""")
+    tc = testConfig.TestConfig(
+        full_config=full_config,
+        kubeconfigs=testConfigKubeconfigsArgs1,
+    )
+
+    assert tc.config.tft[0].test_cases == (
+        TestCaseType.UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE,
+        TestCaseType.UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE,
+    )
