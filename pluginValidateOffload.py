@@ -266,7 +266,27 @@ class TaskValidateOffload(PluginTask):
                 f"DPU mode enabled for {self.task_role.name}, "
                 f"DPU node: {self._dpu_node_name}, pod: {self._dpu_pod_name}"
             )
+            self._ensure_dpu_namespaces()
             self._initialize_dpu_pod()
+
+    def _ensure_dpu_namespaces(self) -> None:
+        base_namespace = self.ts.cfg_descr.get_tft().namespace
+        namespaces = (base_namespace, tftbase.get_udn_namespace(base_namespace))
+        for namespace in namespaces:
+            if (
+                self.tc.client_infra.oc_get(
+                    f"namespace/{namespace}", may_fail=True, namespace=None
+                )
+                is not None
+            ):
+                continue
+            logger.info(f"Creating namespace {namespace} on DPU cluster")
+            self.tc.client_infra.oc(
+                f"create namespace {namespace}",
+                die_on_error=True,
+                namespace=None,
+            )
+            self.tc.infra_namespaces.append(namespace)
 
     def _initialize_dpu_pod(self) -> None:
         """Create and deploy the tools pod on the DPU cluster."""
@@ -635,7 +655,9 @@ class TaskValidateOffload(PluginTask):
                     m2 = check_no_traffic_on_vf_rep(parsed_data, "tx", stats_backend)
                     if m1 is not None or m2 is not None:
                         success_result = False
-                        msg = m1 if m1 is not None else m2
+                        msg = "; ".join(
+                            message for message in (m1, m2) if message is not None
+                        )
 
             return PluginOutput(
                 success=success_result,

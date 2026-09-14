@@ -588,6 +588,14 @@ class TrafficFlowTests:
                 may_fail=True,
                 namespace=None,
             )
+        for namespace in reversed(cfg_descr.tc.infra_namespaces):
+            logger.info(f"Deleting namespace {namespace} on DPU cluster")
+            cfg_descr.tc.client_infra.oc(
+                f"delete ns {namespace}",
+                may_fail=True,
+                namespace=None,
+            )
+        cfg_descr.tc.infra_namespaces.clear()
 
     def _run_test_case_instance(
         self,
