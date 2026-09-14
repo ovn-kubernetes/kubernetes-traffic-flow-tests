@@ -286,7 +286,7 @@ class TaskValidateOffload(PluginTask):
                 die_on_error=True,
                 namespace=None,
             )
-            self.tc.created_dpu_namespaces.append(namespace)
+            self.tc.infra_namespaces.append(namespace)
 
     def _initialize_dpu_pod(self) -> None:
         """Create and deploy the tools pod on the DPU cluster."""
