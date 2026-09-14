@@ -668,6 +668,8 @@ class TrafficFlowTests:
                 self._setup_udn(cfg_descr2)
             for cfg_descr3 in cfg_descr2.describe_all_connections():
                 connection = cfg_descr3.get_connection()
+                if connection.skips_test_case(cfg_descr3.get_test_case()):
+                    continue
                 for instance_index in range(connection.instances):
                     ts = TestSettings(
                         cfg_descr=cfg_descr3,
@@ -697,6 +699,12 @@ class TrafficFlowTests:
         tft_results: list[TftResult] = []
         for cfg_descr2 in cfg_descr.describe_all_connections():
             connection = cfg_descr2.get_connection()
+            test_case = cfg_descr2.get_test_case()
+            if connection.skips_test_case(test_case):
+                logger.info(
+                    f"Skipping {connection.name} for test case {test_case.name}"
+                )
+                continue
             logger.info(f"Starting {connection.name}")
             logger.info(f"Number Of Simultaneous connections {connection.instances}")
             target_access_modes = tftbase.get_target_access_modes(
