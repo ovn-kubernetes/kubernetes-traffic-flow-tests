@@ -9,7 +9,8 @@ metadata:
     tft-network: secondary
   annotations:
     k8s.v1.cni.cncf.io/networks: {{ secondary_network_nads }}
-spec:
+spec:{% if has_runtime_class_name %}
+  runtimeClassName: {{ runtime_class_name }}{% endif %}
   nodeSelector:
     kubernetes.io/hostname: {{ node_name }}
   tolerations:
