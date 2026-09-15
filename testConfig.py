@@ -39,6 +39,15 @@ from tftbase import UdnNetworkTransport
 logger = common.ExtendedLogger("tft." + __name__)
 
 
+def validate_runtime_class_name(value: str) -> bool:
+    """Return whether value is a valid Kubernetes DNS subdomain name."""
+    return (
+        common.validate_dns_name(value)
+        and value == value.lower()
+        and not value.endswith(".")
+    )
+
+
 T1 = TypeVar("T1")
 
 
@@ -795,6 +804,7 @@ class ConfTest(StructParseBaseNamed):
     pre_provision: bool
     privileged_pod: bool
     capabilities_pod: Mapping[str, tuple[str, ...]]
+    runtime_class_name: Optional[str]
     connections: tuple[ConfConnection, ...]
     logs: pathlib.Path
     udn_primary_network: ConfUdnNetwork
@@ -816,6 +826,7 @@ class ConfTest(StructParseBaseNamed):
             "pre_provision": self.pre_provision,
             "privileged_pod": self.privileged_pod,
             "capabilities_pod": self.capabilities_pod,
+            "runtime_class_name": self.runtime_class_name,
             "connections": [c.serialize() for c in self.connections],
             "logs": str(self.logs),
             "udn_primary_network": self.udn_primary_network.serialize(),
@@ -869,6 +880,12 @@ class ConfTest(StructParseBaseNamed):
                 )
             )
 
+            runtime_class_name = common.structparse_pop_str(
+                varg.for_key("runtime_class_name"),
+                default=None,
+                check=validate_runtime_class_name,
+            )
+
             connections = common.structparse_pop_objlist(
                 varg.for_key("connections"),
                 construct=lambda pctx2: ConfConnection.parse(
@@ -903,6 +920,7 @@ class ConfTest(StructParseBaseNamed):
             pre_provision=pre_provision,
             privileged_pod=privileged_pod,
             capabilities_pod=capabilities_pod,
+            runtime_class_name=runtime_class_name,
             connections=connections,
             logs=pathlib.Path(logs),
             udn_primary_network=udn_primary_network,
@@ -1295,9 +1313,27 @@ class TestConfig:
             checked.add(node_name)
             self.validate_node_available(node_name, role)
 
+    def _validate_runtime_classes(self) -> None:
+        runtime_class_names = {
+            runtime_class_name
+            for tft in self.config.tft
+            if (runtime_class_name := tft.runtime_class_name) is not None
+        }
+        for runtime_class_name in sorted(runtime_class_names):
+            runtime_class = self.client_tenant.oc_get(
+                f"runtimeclass.node.k8s.io/{runtime_class_name}",
+                may_fail=True,
+            )
+            if not isinstance(runtime_class, dict):
+                raise RuntimeError(
+                    f'Kubernetes RuntimeClass "{runtime_class_name}" does not exist '
+                    "or cannot be queried on the tenant cluster"
+                )
+
     def system_check(self) -> None:
         self._system_check_kubeconfig(tenant=True)
         self._system_check_kubeconfig(tenant=False)
+        self._validate_runtime_classes()
 
         if self.evaluator_config is not None:
             if not os.path.exists(self.evaluator_config):

@@ -10,7 +10,8 @@ metadata:
     tft-tests: {{ label_tft_tests }}
     tft-pod-name: {{ pod_name }}
     tft-network: primary
-spec:
+spec:{% if has_runtime_class_name %}
+  runtimeClassName: {{ runtime_class_name }}{% endif %}
   nodeSelector:
     kubernetes.io/hostname: {{ node_name }}
   tolerations:

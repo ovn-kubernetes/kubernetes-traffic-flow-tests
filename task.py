@@ -498,9 +498,22 @@ class Task(ABC):
             + int(needs_primary_udn_vf)
         )
 
+    def _get_pod_runtime_class_name(self) -> Optional[str]:
+        if self.pod_type not in (PodType.NORMAL, PodType.SECONDARY, PodType.SRIOV):
+            return None
+        return self.ts.cfg_descr.get_tft().runtime_class_name
+
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
         conn = self.ts.connection
+        configured_runtime_class_name = self.ts.cfg_descr.get_tft().runtime_class_name
+        runtime_class_name = self._get_pod_runtime_class_name()
+        if configured_runtime_class_name is not None and runtime_class_name is None:
+            logger.warning(
+                f"Pod {self.pod_name!r} does not support RuntimeClass and will use "
+                "the default runtime "
+                f"instead of RuntimeClass {configured_runtime_class_name!r}"
+            )
         pod_secondary_network_nads = self._get_pod_secondary_network_nads()
         has_resources = any(
             v is not None
@@ -520,6 +533,8 @@ class Task(ABC):
             "label_tft_tests": _j(f"{self.index}"),
             "node_name": _j(self.node_name),
             "pod_name": _j(self.pod_name),
+            "has_runtime_class_name": runtime_class_name is not None,
+            "runtime_class_name": _j(runtime_class_name or ""),
             "privileged_pod": _j(self._get_template_args_privileged_pod()),
             "capabilities_pod": _j(self._get_template_args_capabilities_pod()),
             "port": self._get_template_args_port(),
