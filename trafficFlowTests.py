@@ -36,7 +36,10 @@ class TrafficFlowTests:
         self._udn_setup_done: bool = False
 
     def _uses_base_namespace(self, cfg_descr: ConfigDescriptor) -> bool:
-        return any(tc.uses_base_namespace for tc in cfg_descr.get_tft().test_cases)
+        return any(
+            tc.uses_base_namespace
+            for tc in cfg_descr.get_tft().get_all_conn_test_cases()
+        )
 
     def _configure_namespace(
         self, cfg_descr: ConfigDescriptor, *, namespace: str | None = None
@@ -222,9 +225,9 @@ class TrafficFlowTests:
 
     def _setup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
-        needs_primary = any(tc.is_udn_primary for tc in tft.test_cases)
+        needs_primary = any(tc.is_udn_primary for tc in tft.get_all_conn_test_cases())
         secondary_networks: dict[str, tftbase.UDNSecondaryNetworkSpec] = {}
-        for test_case in tft.test_cases:
+        for test_case in tft.get_all_conn_test_cases():
             network = test_case.udn_network_spec
             if network is not None:
                 secondary_networks[network.name] = network
@@ -312,67 +315,72 @@ class TrafficFlowTests:
 
     def _setup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
-        if not self._uses_base_namespace(cfg_descr):
-            return
-        if not any(
-            not tc.is_udn
-            and tc.info.connection_mode
-            in (
-                tftbase.ConnectionMode.MULTI_HOME,
-                tftbase.ConnectionMode.MNP_2ND_ALLOW,
-                tftbase.ConnectionMode.MNP_2ND_DENY,
-                tftbase.ConnectionMode.MNP_PRIMARY_DENY,
+        for connection_descr in cfg_descr.describe_all_connections():
+            conn = connection_descr.get_connection()
+            test_cases = conn.get_conn_test_cases()
+            if not any(tc.uses_base_namespace for tc in test_cases):
+                continue
+            if (
+                not any(
+                    not tc.is_udn
+                    and tc.info.connection_mode
+                    in (
+                        tftbase.ConnectionMode.MULTI_HOME,
+                        tftbase.ConnectionMode.MNP_2ND_ALLOW,
+                        tftbase.ConnectionMode.MNP_2ND_DENY,
+                        tftbase.ConnectionMode.MNP_PRIMARY_DENY,
+                    )
+                    for tc in test_cases
+                )
+                and conn.secondary_network_nad is None
+            ):
+                continue
+
+            server_nad = conn.server[0].effective_secondary_network_nad
+            client_nad = conn.client[0].effective_secondary_network_nad
+            if server_nad is not None or client_nad is not None:
+                continue
+
+            namespace = tft.namespace
+            client = cfg_descr.tc.client_tenant
+            nad = conn.effective_secondary_network_nad
+            nad_name = nad.split("/")[-1]
+
+            existing = client.oc_get(
+                f"network-attachment-definition/{nad_name}",
+                namespace=namespace,
+                may_fail=True,
             )
-            for tc in tft.test_cases
-        ) and not any(c.secondary_network_nad is not None for c in tft.connections):
-            return
+            if existing is not None:
+                continue
 
-        namespace = tft.namespace
-        client = cfg_descr.tc.client_tenant
-        conn = cfg_descr.get_tft().connections[0]
-        server_nad = conn.server[0].effective_secondary_network_nad
-        client_nad = conn.client[0].effective_secondary_network_nad
-        if server_nad is not None or client_nad is not None:
-            return
+            logger.info(f"Creating secondary NAD {nad} in namespace {namespace}")
 
-        nad = conn.effective_secondary_network_nad
-        nad_name = nad.split("/")[-1]
+            resource_names = {c.resource_name for c in tft.connections}
+            resource_name = (
+                resource_names.pop()
+                if len(resource_names) == 1 and None not in resource_names
+                else None
+            )
 
-        existing = client.oc_get(
-            f"network-attachment-definition/{nad_name}",
-            namespace=namespace,
-            may_fail=True,
-        )
-        if existing is not None:
-            return
-
-        logger.info(f"Creating secondary NAD {nad} in namespace {namespace}")
-
-        resource_names = {c.resource_name for c in tft.connections}
-        resource_name = (
-            resource_names.pop()
-            if len(resource_names) == 1 and None not in resource_names
-            else None
-        )
-
-        _j = json.dumps
-        in_template = tftbase.get_manifest("secondary-nad.yaml.j2")
-        out_yaml = tftbase.get_manifest_renderpath("secondary-nad.yaml")
-        kjinja2.render_file(
-            in_template,
-            {
-                "nad_name": _j(nad_name),
-                "name_space": _j(namespace),
-                "net_attach_def_name": _j(nad),
-                "subnets": _j(tftbase.get_secondary_nad_subnets()),
-                "mtu": tftbase.get_secondary_nad_mtu(),
-                "topology": _j(tftbase.get_secondary_nad_topology()),
-                "has_resource_name": resource_name is not None,
-                "resource_name": _j(resource_name or ""),
-            },
-            out_file=out_yaml,
-        )
-        client.oc(f"apply -f {out_yaml}", die_on_error=True)
+            _j = json.dumps
+            in_template = tftbase.get_manifest("secondary-nad.yaml.j2")
+            out_yaml = tftbase.get_manifest_renderpath("secondary-nad.yaml")
+            kjinja2.render_file(
+                in_template,
+                {
+                    "nad_name": _j(nad_name),
+                    "name_space": _j(namespace),
+                    "net_attach_def_name": _j(nad),
+                    "subnets": _j(tftbase.get_secondary_nad_subnets()),
+                    "mtu": tftbase.get_secondary_nad_mtu(),
+                    "topology": _j(tftbase.get_secondary_nad_topology()),
+                    "has_resource_name": resource_name is not None,
+                    "resource_name": _j(resource_name or ""),
+                },
+                out_file=out_yaml,
+            )
+            client.oc(f"apply -f {out_yaml}", die_on_error=True)
 
     def _cleanup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
         namespace = cfg_descr.get_tft().namespace
