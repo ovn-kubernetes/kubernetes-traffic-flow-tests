@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+# SPDX-License-Identifier: Apache-2.0
+
+header:
+  license:
+    spdx-id: Apache-2.0
+    copyright-owner: The OVN-Kubernetes Contributors
+    content: |
+      SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+      SPDX-License-Identifier: Apache-2.0
+
+  paths:
+    - '**'
+
+  paths-ignore:
+    - 'LICENSE'
+    - 'CODE_OF_CONDUCT.md'
+    - 'tests/*.json'
+    - 'tests/*-RESULTS'
+    # These files are compared byte-for-byte with generated output.
+    - 'eval-config.yaml'
+    - 'tests/generate-eval-config-output*.yaml'
+
+  comment: never
