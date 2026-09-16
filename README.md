@@ -41,6 +41,7 @@ This step is **optional** and not required for using the Traffic Flow Test scrip
 tft:
   - name: "(1)"
     namespace: "(2)"
+    runtime_class_name: "(2a)"
     # test cases can be specified individually i.e "1,2,POD_TO_HOST_SAME_NODE,6" or as a range i.e. "POD_TO_POD_SAME_NODE-9,15-19"
     test_cases: "(3)"
     duration: "(4)"
@@ -96,6 +97,8 @@ dpu_node_host_label: (44)
 
 1. "name" - This is the name of the test. Any string value to identify the test.
 2. "namespace" - The k8s namespace where the test pods will be run on
+2a. "runtime_class_name": (Optional) The Kubernetes RuntimeClass to use for eligible traffic
+  pods in this test, for example `kata`. If unset, those pods use the cluster default runtime.
 3. "test_cases" - A list of the tests that can be run. This can be either a string
      that possibly contains ranges (comma separated, ranged separated by '-'), or a
      YAML list.
@@ -228,6 +231,73 @@ dpu_node_host_label: (44)
   are detected based on the files we find at /root/kubeconfig.*.
 44. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
+
+### Running traffic pods with a RuntimeClass
+
+Set `runtime_class_name` on a test to run its normal, secondary-network, and SR-IOV traffic
+pods with that RuntimeClass:
+
+```yaml
+tft:
+  - name: "Kata traffic test"
+    namespace: "default"
+    runtime_class_name: "kata"
+    test_cases: "1"
+    duration: "30"
+    connections:
+      - name: "Connection_1"
+        type: "iperf-tcp"
+        server:
+          - name: "worker-1"
+        client:
+          - name: "worker-2"
+```
+
+If `runtime_class_name` is unset, the cluster default runtime is used. Before creating resources,
+TFT verifies that every selected RuntimeClass exists on the tenant cluster and fails the run
+early if one is missing.
+
+The RuntimeClass applies only to traffic pods rendered from the normal, secondary-network, and
+SR-IOV pod templates. Host-network endpoints, Podman workloads, DPU helper pods, and plugin tool
+pods continue to use the cluster default runtime. The cluster administrator is responsible for
+installing Kata Containers (or another runtime), configuring its handler, and creating the
+corresponding RuntimeClass; TFT does not install or manage runtime implementations.
+
+#### RuntimeClass node scheduling
+
+A RuntimeClass can define a `scheduling.nodeSelector` that restricts its pods to nodes where
+the runtime is installed. Kubernetes combines that selector with TFT's per-endpoint
+`kubernetes.io/hostname` selector. Therefore, every node named under `server` or `client` that
+will run normal, secondary-network, or SR-IOV traffic pods must match the RuntimeClass selector.
+Host-network endpoints use the cluster default runtime and do not need to satisfy that selector.
+Otherwise, affected traffic pods remain Pending with a message such as
+`node(s) didn't match Pod's node affinity/selector`.
+
+If only one node supports Kata, run same-node test cases and configure both endpoints with that
+node. Different-node test cases require at least two nodes that support the selected
+RuntimeClass:
+
+```yaml
+tft:
+  - runtime_class_name: kata
+    test_cases: POD_TO_POD_SAME_NODE
+    connections:
+      - server:
+          - name: kata-worker
+        client:
+          - name: kata-worker
+```
+
+To troubleshoot scheduling, compare the RuntimeClass selector with the labels on the configured
+nodes:
+
+```bash
+oc get runtimeclass kata -o yaml
+oc get node kata-worker --show-labels
+```
+
+The startup preflight confirms that the RuntimeClass exists, but Kubernetes remains responsible
+for checking whether the selected nodes satisfy its scheduling constraints.
 
 
 ## UDN (User Defined Network) Tests
