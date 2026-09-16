@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Traffic Flow Test Scripts
 
 This repository contains the yaml files, docker files, and test scripts to test Traffic Flows in an OVN-Kubernetes k8s cluster.

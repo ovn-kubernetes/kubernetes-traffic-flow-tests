@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
 The current Maintainers Group for the kubernetes-traffic-flow-tests Project consists of:
 
 | Name | Employer | Responsibilities |

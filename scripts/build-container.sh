@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 TAG="${TAG:-quay.io/$USER/kubernetes-traffic-flow-tests:latest}"
 
 set -ex
