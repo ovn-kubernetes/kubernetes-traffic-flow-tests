@@ -297,6 +297,18 @@ class TrafficFlowTests:
                         f"ClusterUserDefinedNetwork/{existing_primary_cudn}"
                     )
                 cudn_spec = cudn.get("spec")
+                network_spec = (
+                    cudn_spec.get("network", {}) if isinstance(cudn_spec, dict) else {}
+                )
+                topology = network_spec.get("topology", "")
+                if (
+                    topology not in ("Layer2", "Layer3")
+                    or network_spec.get(topology.lower(), {}).get("role") != "Primary"
+                ):
+                    raise RuntimeError(
+                        f"ClusterUserDefinedNetwork/{existing_primary_cudn} "
+                        "must have role Primary in its configured Layer2 or Layer3 topology"
+                    )
                 namespace_selector = (
                     cudn_spec.get("namespaceSelector")
                     if isinstance(cudn_spec, dict)
