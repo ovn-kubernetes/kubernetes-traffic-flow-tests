@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 FROM quay.io/centos/centos:stream9 AS base
 
 RUN dnf install -y 'dnf-command(config-manager)'

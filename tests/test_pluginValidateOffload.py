@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 import os
 import sys
 

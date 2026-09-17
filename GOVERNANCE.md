@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # kubernetes-traffic-flow-tests Project Governance
 
 The kubernetes-traffic-flow-tests project is dedicated to testing traffic flows in OVN-Kubernetes clusters, providing test scripts, YAML manifests, and Docker containers for validation.
