@@ -771,6 +771,37 @@ class Task(ABC):
             raise RuntimeError(f"Failure to get podIP for {self.pod_name}")
         return pod_ip
 
+    def get_node_host_ips(self) -> list[str]:
+        """Get all host IPs from the k8s.ovn.org/host-cidrs node annotation.
+
+        Returns a list of IPs (CIDR prefix stripped). Falls back to
+        status.podIP (for hostNetwork pods) when the annotation is absent.
+        """
+        y = self.run_oc_get(f"node/{self.node_name}", namespace=None, may_fail=True)
+        if y:
+            cidrs_str = y.get("metadata", {}).get("annotations", {}).get(
+                "k8s.ovn.org/host-cidrs", ""
+            )
+            if cidrs_str:
+                try:
+                    cidrs = json.loads(cidrs_str)
+                    if isinstance(cidrs, list) and cidrs:
+                        ips = [c.split("/")[0] for c in cidrs]
+                        logger.debug(
+                            f"get_node_host_ips() node {self.node_name}: {ips}"
+                        )
+                        return ips
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(
+                        f"Failed to parse k8s.ovn.org/host-cidrs on node {self.node_name}"
+                    )
+        pod_ip = self.get_pod_ip()
+        logger.debug(
+            f"get_node_host_ips() node {self.node_name}: "
+            f"no host-cidrs annotation, falling back to podIP {pod_ip}"
+        )
+        return [pod_ip]
+
     def get_secondary_ip(self) -> str:
         """Return the secondary target IP, matching the exact NAD for UDN tests."""
         if self.ts.test_case_id.is_udn:
@@ -1669,6 +1700,7 @@ class ClientTask(Task, ABC):
         self.target_access_mode = ts.target_access_mode
         self.in_file_template = in_file_template
         self.pod_name = pod_name
+        self.host_ip_override: Optional[str] = None
 
     def create_egressip(self) -> None:
         conn = self.ts.connection
@@ -1752,6 +1784,11 @@ class ClientTask(Task, ABC):
         self.render_pod_file("Client Pod Yaml")
 
     def get_target_ip(self) -> str:
+        if self.host_ip_override is not None:
+            logger.debug(
+                f"get_target_ip() using host_ip_override {self.host_ip_override}"
+            )
+            return self.host_ip_override
         if self.server.use_external:
             external_server = tftbase.get_tft_external_server()
             if external_server is not None:
