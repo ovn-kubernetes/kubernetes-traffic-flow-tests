@@ -11,6 +11,9 @@ metadata:
   annotations:
     k8s.v1.cni.cncf.io/policy-for: {{ secondary_network_nad }}
 spec:
+  policyTypes:
+    - Ingress
+    - Egress
   podSelector:
     matchLabels:
       tft-tests: {{ label_tft_tests }}

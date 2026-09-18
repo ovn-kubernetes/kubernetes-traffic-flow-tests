@@ -737,6 +737,16 @@ class TestCaseType(Enum):
     CUDN_LOCALNET_POD_TO_POD_DIFF_NODE = 79
     UDN_PRIMARY_POD_TO_CDN_POD_SAME_NODE = 80
     UDN_PRIMARY_POD_TO_CDN_POD_DIFF_NODE = 81
+    CUDN_LAYER3_POD_TO_POD_MNP_DENY = 82
+    CUDN_LAYER3_POD_TO_POD_MNP_ALLOW = 83
+    UDN_LAYER3_POD_TO_POD_MNP_DENY = 84
+    UDN_LAYER3_POD_TO_POD_MNP_ALLOW = 85
+    CUDN_LAYER2_POD_TO_POD_MNP_DENY = 86
+    CUDN_LAYER2_POD_TO_POD_MNP_ALLOW = 87
+    UDN_LAYER2_POD_TO_POD_MNP_DENY = 88
+    UDN_LAYER2_POD_TO_POD_MNP_ALLOW = 89
+    CUDN_LOCALNET_POD_TO_POD_MNP_DENY = 90
+    CUDN_LOCALNET_POD_TO_POD_MNP_ALLOW = 91
 
     @property
     def is_egress_ip(self) -> bool:
@@ -1846,6 +1856,91 @@ _test_case_typ_infos = {
             is_client_hostbacked=False,
             expects_blocked=True,
             server_uses_default_network=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER3_POD_TO_POD_MNP_DENY,
+            connection_mode=ConnectionMode.MNP_2ND_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            udn_network_spec=CUDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER3_POD_TO_POD_MNP_ALLOW,
+            connection_mode=ConnectionMode.MNP_2ND_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER3_POD_TO_POD_MNP_DENY,
+            connection_mode=ConnectionMode.MNP_2ND_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            udn_network_spec=UDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER3_POD_TO_POD_MNP_ALLOW,
+            connection_mode=ConnectionMode.MNP_2ND_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=UDN_SECONDARY_LAYER3_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER2_POD_TO_POD_MNP_DENY,
+            connection_mode=ConnectionMode.MNP_2ND_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            udn_network_spec=CUDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LAYER2_POD_TO_POD_MNP_ALLOW,
+            connection_mode=ConnectionMode.MNP_2ND_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER2_POD_TO_POD_MNP_DENY,
+            connection_mode=ConnectionMode.MNP_2ND_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            udn_network_spec=UDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_LAYER2_POD_TO_POD_MNP_ALLOW,
+            connection_mode=ConnectionMode.MNP_2ND_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=UDN_SECONDARY_LAYER2_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LOCALNET_POD_TO_POD_MNP_DENY,
+            connection_mode=ConnectionMode.MNP_2ND_DENY,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            udn_network_spec=CUDN_SECONDARY_LOCALNET_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.CUDN_LOCALNET_POD_TO_POD_MNP_ALLOW,
+            connection_mode=ConnectionMode.MNP_2ND_ALLOW,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            udn_network_spec=CUDN_SECONDARY_LOCALNET_NETWORK,
         ),
     )
 }

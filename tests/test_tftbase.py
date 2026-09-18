@@ -132,8 +132,8 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 81
-    expected_values = [*range(1, 48), *range(60, 82)]
+    assert list(TestCaseType)[-1].value == 91
+    expected_values = [*range(1, 48), *range(60, 92)]
     assert expected_values == [typ.value for typ in tftbase.TestCaseType]
 
     for typ in TestCaseType:
@@ -247,6 +247,48 @@ def test_primary_udn_to_cdn_test_case_info() -> None:
         assert info.is_same_node is is_same_node
         assert info.expects_blocked is True
         assert test_case.is_udn_primary
+
+
+def test_secondary_udn_multi_network_policy_test_case_info() -> None:
+    expected = (
+        (
+            TestCaseType.CUDN_LAYER3_POD_TO_POD_DIFF_NODE,
+            TestCaseType.CUDN_LAYER3_POD_TO_POD_MNP_DENY,
+            TestCaseType.CUDN_LAYER3_POD_TO_POD_MNP_ALLOW,
+        ),
+        (
+            TestCaseType.UDN_LAYER3_POD_TO_POD_DIFF_NODE,
+            TestCaseType.UDN_LAYER3_POD_TO_POD_MNP_DENY,
+            TestCaseType.UDN_LAYER3_POD_TO_POD_MNP_ALLOW,
+        ),
+        (
+            TestCaseType.CUDN_LAYER2_POD_TO_POD_DIFF_NODE,
+            TestCaseType.CUDN_LAYER2_POD_TO_POD_MNP_DENY,
+            TestCaseType.CUDN_LAYER2_POD_TO_POD_MNP_ALLOW,
+        ),
+        (
+            TestCaseType.UDN_LAYER2_POD_TO_POD_DIFF_NODE,
+            TestCaseType.UDN_LAYER2_POD_TO_POD_MNP_DENY,
+            TestCaseType.UDN_LAYER2_POD_TO_POD_MNP_ALLOW,
+        ),
+        (
+            TestCaseType.CUDN_LOCALNET_POD_TO_POD_DIFF_NODE,
+            TestCaseType.CUDN_LOCALNET_POD_TO_POD_MNP_DENY,
+            TestCaseType.CUDN_LOCALNET_POD_TO_POD_MNP_ALLOW,
+        ),
+    )
+
+    for base_case, deny_case, allow_case in expected:
+        assert deny_case.udn_network_spec is base_case.udn_network_spec
+        assert allow_case.udn_network_spec is base_case.udn_network_spec
+        assert deny_case.info.is_same_node is False
+        assert allow_case.info.is_same_node is False
+        assert deny_case.info.connection_mode == ConnectionMode.MNP_2ND_DENY
+        assert allow_case.info.connection_mode == ConnectionMode.MNP_2ND_ALLOW
+        assert deny_case.info.expects_blocked is True
+        assert allow_case.info.expects_blocked is False
+        assert deny_case.is_udn_secondary
+        assert allow_case.is_udn_secondary
 
 
 def test_anp_test_case_info() -> None:
