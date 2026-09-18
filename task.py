@@ -501,12 +501,17 @@ class Task(ABC):
     def _get_pod_runtime_class_name(self) -> Optional[str]:
         if self.pod_type not in (PodType.NORMAL, PodType.SECONDARY, PodType.SRIOV):
             return None
+        if self.node.runtime_class_name is not None:
+            return self.node.runtime_class_name
         return self.ts.cfg_descr.get_tft().runtime_class_name
 
     def get_template_args(self) -> dict[str, str | list[str] | bool]:
         resource_name = self.get_resource_name()
         conn = self.ts.connection
-        configured_runtime_class_name = self.ts.cfg_descr.get_tft().runtime_class_name
+        configured_runtime_class_name = (
+            self.node.runtime_class_name
+            or self.ts.cfg_descr.get_tft().runtime_class_name
+        )
         runtime_class_name = self._get_pod_runtime_class_name()
         if configured_runtime_class_name is not None and runtime_class_name is None:
             logger.warning(

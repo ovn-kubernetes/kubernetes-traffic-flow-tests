@@ -145,6 +145,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
     privileged_pod: Optional[bool]
     capabilities_pod: Optional[Mapping[str, tuple[str, ...]]]
     secondary_network_nad: Optional[str]
+    runtime_class_name: Optional[str]
 
     # Extra arguments for the client/server. Their actual meaning depend on the
     # "type". These might be command line arguments passed to the tool.
@@ -169,6 +170,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
         common.dict_add_optional(d, "privileged_pod", self.privileged_pod)
         common.dict_add_optional(d, "capabilities_pod", self.capabilities_pod)
         common.dict_add_optional(d, "secondary_network_nad", self.secondary_network_nad)
+        common.dict_add_optional(d, "runtime_class_name", self.runtime_class_name)
         if self.args is not None:
             d["args"] = list(self.args)
         return {
@@ -246,6 +248,12 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
                 default=None,
             )
 
+            runtime_class_name = common.structparse_pop_str(
+                varg.for_key("runtime_class_name"),
+                default=None,
+                check=validate_runtime_class_name,
+            )
+
             type_specific_kwargs: dict[str, Any] = {}
 
             if conf_type == ConfNodeServer:
@@ -281,6 +289,7 @@ class ConfNodeBase(_ConfBaseConnectionItem, abc.ABC):
             privileged_pod=privileged_pod,
             capabilities_pod=capabilities_pod,
             secondary_network_nad=secondary_network_nad,
+            runtime_class_name=runtime_class_name,
             args=args,
             **type_specific_kwargs,
         )
@@ -1314,11 +1323,14 @@ class TestConfig:
             self.validate_node_available(node_name, role)
 
     def _validate_runtime_classes(self) -> None:
-        runtime_class_names = {
-            runtime_class_name
-            for tft in self.config.tft
-            if (runtime_class_name := tft.runtime_class_name) is not None
-        }
+        runtime_class_names: set[str] = set()
+        for tft in self.config.tft:
+            if tft.runtime_class_name is not None:
+                runtime_class_names.add(tft.runtime_class_name)
+            for connection in tft.connections:
+                for node in (*connection.server, *connection.client):
+                    if node.runtime_class_name is not None:
+                        runtime_class_names.add(node.runtime_class_name)
         for runtime_class_name in sorted(runtime_class_names):
             runtime_class = self.client_tenant.oc_get(
                 f"runtimeclass.node.k8s.io/{runtime_class_name}",
