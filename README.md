@@ -103,7 +103,8 @@ dpu_node_host_label: (44)
 1. "name" - This is the name of the test. Any string value to identify the test.
 2. "namespace" - The k8s namespace where the test pods will be run on
 2a. "runtime_class_name": (Optional) The Kubernetes RuntimeClass to use for eligible traffic
-  pods in this test, for example `kata`. If unset, those pods use the cluster default runtime.
+  pods in this test, for example `kata`. Per-node `runtime_class_name` on `server` / `client`
+  overrides this value. If neither is set, those pods use the cluster default runtime.
 3. "test_cases" - A list of the tests that can be run. This can be either a string
      that possibly contains ranges (comma separated, ranged separated by '-'), or a
      YAML list.
@@ -202,11 +203,13 @@ dpu_node_host_label: (44)
 14a. "pod_port" - (Optional) The base port for pod-type servers. Defaults to 5201. When multiple connections are configured, each connection should use a unique port to avoid service conflicts.
 14b. "host_port" - (Optional) The base port for host-backed servers. Defaults to 5301. When multiple connections are configured, each connection should use a unique port to avoid service conflicts.
 15. "secondary_network_nad" - (Optional) The secondary network NAD for the server node. Overrides the connection-level `secondary_network_nad` for the server pod. Useful when server and client require different NADs.
+15a. "runtime_class_name" - (Optional) RuntimeClass for eligible traffic pods on this server node. Overrides the test-level `runtime_class_name`. Host-network pods on this node still use the cluster default runtime.
 16. "name" - The node name of the client.
 17. "sriov" - Whether SRIOV should be used for the client pod. Takes in "true/false"
 18. "default_network" - (Optional) The name of the default network that the sriov pod would use.
 18a. "args" - (Optional) Extra command-line arguments to pass to the test tool (iperf3, simple-tcp-server-client). Supported for iperf-tcp, iperf-udp, and simple test types. Can be a string or list of strings.
 19. "secondary_network_nad" - (Optional) The secondary network NAD for the client node. Overrides the connection-level `secondary_network_nad` for the client pod. Useful when server and client require different NADs.
+19a. "runtime_class_name" - (Optional) RuntimeClass for eligible traffic pods on this client node. Overrides the test-level `runtime_class_name`. Host-network pods on this node still use the cluster default runtime.
 20. "name" - (Optional) list of plugin names
     | Name                       | Description                      |
     | -------------------------- | -------------------------------- |
@@ -250,7 +253,9 @@ dpu_node_host_label: (44)
 ### Running traffic pods with a RuntimeClass
 
 Set `runtime_class_name` on a test to run its normal, secondary-network, and SR-IOV traffic
-pods with that RuntimeClass:
+pods with that RuntimeClass, or set it on an individual `server` / `client` node to override
+the test-level value. Name each endpoint as a node that can actually run that RuntimeClass;
+TFT does not remap host workers to DPU nodes.
 
 ```yaml
 tft:
@@ -268,9 +273,23 @@ tft:
           - name: "worker-2"
 ```
 
-If `runtime_class_name` is unset, the cluster default runtime is used. Before creating resources,
-TFT verifies that every selected RuntimeClass exists on the tenant cluster and fails the run
-early if one is missing.
+On DPF, host-network tests use host workers and Kata/coldplug pods must land on `worker-dpu`
+nodes. Put the DPU node name (and RuntimeClass) on the endpoint that runs a Kata pod:
+
+```yaml
+tft:
+  - test_cases: POD_TO_NODE_PORT_TO_HOST_DIFF_NODE
+    connections:
+      - server:
+          - name: host-worker-1
+        client:
+          - name: dpu-worker-2
+            runtime_class_name: kata-coldplug
+```
+
+If `runtime_class_name` is unset at both levels, the cluster default runtime is used. Before
+creating resources, TFT verifies that every selected RuntimeClass exists on the tenant cluster
+and fails the run early if one is missing.
 
 The RuntimeClass applies only to traffic pods rendered from the normal, secondary-network, and
 SR-IOV pod templates. Host-network endpoints, Podman workloads, DPU helper pods, and plugin tool
@@ -283,8 +302,8 @@ corresponding RuntimeClass; TFT does not install or manage runtime implementatio
 A RuntimeClass can define a `scheduling.nodeSelector` that restricts its pods to nodes where
 the runtime is installed. Kubernetes combines that selector with TFT's per-endpoint
 `kubernetes.io/hostname` selector. Therefore, every node named under `server` or `client` that
-will run normal, secondary-network, or SR-IOV traffic pods must match the RuntimeClass selector.
-Host-network endpoints use the cluster default runtime and do not need to satisfy that selector.
+will run normal, secondary-network, or SR-IOV traffic pods with a RuntimeClass must match that
+selector. Host-network endpoints use the cluster default runtime and do not need to satisfy it.
 Otherwise, affected traffic pods remain Pending with a message such as
 `node(s) didn't match Pod's node affinity/selector`.
 
@@ -307,8 +326,8 @@ To troubleshoot scheduling, compare the RuntimeClass selector with the labels on
 nodes:
 
 ```bash
-oc get runtimeclass kata -o yaml
-oc get node kata-worker --show-labels
+oc get runtimeclass kata-coldplug -o yaml
+oc get nodes --show-labels
 ```
 
 The startup preflight confirms that the RuntimeClass exists, but Kubernetes remains responsible
