@@ -428,7 +428,7 @@ class Task(ABC):
         return any(
             tc.info.uses_secondary_network_pod
             and tc.info.get_namespace(base_namespace, self.task_role) == namespace
-            for tc in tft.test_cases
+            for tc in tft.get_all_conn_test_cases()
         )
 
     def _get_effective_secondary_network_nad(self) -> str:
@@ -466,7 +466,7 @@ class Task(ABC):
             return tuple(
                 dict.fromkeys(
                     f"{namespace}/{network.name}"
-                    for test_case in self.ts.cfg_descr.get_tft().test_cases
+                    for test_case in self.ts.cfg_descr.get_tft().get_all_conn_test_cases()
                     if (network := test_case.udn_network_spec) is not None
                 )
             )
@@ -493,7 +493,7 @@ class Task(ABC):
             return str(1 + int(self.uses_primary_udn))
         needs_primary_udn_vf = self.ts.test_case_id.is_udn_secondary and any(
             test_case.is_udn_primary
-            for test_case in self.ts.cfg_descr.get_tft().test_cases
+            for test_case in self.ts.cfg_descr.get_tft().get_all_conn_test_cases()
         )
         return str(
             len(secondary_network_nads)

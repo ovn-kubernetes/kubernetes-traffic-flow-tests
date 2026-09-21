@@ -417,6 +417,7 @@ class ConfEgressIP:
 class ConfConnection(StructParseBaseNamed):
     test_type: TestType
     test_type_handler: TestTypeHandler
+    test_cases: Optional[tuple[TestCaseType, ...]]
     instances: int
     reverse: bool
     server: tuple[ConfNodeServer, ...]
@@ -456,6 +457,9 @@ class ConfConnection(StructParseBaseNamed):
             return self.egress_ip.node
         return client_node
 
+    def get_conn_test_cases(self) -> tuple[TestCaseType, ...]:
+        return tuple(dict.fromkeys(self.tft.test_cases + (self.test_cases or ())))
+
     def serialize(self) -> dict[str, Any]:
         extra: dict[str, Any] = {}
         common.dict_add_optional(
@@ -467,6 +471,8 @@ class ConfConnection(StructParseBaseNamed):
         common.dict_add_optional(extra, "cpu_limit", self.cpu_limit)
         common.dict_add_optional(extra, "mem_request", self.mem_request)
         common.dict_add_optional(extra, "mem_limit", self.mem_limit)
+        if self.test_cases is not None:
+            extra["test_cases"] = [t.name for t in self.test_cases]
         if self.egress_ip is not None:
             extra["egress_ip"] = self.egress_ip.serialize()
         return {
@@ -515,6 +521,12 @@ class ConfConnection(StructParseBaseNamed):
                 raise pctx.value_error(
                     f"{repr(test_type.name)} is not implemented", key="type"
                 ) from None
+
+            test_cases = common.structparse_pop_obj(
+                varg.for_key("test_cases"),
+                construct=_construct_test_cases,
+                default=None,
+            )
 
             instances = common.structparse_pop_int(
                 varg.for_key("instances"),
@@ -609,6 +621,7 @@ class ConfConnection(StructParseBaseNamed):
             name=name,
             test_type=test_type,
             test_type_handler=test_type_handler,
+            test_cases=test_cases,
             instances=instances,
             reverse=reverse,
             server=server,
@@ -820,6 +833,15 @@ class ConfTest(StructParseBaseNamed):
     def config(self) -> "ConfConfig":
         return self._owner_reference.get(ConfConfig)
 
+    def get_all_conn_test_cases(self) -> tuple[TestCaseType, ...]:
+        return tuple(
+            dict.fromkeys(
+                test_case
+                for connection in self.connections
+                for test_case in connection.get_conn_test_cases()
+            )
+        )
+
     def serialize(self) -> dict[str, Any]:
         return {
             **super().serialize(),
@@ -938,7 +960,9 @@ class ConfTest(StructParseBaseNamed):
 
     @property
     def uses_secondary_network_pod(self) -> bool:
-        return any(tc.info.uses_secondary_network_pod for tc in self.test_cases)
+        return any(
+            tc.info.uses_secondary_network_pod for tc in self.get_all_conn_test_cases()
+        )
 
     def get_output_file(self) -> pathlib.Path:
         output_base = self.config.test_config.output_base
@@ -1389,7 +1413,7 @@ class ConfigDescriptor:
         if self.test_cases_idx >= 0:
             if self.tft_idx < 0:
                 raise ValueError("test_cases_idx requires tft_idx")
-            if self.test_cases_idx >= len(self.tc.config.tft[self.tft_idx].test_cases):
+            if self.test_cases_idx >= len(self.get_tft().get_all_conn_test_cases()):
                 raise ValueError("test_cases_idx out or range")
 
         if self.connections_idx < -1:
@@ -1410,7 +1434,7 @@ class ConfigDescriptor:
     def get_test_case(self) -> TestCaseType:
         if self.test_cases_idx < 0:
             raise RuntimeError("No test_cases_idx set")
-        return self.get_tft().test_cases[self.test_cases_idx]
+        return self.get_tft().get_all_conn_test_cases()[self.test_cases_idx]
 
     def get_connection(self) -> ConfConnection:
         if self.connections_idx < 0:
@@ -1432,7 +1456,14 @@ class ConfigDescriptor:
             yield ConfigDescriptor(tc=self.tc, tft_idx=tft_idx)
 
     def describe_all_test_cases(self) -> Generator["ConfigDescriptor", None, None]:
-        for test_cases_idx in range(len(self.get_tft().test_cases)):
+        for test_cases_idx, test_case in enumerate(
+            self.get_tft().get_all_conn_test_cases()
+        ):
+            if (
+                self.connections_idx >= 0
+                and test_case not in self.get_connection().get_conn_test_cases()
+            ):
+                continue
             yield ConfigDescriptor(
                 tc=self.tc,
                 tft_idx=self.tft_idx,
@@ -1441,7 +1472,12 @@ class ConfigDescriptor:
             )
 
     def describe_all_connections(self) -> Generator["ConfigDescriptor", None, None]:
-        for connections_idx in range(len(self.get_tft().connections)):
+        for connections_idx, connection in enumerate(self.get_tft().connections):
+            if (
+                self.test_cases_idx >= 0
+                and self.get_test_case() not in connection.get_conn_test_cases()
+            ):
+                continue
             yield ConfigDescriptor(
                 tc=self.tc,
                 tft_idx=self.tft_idx,

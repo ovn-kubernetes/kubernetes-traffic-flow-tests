@@ -56,6 +56,7 @@ tft:
     connections:
       - name: "(6)"
         type: "(7)"
+        test_cases: "(7a)"
         instances: (8)
         reverse: "(9)"
         duration: "(10)"
@@ -106,7 +107,9 @@ dpu_node_host_label: (44)
   pods in this test, for example `kata`. If unset, those pods use the cluster default runtime.
 3. "test_cases" - A list of the tests that can be run. This can be either a string
      that possibly contains ranges (comma separated, ranged separated by '-'), or a
-     YAML list.
+     YAML list. Every connection runs these cases in addition to any cases listed
+     under that connection.
+     If omitted, null, or an empty string, it defaults to all test cases.
     | ID | Test Name            |
     | -- | -------------------- |
     | 1  | POD_TO_POD_SAME_NODE |
@@ -191,7 +194,12 @@ dpu_node_host_label: (44)
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
-7. "type" - Supported types of connections are iperf-tcp, iperf-udp, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
+7. "type" - Supported types of connections are iperf-tcp, iperf-udp, http, netperf-tcp-stream, netperf-tcp-rr, ib-write-bw, ib-read-bw, ib-send-bw
+7a. "test_cases" - (Optional) Additional test cases to run for this connection,
+  using the same format as the TFT-level `test_cases`. The connection runs the
+  TFT-level cases plus its own cases, with duplicates removed. If omitted, null,
+  or `[]`, no additional cases are selected. Use `"*"` or an empty string to
+  select all cases for this connection.
 8. "instances" - The number of instances that would be created. Default is "1"
 9. "reverse" - (Optional) Whether reverse-direction test should run when supported. Defaults to true. Currently, reverse execution is only supported for iperf-tcp. Takes in "true/false".
 10. "duration" - (Optional) Override the test duration for this connection only, in seconds. If omitted, the tft-level duration is used.
@@ -246,6 +254,53 @@ dpu_node_host_label: (44)
   are detected based on the files we find at /root/kubeconfig.*.
 44. "dpu_node_host_label": (Required for DPU mode) The label on DPU nodes that identifies
   which host worker node they belong to. For NVIDIA DPUs, use `provisioning.dpu.nvidia.com/host`.
+
+### Selecting test cases per connection
+
+Put cases that every connection should run in the TFT-level `test_cases`, and
+additional cases for a specific connection under that connection's `test_cases`.
+For example, when an external server serves only one traffic tool, add the
+external-server cases only to that tool's connection.
+
+This configuration runs cases 1-5 for iperf-tcp and only 1-4 for HTTP:
+
+```yaml
+tft:
+  - name: "Mixed traffic tools"
+    namespace: "default"
+    test_cases: "1-4"
+    duration: 30
+    connections:
+      - name: "iperf"
+        type: "iperf-tcp"
+        test_cases: "5"
+        server:
+          - name: "worker-1"
+        client:
+          - name: "worker-2"
+      - name: "http"
+        type: "http"
+        server:
+          - name: "worker-1"
+            pod_port: 5202
+            host_port: 5302
+        client:
+          - name: "worker-2"
+```
+
+Setting HTTP's `test_cases` to `"2,6"` would run cases 1-4 and 6 for HTTP. Case 2
+is already in the TFT-level list, so it runs only once. The iperf connection
+would still run 1-5.
+
+An omitted, null, or empty connection list adds no cases and still runs all
+TFT-level cases. To select cases entirely per connection, set the TFT-level
+`test_cases: []`; omitting the TFT-level field selects all cases by default.
+
+Shared namespace and network setup uses the union of the connections' effective
+test cases. A case is provisioned and executed only for connections that select
+it, including when `pre_provision: true`. Cases that no connection selects do not
+trigger network setup. Existing configurations without connection-level
+`test_cases` continue to use the TFT-level selection for every connection.
 
 ### Running traffic pods with a RuntimeClass
 
