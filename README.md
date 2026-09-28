@@ -659,7 +659,9 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      all service-backed tests.
 - `TFT_ENABLE_TARGET_ACCESS_SUBTESTS` enables extra target access variants for service-backed
      tests. Defaults to `false`; when `true`, ClusterIP and LoadBalancer tests run both
-     `IP` and `SERVICE_NAME`, while NodePort tests also include `CLIENT_NODE_IP`.
+     `IP` and `SERVICE_NAME`, while NodePort tests also include `SERVER_NODE_IP` and
+     `CLIENT_NODE_IP`. These node IP variants use the server node's InternalIP and the
+     configured client node's InternalIP, respectively, with the allocated NodePort.
 - `TFT_EXISTING_PRIMARY_CUDN` names a user-provided CUDN for primary CUDN tests only and does
      not affect secondary CUDN tests. When set, TFT creates or reuses `{namespace}-udn`,
      applies the CUDN's namespace selector `matchLabels` to it, and leaves the CUDN unchanged.
