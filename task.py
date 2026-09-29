@@ -1772,19 +1772,29 @@ class ClientTask(Task, ABC):
                 )
             logger.debug(f"get_target_ip() ClusterIP connection to {cluster_ip}")
             return cluster_ip
-        elif self.connection_mode == ConnectionMode.NODE_PORT_IP:
+        elif self.connection_mode in (
+            ConnectionMode.NODE_PORT_IP,
+            ConnectionMode.NODE_PORT_SERVER_IP,
+        ):
             if self.target_access_mode == TargetAccessMode.SERVICE_NAME:
                 nodeport_service_name = self.server.get_nodeport_service_dns_name()
                 logger.debug(
                     f"get_target_ip() NodePort service name to {nodeport_service_name}"
                 )
                 return nodeport_service_name
-            if self.target_access_mode == TargetAccessMode.CLIENT_NODE_IP:
-                (configured_client_node,) = self.ts.connection.client
-                nodeport_node_ip = self.get_node_internal_ip(
-                    configured_client_node.name
+            if self.target_access_mode in (
+                TargetAccessMode.SERVER_NODE_IP,
+                TargetAccessMode.CLIENT_NODE_IP,
+            ):
+                if self.target_access_mode == TargetAccessMode.SERVER_NODE_IP:
+                    node_name = self.server.node_name
+                else:
+                    (configured_client_node,) = self.ts.connection.client
+                    node_name = configured_client_node.name
+                nodeport_node_ip = self.get_node_internal_ip(node_name)
+                logger.debug(
+                    f"get_target_ip() NodePort {self.target_access_mode.name} to {nodeport_node_ip}"
                 )
-                logger.debug(f"get_target_ip() NodePort node IP to {nodeport_node_ip}")
                 return nodeport_node_ip
             nodeport_cluster_ip = self.server.get_nodeport_cluster_ip()
             if nodeport_cluster_ip is None:
@@ -1840,9 +1850,12 @@ class ClientTask(Task, ABC):
             return 0
         if self.connection_mode == ConnectionMode.EXTERNAL_IP:
             return self.server.external_port
-        if (
-            self.connection_mode == ConnectionMode.NODE_PORT_IP
-            and self.target_access_mode == TargetAccessMode.CLIENT_NODE_IP
+        if self.connection_mode in (
+            ConnectionMode.NODE_PORT_IP,
+            ConnectionMode.NODE_PORT_SERVER_IP,
+        ) and self.target_access_mode in (
+            TargetAccessMode.SERVER_NODE_IP,
+            TargetAccessMode.CLIENT_NODE_IP,
         ):
             node_port = self.server.get_nodeport_port(
                 tftbase.get_service_protocol(self.test_type)

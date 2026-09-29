@@ -415,6 +415,56 @@ IPERF_TCP:
       threshold: 18
     Reverse:
       threshold: 10
+  - id: POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: POD_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: POD_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: HOST_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: HOST_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: HOST_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: HOST_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 18
+    Reverse:
+      threshold: 18
 IPERF_UDP:
   - id: POD_TO_POD_SAME_NODE
     Normal:
@@ -807,6 +857,56 @@ IPERF_UDP:
     Reverse:
       threshold: 0
   - id: CUDN_LOCALNET_POD_TO_POD_MNP_ALLOW
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: POD_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: HOST_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE
+    Normal:
+      threshold: 5
+    Reverse:
+      threshold: 5
+  - id: UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE
     Normal:
       threshold: 5
     Reverse:

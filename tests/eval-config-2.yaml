@@ -397,6 +397,56 @@ IPERF_TCP:
   Reverse:
     threshold: 10
   id: 91
+- Normal:
+    threshold: 30
+  Reverse:
+    threshold: 32
+  id: 92
+- Normal:
+    threshold: 20
+  Reverse:
+    threshold: 20
+  id: 93
+- Normal:
+    threshold: 35
+  Reverse:
+    threshold: 36
+  id: 94
+- Normal:
+    threshold: 20
+  Reverse:
+    threshold: 20
+  id: 95
+- Normal:
+    threshold: 34
+  Reverse:
+    threshold: 29
+  id: 96
+- Normal:
+    threshold: 20
+  Reverse:
+    threshold: 20
+  id: 97
+- Normal:
+    threshold: 19
+  Reverse:
+    threshold: 34
+  id: 98
+- Normal:
+    threshold: 20
+  Reverse:
+    threshold: 21
+  id: 99
+- Normal:
+    threshold: 18
+  Reverse:
+    threshold: 18
+  id: 100
+- Normal:
+    threshold: 18
+  Reverse:
+    threshold: 18
+  id: 101
 IPERF_UDP:
 - Normal:
     threshold: 5
@@ -793,3 +843,53 @@ IPERF_UDP:
   Reverse:
     threshold: 5
   id: 91
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 92
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 93
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 94
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 95
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 96
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 97
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 98
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 99
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 100
+- Normal:
+    threshold: 5
+  Reverse:
+    threshold: 5
+  id: 101
