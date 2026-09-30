@@ -755,6 +755,16 @@ class TestCaseType(Enum):
     UDN_LAYER2_POD_TO_POD_MNP_ALLOW = 89
     CUDN_LOCALNET_POD_TO_POD_MNP_DENY = 90
     CUDN_LOCALNET_POD_TO_POD_MNP_ALLOW = 91
+    POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE = 92
+    POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE = 93
+    POD_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE = 94
+    POD_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE = 95
+    HOST_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE = 96
+    HOST_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE = 97
+    HOST_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE = 98
+    HOST_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE = 99
+    UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE = 100
+    UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE = 101
 
     @property
     def is_egress_ip(self) -> bool:
@@ -806,17 +816,18 @@ class ConnectionMode(Enum):
     NP_ALLOW = 13
     LOAD_BALANCER = 14
     NP_NS_SELECTOR_ALLOW = 15
+    NODE_PORT_SERVER_IP = 16
 
 
 class TargetAccessMode(Enum):
     IP = 1
     SERVICE_NAME = 2
     CLIENT_NODE_IP = 3
+    SERVER_NODE_IP = 4
 
 
 _SERVICE_TARGET_ACCESS_CONNECTION_MODES = (
     ConnectionMode.CLUSTER_IP,
-    ConnectionMode.NODE_PORT_IP,
     ConnectionMode.LOAD_BALANCER,
 )
 
@@ -824,13 +835,14 @@ _SERVICE_TARGET_ACCESS_CONNECTION_MODES = (
 def get_default_target_access_mode(
     connection_mode: ConnectionMode,
 ) -> TargetAccessMode:
-    override = get_tft_default_target_access_mode_override()
+    if connection_mode == ConnectionMode.NODE_PORT_IP:
+        return TargetAccessMode.CLIENT_NODE_IP
+    if connection_mode == ConnectionMode.NODE_PORT_SERVER_IP:
+        return TargetAccessMode.SERVER_NODE_IP
     if connection_mode in _SERVICE_TARGET_ACCESS_CONNECTION_MODES:
+        override = get_tft_default_target_access_mode_override()
         if override is not None:
             return override
-        if connection_mode == ConnectionMode.NODE_PORT_IP:
-            return TargetAccessMode.CLIENT_NODE_IP
-        return TargetAccessMode.IP
     return TargetAccessMode.IP
 
 
@@ -846,6 +858,12 @@ def get_target_access_modes(
             TargetAccessMode.IP,
             TargetAccessMode.SERVICE_NAME,
             TargetAccessMode.CLIENT_NODE_IP,
+        )
+    if connection_mode == ConnectionMode.NODE_PORT_SERVER_IP:
+        return (
+            TargetAccessMode.IP,
+            TargetAccessMode.SERVICE_NAME,
+            TargetAccessMode.SERVER_NODE_IP,
         )
     if connection_mode == ConnectionMode.LOAD_BALANCER:
         return (TargetAccessMode.IP, TargetAccessMode.SERVICE_NAME)
@@ -1949,6 +1967,76 @@ _test_case_typ_infos = {
             is_server_hostbacked=False,
             is_client_hostbacked=False,
             udn_network_spec=CUDN_SECONDARY_LOCALNET_NETWORK,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=True,
+            is_server_hostbacked=True,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.POD_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=False,
+            is_server_hostbacked=True,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=True,
+            is_server_hostbacked=True,
+            is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.HOST_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=False,
+            is_server_hostbacked=True,
+            is_client_hostbacked=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.NODE_PORT_SERVER_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
         ),
     )
 }

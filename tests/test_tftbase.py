@@ -132,8 +132,8 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 91
-    expected_values = [*range(1, 48), *range(60, 92)]
+    assert list(TestCaseType)[-1].value == 101
+    expected_values = [*range(1, 48), *range(60, 102)]
     assert expected_values == [typ.value for typ in tftbase.TestCaseType]
 
     for typ in TestCaseType:

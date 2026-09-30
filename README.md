@@ -191,6 +191,25 @@ dpu_node_host_label: (44)
     | 89 | UDN_LAYER2_POD_TO_POD_MNP_ALLOW |
     | 90 | CUDN_LOCALNET_POD_TO_POD_MNP_DENY |
     | 91 | CUDN_LOCALNET_POD_TO_POD_MNP_ALLOW |
+    | 92 | POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE |
+    | 93 | POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE |
+    | 94 | POD_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE |
+    | 95 | POD_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE |
+    | 96 | HOST_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE |
+    | 97 | HOST_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE |
+    | 98 | HOST_TO_NODE_PORT_SERVER_TO_HOST_SAME_NODE |
+    | 99 | HOST_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE |
+    | 100 | UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE |
+    | 101 | UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE |
+
+    NodePort test names containing `NODE_PORT_TO` without a node qualifier
+    (cases 9-12, 21-24, and 41-42) use the configured client node's InternalIP
+    and the allocated NodePort by default. Names containing `NODE_PORT_SERVER_TO`
+    (cases 92-101) use the server node's InternalIP and the allocated NodePort
+    by default. `SAME_NODE` and `DIFF_NODE` describe the placement of the client
+    and server endpoints. `TFT_DEFAULT_TARGET_ACCESS_MODE` does not affect
+    NodePort tests.
+
 4. "duration" - The duration that each individual test will run for.
 5. "pre_provision" - (Optional) Whether to pre-provision all pods and services once before the test run begins, rather than creating and tearing them down per test case. Defaults to false. Takes in "true/false".
 6. "name" - This is the connection name. Any string value to identify the connection.
@@ -374,7 +393,7 @@ for checking whether the selected nodes satisfy its scheduling constraints.
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 37-47 and 70-91 run traffic over OVN-Kubernetes User Defined Networks. By default, the framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies, MultiNetworkPolicies, and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
+Test cases 37-47, 70-91, and 100-101 run traffic over OVN-Kubernetes User Defined Networks. By default, the framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies, MultiNetworkPolicies, and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
 
 - **37-47** (Primary UDN): Network replacing the pod's default network. Its mode, topology, and transport are configured through `udn_primary_network`.
   - **37-42**: pod-to-pod, ClusterIP, and NodePort.
@@ -389,6 +408,7 @@ Test cases 37-47 and 70-91 run traffic over OVN-Kubernetes User Defined Networks
   - **78-79**: Localnet CUDN.
 - **80-81** (Primary UDN isolation): Expected-block tests from a primary UDN pod to a cluster default network pod using direct pod IPs (same / different node).
 - **82-91** (Secondary UDN/CUDN MultiNetworkPolicy): Different-node deny and allow variants on the second interface.
+- **100-101** (Primary UDN): NodePort through the server node IP (same / different node).
 
 In the names of cases 80-81, `CDN` means cluster default network and is distinct from `CUDN`.
 
@@ -653,13 +673,15 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      defaults to "manifests/yamls".
 - `TFT_KUBECONFIG`, `TFT_KUBECONFIG_INFRA` to overwrite the kubeconfigs from the configuration
      file. See also the "--kubeconfig" and "--kubeconfig-infra" command line options.
-- `TFT_DEFAULT_TARGET_ACCESS_MODE` controls the normal target access mode for service-backed
-     tests. ClusterIP and LoadBalancer tests default to `IP` (service IP), while NodePort tests
-     default to `CLIENT_NODE_IP`. Set to `IP` or `SERVICE_NAME` to override the default for
-     all service-backed tests.
+- `TFT_DEFAULT_TARGET_ACCESS_MODE` controls the normal target access mode for ClusterIP
+     and LoadBalancer tests only. These tests default to `IP` (service IP). Set to `IP`
+     or `SERVICE_NAME` to override their default. This variable does not affect NodePort
+     tests, which default to `CLIENT_NODE_IP` for cases 9-12, 21-24, and 41-42, and
+     `SERVER_NODE_IP` for cases 92-101. Select these cases independently through `test_cases`.
 - `TFT_ENABLE_TARGET_ACCESS_SUBTESTS` enables extra target access variants for service-backed
      tests. Defaults to `false`; when `true`, ClusterIP and LoadBalancer tests run both
-     `IP` and `SERVICE_NAME`, while NodePort tests also include `CLIENT_NODE_IP`.
+     `IP` and `SERVICE_NAME`, while NodePort tests also include their respective node IP
+     mode (`CLIENT_NODE_IP` or `SERVER_NODE_IP`).
 - `TFT_EXISTING_PRIMARY_CUDN` names a user-provided CUDN for primary CUDN tests only and does
      not affect secondary CUDN tests. When set, TFT creates or reuses `{namespace}-udn`,
      applies the CUDN's namespace selector `matchLabels` to it, and leaves the CUDN unchanged.

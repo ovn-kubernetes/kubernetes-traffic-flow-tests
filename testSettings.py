@@ -145,7 +145,11 @@ class TestSettings:
         target_access_name = self.target_access_mode.name
         if (
             self.target_access_mode == tftbase.TargetAccessMode.IP
-            and self.connection_mode == tftbase.ConnectionMode.NODE_PORT_IP
+            and self.connection_mode
+            in (
+                tftbase.ConnectionMode.NODE_PORT_IP,
+                tftbase.ConnectionMode.NODE_PORT_SERVER_IP,
+            )
         ):
             target_access_name = tftbase.ConnectionMode.CLUSTER_IP.name
         return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}, target-access={target_access_name}
