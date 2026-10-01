@@ -13,7 +13,7 @@ tft:
     # "privileged_pod": whether to run test pods as privileged. Defaults to false.
     # "capabilities_pod": Linux capabilities for test pods. Format: {"add": ["CAP1", "CAP2"]}
     # "runtime_class_name": optional Kubernetes RuntimeClass for eligible traffic
-    # pods. For example: "kata".
+    # pods. For example: "kata". Can also be set per server/client node.
     # capabilities_pod:
     #   add: ["NET_ADMIN", "SYS_TIME"]
     # udn_primary_network:
