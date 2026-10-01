@@ -263,9 +263,24 @@ tft:
 ```
 
 On clusters with DPUs, host-network tests use host workers and Kata/coldplug pods must land
-on `worker-dpu` nodes. Traffic pods are still scheduled on the tenant cluster using the node
-names you configure; DPU mode continues to use separate `kubeconfig` and `kubeconfig_infra`
-files as in [DPU Mode](#dpu-mode).
+on nodes with the `worker-dpu` role. TFT `server` / `client` `name` values must match a node
+`NAME` on the **tenant** cluster (`kubeconfig`). DPU mode still uses a separate infra
+kubeconfig (`kubeconfig_infra`) for plugins; see [DPU Mode](#dpu-mode).
+
+Example node lists (names vary by deployment; use your tenant `NAME` values in TFT config):
+
+```bash
+# Tenant cluster — traffic pods are scheduled here
+$ oc get nodes
+NAME                 STATUS   ROLES
+host-worker-1        Ready    worker
+host-worker-2        Ready    worker,worker-dpu
+
+# Infra cluster — used by offload plugins, not for TFT server/client names
+$ oc get nodes
+NAME                 STATUS   ROLES
+infra-node-1         Ready    worker
+```
 
 For a mixed host-network server and Kata client, a test-level `runtime_class_name` is enough
 because the host endpoint ignores RuntimeClass and only the client pod uses it:
@@ -278,7 +293,7 @@ tft:
       - server:
           - name: host-worker-1
         client:
-          - name: dpu-worker-2
+          - name: host-worker-2
 ```
 
 Use per-node `runtime_class_name` when multiple eligible pod endpoints need different
@@ -291,9 +306,9 @@ tft:
     test_cases: POD_TO_POD_DIFF_NODE
     connections:
       - server:
-          - name: worker-1
+          - name: host-worker-1
         client:
-          - name: dpu-worker-2
+          - name: host-worker-2
             runtime_class_name: kata-coldplug
 ```
 
