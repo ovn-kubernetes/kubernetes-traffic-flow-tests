@@ -555,6 +555,22 @@ plugins:
   - name: ovs_doca_validate_offload
 ```
 
+Both plugins accept `vf_rep_traffic_threshold`, a positive integer packet
+threshold that defaults to `1000`. Configure each plugin independently in a
+connection's plugin list, for example:
+
+```yaml
+plugins:
+  - name: validate_offload
+    vf_rep_traffic_threshold: 1000
+  - name: ovs_doca_validate_offload
+    vf_rep_traffic_threshold: 30000
+```
+
+Validation fails if either the RX or TX packet counter increase is greater than
+or equal to that plugin's threshold. Omitting the field, including when using a
+plain plugin name, keeps the `1000` default.
+
 ### How It Works
 
 1. **DPU Node Discovery**: The plugin queries DPU nodes by label to find the DPU

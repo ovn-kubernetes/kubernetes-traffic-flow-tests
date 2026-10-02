@@ -6,6 +6,7 @@ import re
 import shlex
 import typing
 
+from dataclasses import dataclass
 from typing import Optional
 
 from ktoolbox import common
@@ -109,6 +110,7 @@ def check_no_traffic_on_vf_rep(
     parsed_data: dict[str, typing.Any],
     direction: typing.Literal["rx", "tx"],
     statistics_backend: str,
+    threshold: int = VF_REP_TRAFFIC_THRESHOLD,
 ) -> Optional[str]:
     start = common.dict_get_typed(
         parsed_data, KEY_NAMES["start"][direction], int, allow_missing=True
@@ -120,14 +122,18 @@ def check_no_traffic_on_vf_rep(
         if start is not None or end is not None:
             return f"missing {statistics_backend} {direction} packet statistics"
         return None
-    if end - start >= VF_REP_TRAFFIC_THRESHOLD:
-        return f"traffic on VF rep detected in {statistics_backend} {direction} statistics ({end-start} packets is higher than threshold {VF_REP_TRAFFIC_THRESHOLD})"
+    if end - start >= threshold:
+        return f"traffic on VF rep detected in {statistics_backend} {direction} statistics ({end-start} packets is higher than threshold {threshold})"
     return None
 
 
+@common.strict_dataclass
+@dataclass(frozen=True, kw_only=True)
 class PluginValidateOffload(pluginbase.Plugin):
     PLUGIN_NAME = "validate_offload"
     STATISTICS_BACKEND = "ethtool"
+
+    vf_rep_traffic_threshold: int = VF_REP_TRAFFIC_THRESHOLD
 
     def statistics_command(self, vf_rep: str) -> str:
         return f"ethtool -S {shlex.quote(vf_rep)}"
@@ -654,8 +660,18 @@ class TaskValidateOffload(PluginTask):
                 )
 
                 if success_result:
-                    m1 = check_no_traffic_on_vf_rep(parsed_data, "rx", stats_backend)
-                    m2 = check_no_traffic_on_vf_rep(parsed_data, "tx", stats_backend)
+                    m1 = check_no_traffic_on_vf_rep(
+                        parsed_data,
+                        "rx",
+                        stats_backend,
+                        self.plugin.vf_rep_traffic_threshold,
+                    )
+                    m2 = check_no_traffic_on_vf_rep(
+                        parsed_data,
+                        "tx",
+                        stats_backend,
+                        self.plugin.vf_rep_traffic_threshold,
+                    )
                     if m1 is not None or m2 is not None:
                         success_result = False
                         msg = "; ".join(

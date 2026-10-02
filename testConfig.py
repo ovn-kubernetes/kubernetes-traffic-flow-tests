@@ -321,12 +321,23 @@ class ConfPlugin(_ConfBaseConnectionItem):
     plugin: Plugin
     test_cases: Optional[tuple[TestCaseType, ...]]
 
+    def serialize(self) -> dict[str, Any]:
+        from pluginValidateOffload import PluginValidateOffload
+
+        result = super().serialize()
+        if isinstance(self.plugin, PluginValidateOffload):
+            result["vf_rep_traffic_threshold"] = self.plugin.vf_rep_traffic_threshold
+        return result
+
     def applies_to_test_case(self, test_case: TestCaseType) -> bool:
         # If test_cases is None, the plugin runs for all test cases.
         return self.test_cases is None or test_case in self.test_cases
 
     @staticmethod
     def parse(pctx: StructParseParseContext) -> "ConfPlugin":
+
+        from pluginValidateOffload import PluginValidateOffload
+        from pluginValidateOffload import VF_REP_TRAFFIC_THRESHOLD
 
         is_plain_name = isinstance(pctx.arg, str)
 
@@ -335,17 +346,25 @@ class ConfPlugin(_ConfBaseConnectionItem):
             # of a dictionary with "name" entry.
             name = pctx.arg
             test_cases = None
+            plugin = _check_plugin_name(pctx, name, is_plain_name)
         else:
             with pctx.with_strdict() as varg:
                 name = common.structparse_pop_str_name(varg.for_name())
+                plugin = _check_plugin_name(pctx, name, is_plain_name)
+                if isinstance(plugin, PluginValidateOffload):
+                    threshold = common.structparse_pop_int(
+                        varg.for_key("vf_rep_traffic_threshold"),
+                        default=VF_REP_TRAFFIC_THRESHOLD,
+                        check=lambda val: val > 0,
+                        description="positive packet threshold for VF representor traffic",
+                    )
+                    plugin = type(plugin)(vf_rep_traffic_threshold=threshold)
                 test_cases_raw = common.structparse_pop_obj(
                     varg.for_key("test_cases"),
                     construct=_construct_test_cases,
                     default=None,
                 )
                 test_cases = test_cases_raw
-
-        plugin = _check_plugin_name(pctx, name, is_plain_name)
 
         return ConfPlugin(
             yamlidx=pctx.yamlidx,
