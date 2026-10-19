@@ -411,46 +411,56 @@ class TrafficFlowTests:
             if server_nad is not None or client_nad is not None:
                 continue
 
-            namespace = tft.namespace
-            client = cfg_descr.tc.client_tenant
-            nad = conn.effective_secondary_network_nad
-            nad_name = nad.split("/")[-1]
+            # Several cases share each NAD, so provision it only once.
+            nad_topologies = {
+                conn.get_secondary_network_nad(topology): topology
+                for test_case in test_cases
+                for topology in conn.get_secondary_nad_topologies(test_case)
+                if topology is not None
+            }
+            for nad, topology in nad_topologies.items():
+                namespace, nad_name = nad.split("/", 1)
+                client = cfg_descr.tc.client_tenant
 
-            existing = client.oc_get(
-                f"network-attachment-definition/{nad_name}",
-                namespace=namespace,
-                may_fail=True,
-            )
-            if existing is not None:
-                continue
+                existing = client.oc_get(
+                    f"network-attachment-definition/{nad_name}",
+                    namespace=namespace,
+                    may_fail=True,
+                )
+                if existing is not None:
+                    continue
 
-            logger.info(f"Creating secondary NAD {nad} in namespace {namespace}")
+                logger.info(f"Creating secondary NAD {nad} in namespace {namespace}")
 
-            resource_names = {c.resource_name for c in tft.connections}
-            resource_name = (
-                resource_names.pop()
-                if len(resource_names) == 1 and None not in resource_names
-                else None
-            )
+                resource_names = {c.resource_name for c in tft.connections}
+                resource_name = (
+                    resource_names.pop()
+                    if len(resource_names) == 1 and None not in resource_names
+                    else None
+                )
 
-            _j = json.dumps
-            in_template = tftbase.get_manifest("secondary-nad.yaml.j2")
-            out_yaml = tftbase.get_manifest_renderpath("secondary-nad.yaml")
-            kjinja2.render_file(
-                in_template,
-                {
-                    "nad_name": _j(nad_name),
-                    "name_space": _j(namespace),
-                    "net_attach_def_name": _j(nad),
-                    "subnets": _j(tftbase.get_secondary_nad_subnets()),
-                    "mtu": tftbase.get_secondary_nad_mtu(),
-                    "topology": _j(tftbase.get_secondary_nad_topology()),
-                    "has_resource_name": resource_name is not None,
-                    "resource_name": _j(resource_name or ""),
-                },
-                out_file=out_yaml,
-            )
-            client.oc(f"apply -f {out_yaml}", die_on_error=True)
+                _j = json.dumps
+                in_template = tftbase.get_manifest("secondary-nad.yaml.j2")
+                out_yaml = tftbase.get_manifest_renderpath("secondary-nad.yaml")
+                kjinja2.render_file(
+                    in_template,
+                    {
+                        "nad_name": _j(nad_name),
+                        "name_space": _j(namespace),
+                        "net_attach_def_name": _j(nad),
+                        "subnets": _j(
+                            tftbase.get_secondary_nad_subnets(
+                                topology, conn.secondary_nad_topologies
+                            )
+                        ),
+                        "mtu": tftbase.get_secondary_nad_mtu(),
+                        "topology": _j(topology),
+                        "has_resource_name": resource_name is not None,
+                        "resource_name": _j(resource_name or ""),
+                    },
+                    out_file=out_yaml,
+                )
+                client.oc(f"apply -f {out_yaml}", die_on_error=True)
 
     def _cleanup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
         namespace = cfg_descr.get_tft().namespace
@@ -684,6 +694,7 @@ class TrafficFlowTests:
         instance_index: int,
         target_access_mode: tftbase.TargetAccessMode,
         reverse: bool = False,
+        secondary_nad_topology: str | None = None,
     ) -> TftResult:
         connection = cfg_descr.get_connection()
 
@@ -696,6 +707,7 @@ class TrafficFlowTests:
             instance_index=instance_index,
             reverse=reverse,
             target_access_mode=target_access_mode,
+            secondary_nad_topology=secondary_nad_topology,
         )
         s, c = connection.test_type_handler.create_server_client(ts)
         logger.info(
@@ -792,24 +804,30 @@ class TrafficFlowTests:
                 cfg_descr2.get_test_case().info.connection_mode
             )
             for instance_index in range(connection.instances):
-                for target_access_mode in target_access_modes:
-                    tft_results.append(
-                        self._run_test_case_instance(
-                            cfg_descr2,
-                            instance_index=instance_index,
-                            target_access_mode=target_access_mode,
-                        )
-                    )
-                    if connection.test_type_handler.can_run_reverse(connection):
+                # The full runner gives each topology fresh plugin tasks and cleanup.
+                for topology in connection.get_secondary_nad_topologies(
+                    cfg_descr2.get_test_case()
+                ):
+                    for target_access_mode in target_access_modes:
                         tft_results.append(
                             self._run_test_case_instance(
                                 cfg_descr2,
                                 instance_index=instance_index,
-                                reverse=True,
                                 target_access_mode=target_access_mode,
+                                secondary_nad_topology=topology,
                             )
                         )
-                self._cleanup_previous_testspace(cfg_descr2)
+                        if connection.test_type_handler.can_run_reverse(connection):
+                            tft_results.append(
+                                self._run_test_case_instance(
+                                    cfg_descr2,
+                                    instance_index=instance_index,
+                                    reverse=True,
+                                    target_access_mode=target_access_mode,
+                                    secondary_nad_topology=topology,
+                                )
+                            )
+                    self._cleanup_previous_testspace(cfg_descr2)
         return tft_results
 
     def _run_test_cases(self, cfg_descr: ConfigDescriptor) -> TftResults:

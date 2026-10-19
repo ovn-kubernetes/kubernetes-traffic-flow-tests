@@ -44,7 +44,9 @@ tft:
           - name: measure_power
           - name: validate_offload
         # "secondary_network_nad" is always used for tests 27-31.
-        # For these tests, it defaults to "tft-secondary". For other tests,
+        # The default is "tft-secondary", suffixed for multiple topologies.
+        # secondary_nad_topologies: [layer2, layer3]
+        # For other tests,
         # leaving "secondary_network_nad" unset means to use the primary
         # network. Tests 69-78 use their generated test-defined NADs instead.
         # "resource_name" is the resource name for SRIOV pods, where

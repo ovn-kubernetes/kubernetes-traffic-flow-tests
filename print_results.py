@@ -52,6 +52,9 @@ def print_flow_test_output(
         f"Test ID: ({test_case_id.value}) {test_case_id.name}",
         f"Test Type: {test_type.name}",
     ]
+    topology = test_output.tft_metadata.secondary_nad_topology
+    if topology is not None:
+        parts.append(f"Secondary NAD Topology: {topology}")
     target_access_mode = test_output.tft_metadata.target_access_mode
     default_target_access_mode = tftbase.get_default_target_access_mode(
         test_case_id.info.connection_mode

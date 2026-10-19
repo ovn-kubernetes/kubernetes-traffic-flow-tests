@@ -382,10 +382,12 @@ class Task(ABC):
             if self._resource_name is not None:
                 return self._resource_name
         resource_name_config = self.ts.connection.resource_name
-        nad_for_detection = (
-            self._get_node_secondary_network_nad()
-            or self.ts.connection.secondary_network_nad
-        )
+        nad_for_detection = self._get_node_secondary_network_nad()
+        if (
+            nad_for_detection is None
+            and self.ts.connection.secondary_network_nad is not None
+        ):
+            nad_for_detection = self._get_effective_secondary_network_nad()
         resource_name = (
             resource_name_config
             or _detect_default_resource_name(
@@ -426,7 +428,13 @@ class Task(ABC):
         namespace = self.get_namespace()
         base_namespace = tft.namespace
         return any(
-            tc.info.uses_secondary_network_pod
+            (
+                tc.info.uses_secondary_network_pod
+                or (
+                    self.ts.connection.secondary_network_nad is not None
+                    and not tc.is_udn
+                )
+            )
             and tc.info.get_namespace(base_namespace, self.task_role) == namespace
             for tc in tft.get_all_conn_test_cases()
         )
@@ -445,16 +453,20 @@ class Task(ABC):
             if "/" not in nad:
                 nad = f"{self.get_namespace()}/{nad}"
             return nad
-        return (
-            self.node.effective_secondary_network_nad
-            or self.ts.connection.effective_secondary_network_nad
-        )
+        topology = self.ts.secondary_nad_topology
+        # Pre-provisioning has no active subtest; resource lookup needs the first NAD.
+        if topology is None and self.ts.connection.secondary_network_nad is not None:
+            topology = self.ts.connection.get_secondary_nad_topologies(
+                self.ts.test_case_id
+            )[0]
+        if topology is not None:
+            return self.ts.connection.get_secondary_network_nad(topology)
+        return self.ts.connection.effective_secondary_network_nad
 
     def _get_pod_secondary_network_nads(self) -> tuple[str, ...]:
         """Return the NADs that must be attached to the pod in its namespace.
 
-        A pre-provisioned UDN pod is reused by all selected secondary UDN test
-        cases, so it receives each unique test-defined NAD in the UDN namespace.
+        Shared pre-provisioned pods attach every selected secondary network.
         Other pods receive only their effective NAD, or none.
         """
         if (
@@ -470,6 +482,23 @@ class Task(ABC):
                     if (network := test_case.udn_network_spec) is not None
                 )
             )
+        # Reused pods need all attachments before any topology subtest starts.
+        if (
+            self.get_namespace() == self.ts.cfg_descr.get_tft().namespace
+            and self._shares_pre_provisioned_secondary_pod()
+            and self._get_node_secondary_network_nad() is None
+        ):
+            return tuple(
+                dict.fromkeys(
+                    self.ts.connection.get_secondary_network_nad(topology)
+                    for test_case in self.ts.connection.get_conn_test_cases()
+                    if not test_case.is_udn
+                    for topology in self.ts.connection.get_secondary_nad_topologies(
+                        test_case
+                    )
+                    if topology is not None
+                )
+            ) or (self.ts.connection.effective_secondary_network_nad,)
         if (
             self._get_node_secondary_network_nad()
             or self.ts.connection.secondary_network_nad
@@ -490,7 +519,7 @@ class Task(ABC):
         UDN VF when primary and secondary tests share the UDN namespace.
         """
         if self.pod_type == PodType.SRIOV:
-            return str(1 + int(self.uses_primary_udn))
+            return str(max(1, len(secondary_network_nads)) + int(self.uses_primary_udn))
         needs_primary_udn_vf = self.ts.test_case_id.is_udn_secondary and any(
             test_case.is_udn_primary
             for test_case in self.ts.cfg_descr.get_tft().get_all_conn_test_cases()
@@ -992,9 +1021,11 @@ class Task(ABC):
             if self.ts.test_case_id.is_udn_secondary:
                 client_nad = self._get_effective_secondary_network_nad()
             else:
-                client_nad = (
-                    self.ts.connection.client[0].effective_secondary_network_nad
-                    or self.ts.connection.effective_secondary_network_nad
+                (client_node,) = self.ts.connection.client
+                client_nad = client_node.effective_secondary_network_nad or (
+                    self._get_effective_secondary_network_nad()
+                    if self.ts.secondary_nad_topology is not None
+                    else self.ts.connection.effective_secondary_network_nad
                 )
             client_cidrs = self.get_nad_cidrs(client_nad)
 

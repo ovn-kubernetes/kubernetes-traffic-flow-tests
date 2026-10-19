@@ -78,6 +78,7 @@ tft:
             test_cases: (21)
           - name: (20)
         secondary_network_nad: "(22)"
+        secondary_nad_topologies: [layer2, layer3] # (22a)
         resource_name: "(23)"
         cpu_request: "(24)"
         cpu_limit: "(25)"
@@ -248,7 +249,8 @@ dpu_node_host_label: (44)
     | validate_offload           | Verify OvS Offload               |
     | ovs_doca_validate_offload  | Verify OVS-DOCA Offload          |
 21. "test_cases" - (Optional) Restrict a plugin to run only for the specified test cases. Uses the same format as the top-level `test_cases` field. By default, the plugin runs for every test case.
-22. "secondary_network_nad" - (Optional) - The name of the secondary network for multi-homing and multi-networkpolicies tests. For mandatory tests 27-31 it defaults to "tft-secondary" if not set and can be overridden per-node using the server/client level `secondary_network_nad` fields. Tests 70-79 and 82-91 instead use the generated NAD selected by each test case and do not use this option. The framework automatically creates and cleans up the regular secondary NAD when required. Subnets, MTU, and topology default to `10.193.0.0/16/26`, `1500`, and `layer3`, overridable via `TFT_SECONDARY_NAD_SUBNETS`, `TFT_SECONDARY_NAD_MTU`, and `TFT_SECONDARY_NAD_TOPOLOGY`.
+22. "secondary_network_nad" - (Optional) The secondary NAD for multi-homing and MultiNetworkPolicy tests. Defaults to `tft-secondary` for tests 27-31, with topology suffixes when multiple topologies are selected. Override the base name per connection or use existing NADs per server/client. Tests 70-79 and 82-91 use their test-defined UDN/CUDN networks instead. See [Secondary NAD Tests](#secondary-nad-tests) for topology subtests, existing NADs, and network settings.
+22a. "secondary_nad_topologies" - (Optional) Connection-level list of secondary NAD topologies: `layer2` and/or `layer3`. Defaults to `[layer3]`. Entries must be unique. Server/client NAD overrides skip topology subtests. See [Secondary NAD Tests](#secondary-nad-tests).
 23. "resource_name" - (Optional) - The resource name for tests that require resource limit and requests to be set. This field is optional and will default to None if not set, but if secondary network nad is defined, traffic flow test tool will try to autopopulate resource_name based on the secondary+network_nad provided.
 24. "cpu_request" - (Optional) CPU request for server and client pods (e.g. "10m", "500m"). No CPU request is set if omitted.
 25. "cpu_limit" - (Optional) CPU limit for server and client pods (e.g. "20m", "1000m"). No CPU limit is set if omitted.
@@ -446,6 +448,80 @@ oc get nodes --show-labels
 
 The startup preflight confirms that the RuntimeClass exists, but Kubernetes remains responsible
 for checking whether the selected nodes satisfy its scheduling constraints.
+
+
+## Secondary NAD Tests
+
+Secondary NAD cases 27-31 run one subtest per topology in the connection's
+`secondary_nad_topologies` configuration list. Supported values are `layer2`
+and `layer3`; the default is `[layer3]`. Each connection can select its own
+list. For example, add this field to a connection in the TFT YAML:
+
+```yaml
+secondary_nad_topologies: [layer2, layer3]
+```
+
+This runs each of these cases twice per instance and direction. Plugins
+configured for the case run separately for every topology subtest. Logs and
+result metadata identify the topology when multiple topologies are selected,
+without changing the case name or ID. Single-topology runs keep the original
+printed output, with no topology suffix in test labels or extra topology field
+in result summaries.
+
+Case 31 (`POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND`) applies a deny policy to
+each topology's secondary NAD in turn and verifies that primary-interface
+traffic still succeeds. Tests 70-79 and 82-91 use their test-defined UDN/CUDN
+networks.
+
+With one selected topology, the generated NAD uses the base name
+`tft-secondary`. With multiple topologies, every NAD is suffixed:
+`tft-secondary-layer2` and `tft-secondary-layer3`. A connection-level
+`secondary_network_nad` replaces the base name. For example, `my-network` uses
+that exact name with one topology, or `my-network-layer2` and
+`my-network-layer3` with both. TFT reuses matching existing NADs unchanged and
+creates missing NADs using the selected topology. Pre-provisioned pods attach
+all required NADs; SR-IOV pods request the corresponding number of VFs.
+TFT creates and cleans up its generated NADs.
+
+A connection-level NAD enables topology subtests for all selected regular
+non-UDN cases on that connection, regardless of whether `sriov` is `true` or
+`false`. Without a connection-level NAD, only cases 27-31 expand into secondary
+topology subtests. Network attachment and traffic targeting still depend on
+the test case; Service and NodePort cases retain their Service or node targets.
+
+Server/client `secondary_network_nad` settings override the connection setting.
+If either endpoint specifies a NAD, TFT skips automatic regular NAD creation
+and topology expansion for the entire connection, even if a connection-level
+NAD is also set. It ignores the configured topology selection and runs each
+selected case once per instance and direction using the existing NAD selection
+rules.
+Referenced endpoint NADs must already exist. A missing NAD causes a failure
+during resource lookup or pod network setup; TFT does not create it or perform
+a dedicated upfront check of both endpoint NADs.
+
+`TFT_SECONDARY_NAD_SUBNETS` remains an environment variable containing a
+comma-separated list parallel to each connection's `secondary_nad_topologies`:
+supply one subnet for each topology, in the same order. Topologies must be
+unique, and explicit subnet and topology lists must have the same number of
+entries. For example:
+
+```yaml
+secondary_nad_topologies: [layer2, layer3]
+```
+
+```bash
+export TFT_SECONDARY_NAD_SUBNETS=10.194.0.0/16,10.193.0.0/16/26
+```
+
+This assigns `10.194.0.0/16` to Layer 2 and `10.193.0.0/16/26` to Layer 3.
+When the subnet variable is unset, these are the per-topology defaults,
+regardless of topology order. Because an explicit subnet list is global, it
+must match the topology count and order for every connection that creates
+secondary NADs. Leave it unset to use independent defaults for connections
+with different topology lists. Use non-overlapping subnets so shared
+pre-provisioned pods can route traffic to the intended network. Layer 2 omits
+any per-node host-subnet prefix. MTU defaults to `1500`, overridable via
+`TFT_SECONDARY_NAD_MTU`.
 
 
 ## UDN (User Defined Network) Tests
@@ -757,6 +833,9 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      tests. Defaults to `false`; when `true`, ClusterIP and LoadBalancer tests run both
      `IP` and `SERVICE_NAME`, while NodePort tests also include their respective node IP
      mode (`CLIENT_NODE_IP` or `SERVER_NODE_IP`).
+- `TFT_SECONDARY_NAD_SUBNETS` comma-separated subnets, one per topology in
+     each connection's `secondary_nad_topologies` list, in the same order.
+     Defaults to `10.194.0.0/16` for Layer 2 and `10.193.0.0/16/26` for Layer 3. Use non-overlapping subnets.
 - `TFT_EXISTING_PRIMARY_CUDN` names a user-provided CUDN for primary CUDN tests only and does
      not affect secondary CUDN tests. When set, TFT creates or reuses `{namespace}-udn`,
      applies the CUDN's namespace selector `matchLabels` to it, and leaves the CUDN unchanged.
