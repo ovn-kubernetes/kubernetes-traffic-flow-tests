@@ -463,13 +463,19 @@ class TrafficFlowTests:
                 client.oc(f"apply -f {out_yaml}", die_on_error=True)
 
     def _cleanup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
-        namespace = cfg_descr.get_tft().namespace
-        client = cfg_descr.tc.client_tenant
-        client.oc(
-            "delete network-attachment-definition -l tft-tests=secondary-nad",
-            namespace=namespace,
-            may_fail=True,
+        tft = cfg_descr.get_tft()
+        namespaces = {tft.namespace}
+        namespaces.update(
+            conn.effective_secondary_network_nad.split("/", 1)[0]
+            for conn in tft.connections
         )
+        client = cfg_descr.tc.client_tenant
+        for namespace in sorted(namespaces):
+            client.oc(
+                "delete network-attachment-definition -l tft-tests=secondary-nad",
+                namespace=namespace,
+                may_fail=True,
+            )
 
     def _cleanup_multi_network_policies(
         self,
