@@ -411,7 +411,7 @@ class TrafficFlowTests:
             if server_nad is not None or client_nad is not None:
                 continue
 
-            # Several cases share each NAD, so provision it only once.
+            # Several cases may share the same NAD; create each NAD only once
             nad_topologies = {
                 conn.get_secondary_network_nad(topology): topology
                 for test_case in test_cases
