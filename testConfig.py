@@ -322,11 +322,15 @@ class ConfPlugin(_ConfBaseConnectionItem):
     test_cases: Optional[tuple[TestCaseType, ...]]
 
     def serialize(self) -> dict[str, Any]:
+        from pluginMeasureCpu import PluginMeasureCpu
         from pluginValidateOffload import PluginValidateOffload
 
         result = super().serialize()
         if isinstance(self.plugin, PluginValidateOffload):
             result["vf_rep_traffic_threshold"] = self.plugin.vf_rep_traffic_threshold
+        if isinstance(self.plugin, PluginMeasureCpu):
+            if self.plugin.idle_threshold is not None:
+                result["idle_threshold"] = self.plugin.idle_threshold
         return result
 
     def applies_to_test_case(self, test_case: TestCaseType) -> bool:
@@ -336,6 +340,7 @@ class ConfPlugin(_ConfBaseConnectionItem):
     @staticmethod
     def parse(pctx: StructParseParseContext) -> "ConfPlugin":
 
+        from pluginMeasureCpu import PluginMeasureCpu
         from pluginValidateOffload import PluginValidateOffload
         from pluginValidateOffload import VF_REP_TRAFFIC_THRESHOLD
 
@@ -359,6 +364,14 @@ class ConfPlugin(_ConfBaseConnectionItem):
                         description="positive packet threshold for VF representor traffic",
                     )
                     plugin = type(plugin)(vf_rep_traffic_threshold=threshold)
+                if isinstance(plugin, PluginMeasureCpu):
+                    idle_threshold = common.structparse_pop_float(
+                        varg.for_key("idle_threshold"),
+                        default=None,
+                        check=lambda val: 0 <= val <= 100,
+                        description="CPU idle percentage between 0 and 100",
+                    )
+                    plugin = PluginMeasureCpu(idle_threshold=idle_threshold)
                 test_cases_raw = common.structparse_pop_obj(
                     varg.for_key("test_cases"),
                     construct=_construct_test_cases,
