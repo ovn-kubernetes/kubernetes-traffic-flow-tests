@@ -571,6 +571,20 @@ Validation fails if either the RX or TX packet counter increase is greater than
 or equal to that plugin's threshold. Omitting the field, including when using a
 plain plugin name, keeps the `1000` default.
 
+The `measure_cpu` plugin accepts an optional `idle_threshold`, a minimum CPU
+idle percentage between `0` and `100` (including fractional values):
+
+```yaml
+plugins:
+  - name: measure_cpu
+    idle_threshold: 90
+```
+
+Validation fails if the aggregate CPU idle percentage reported by `mpstat`
+on either measured node is below the threshold; equality passes. Omitting
+`idle_threshold` keeps CPU measurement informational, with no idle threshold
+check. In DPU mode, the measured nodes are the paired DPUs.
+
 ### How It Works
 
 1. **DPU Node Discovery**: The plugin queries DPU nodes by label to find the DPU

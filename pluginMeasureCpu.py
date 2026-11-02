@@ -4,6 +4,7 @@
 import jc
 import typing
 
+from dataclasses import dataclass
 from typing import Any
 from typing import Optional
 
@@ -24,8 +25,12 @@ from tftbase import TaskRole
 logger = common.ExtendedLogger("tft." + __name__)
 
 
+@common.strict_dataclass
+@dataclass(frozen=True, kw_only=True)
 class PluginMeasureCpu(pluginbase.Plugin):
     PLUGIN_NAME = "measure_cpu"
+
+    idle_threshold: Optional[float] = None
 
     def _enable(
         self,
@@ -38,8 +43,8 @@ class PluginMeasureCpu(pluginbase.Plugin):
         if ts.cfg_descr.tc.mode == ClusterMode.DPU:
             tenant = False
         return [
-            TaskMeasureCPU(ts, TaskRole.SERVER, tenant),
-            TaskMeasureCPU(ts, TaskRole.CLIENT, tenant),
+            TaskMeasureCPU(self, ts, TaskRole.SERVER, tenant),
+            TaskMeasureCPU(self, ts, TaskRole.CLIENT, tenant),
         ]
 
 
@@ -56,10 +61,17 @@ class TaskMeasureCPU(PluginTask):
         return self._dpu_node_name or super().node_name
 
     @property
-    def plugin(self) -> pluginbase.Plugin:
-        return plugin
+    def plugin(self) -> PluginMeasureCpu:
+        return self._plugin
 
-    def __init__(self, ts: TestSettings, task_role: TaskRole, tenant: bool):
+    def __init__(
+        self,
+        plugin: PluginMeasureCpu,
+        ts: TestSettings,
+        task_role: TaskRole,
+        tenant: bool,
+    ):
+        self._plugin = plugin
         self._dpu_node_name: Optional[str] = None
         super().__init__(
             ts=ts,
@@ -163,6 +175,15 @@ class TaskMeasureCPU(PluginTask):
                 else:
                     success = False
                     msg = 'Output of "{cmd}" contains unexpected data: {r.debug_msg()}'
+
+            if success and self.plugin.idle_threshold is not None:
+                p_idle = result["percent_idle"]
+                if p_idle < self.plugin.idle_threshold:
+                    success = False
+                    msg = (
+                        f"CPU idle on {self.node_name} = {p_idle}% is below "
+                        f"threshold {self.plugin.idle_threshold}%"
+                    )
 
             result["cmd"] = common.dataclass_to_dict(r)
 
