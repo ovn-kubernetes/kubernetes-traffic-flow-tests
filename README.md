@@ -105,7 +105,6 @@ dpu_node_host_label: (44)
 
 1. "name" - This is the name of the test. Any string value to identify the test.
 2. "namespace" - The k8s namespace where the test pods will be run on
-
 2a. "runtime_class_name": (Optional) The Kubernetes RuntimeClass to use for eligible traffic
   pods in this test, for example `kata`. Per-node `runtime_class_name` on `server` / `client`
   overrides this value. If neither is set, those pods use the cluster default runtime.
