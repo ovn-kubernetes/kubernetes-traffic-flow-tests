@@ -927,6 +927,39 @@ class Task(ABC):
             return r.out.strip().split()[0]
         raise RuntimeError(f"InternalIP not found for node {node_name}")
 
+    def get_nodeport_ip(self, node_name: str) -> str:
+        if self.uses_primary_udn:
+            network = self.ts.cfg_descr.get_tft().udn_primary_network
+            existing_cudn = tftbase.get_existing_primary_cudn()
+            if existing_cudn is not None or network.mode == tftbase.UdnNetworkMode.CUDN:
+                resource = f"clusteruserdefinednetwork/{existing_cudn or network.name}"
+                namespace = None
+            else:
+                resource = f"userdefinednetwork/{network.name}"
+                namespace = self.get_namespace()
+            udn = self.run_oc_get(resource, namespace=namespace, die_on_error=True)
+            assert udn is not None
+            uplinks = udn.get("spec", {}).get("uplinks", [])
+            if uplinks:
+                uplink_name = uplinks[0]
+                selector = f"spec.uplinkName={uplink_name},spec.nodeName={node_name}"
+                result = self.run_oc(
+                    f"get uplinkstates.k8s.ovn.org --field-selector {shlex.quote(selector)} -o json",
+                    namespace=None,
+                    die_on_error=True,
+                )
+                ip_version = ipaddress.ip_address(self.get_pod_ip()).version
+                for state in json.loads(result.out)["items"]:
+                    for address in state.get("status", {}).get("ipAddresses", []):
+                        ip = ipaddress.ip_interface(address).ip
+                        if ip.version == ip_version:
+                            return str(ip)
+                raise RuntimeError(
+                    f"IPv{ip_version} uplink IP not found for node {node_name} "
+                    f"and Uplink {uplink_name}"
+                )
+        return self.get_node_internal_ip(node_name)
+
     def create_load_balancer_service(self) -> None:
         in_file_template = tftbase.get_manifest("svc-loadbalancer.yaml.j2")
         out_file_yaml = tftbase.get_manifest_renderpath(
@@ -1797,7 +1830,7 @@ class ClientTask(Task, ABC):
                 else:
                     (configured_client_node,) = self.ts.connection.client
                     node_name = configured_client_node.name
-                nodeport_node_ip = self.get_node_internal_ip(node_name)
+                nodeport_node_ip = self.server.get_nodeport_ip(node_name)
                 logger.debug(
                     f"get_target_ip() NodePort {self.target_access_mode.name} to {nodeport_node_ip}"
                 )
