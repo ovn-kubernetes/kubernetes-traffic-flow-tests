@@ -346,7 +346,8 @@ class TaskValidateOffload(PluginTask):
         # Wait for the pod to be ready
         logger.info(f"Waiting for DPU tools pod {self._dpu_pod_name} to be ready...")
         result = self.tc.client_infra.oc(
-            f"wait --for=condition=Ready pod/{self._dpu_pod_name} --timeout=60s",
+            f"wait --for=condition=Ready pod/{self._dpu_pod_name} "
+            f"--timeout={shlex.quote(tftbase.get_tft_pod_bringup_timeout())}",
             namespace=namespace,
             may_fail=True,
         )
