@@ -31,7 +31,8 @@ jobs:
           - scenario: resource-limits
             dpu_sim_config: ci/config-kind-ovnk-offload.yaml
             tft_config: .github/tft-configs/resource-limits.yaml
-            tft_env: ""
+            tft_env: |
+              TFT_SECONDARY_NAD_SUBNETS=10.194.0.0/16,10.193.0.0/16/26
     concurrency:
       group: kind-tft-${{ matrix.scenario }}-${{ github.ref }}
       cancel-in-progress: true

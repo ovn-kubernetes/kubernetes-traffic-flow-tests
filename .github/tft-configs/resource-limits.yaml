@@ -7,12 +7,13 @@
 tft:
   - name: "kind-resource-limits"
     namespace: "default"
-    test_cases: "1,3-12,28-31,82-89"
+    test_cases: "1,3-12,27-31,82-89"
     duration: 5
     pre_provision: true
     connections:
       - name: "iperf-tcp"
         type: "iperf-tcp"
+        secondary_nad_topologies: [layer2, layer3]
         test_cases:
           - POD_TO_POD_DIFF_NODE
         instances: 1
@@ -39,3 +40,8 @@ tft:
               - POD_TO_HOST_SAME_NODE
               - POD_TO_HOST_DIFF_NODE
               - POD_TO_CLUSTER_IP_TO_POD_SAME_NODE
+              - POD_TO_POD_2ND_INTERFACE_SAME_NODE
+              - POD_TO_POD_2ND_INTERFACE_DIFF_NODE
+              - POD_TO_POD_2ND_INTERFACE_MNP_ALLOW_2ND
+              - POD_TO_POD_2ND_INTERFACE_MNP_DENY_2ND
+              - POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND

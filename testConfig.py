@@ -440,6 +440,25 @@ class ConfEgressIP:
         return ConfEgressIP(ip=ip_str, node=node)
 
 
+def _construct_secondary_nad_topologies(
+    pctx: StructParseParseContext,
+) -> tuple[str, ...]:
+    if not isinstance(pctx.arg, list) or not pctx.arg:
+        raise pctx.value_error("requires a non-empty list of layer2 or layer3")
+    topologies: list[str] = []
+    for value in pctx.arg:
+        if not isinstance(value, str) or value.strip().lower() not in (
+            "layer2",
+            "layer3",
+        ):
+            raise pctx.value_error("topologies must be layer2 or layer3")
+        topology = value.strip().lower()
+        if topology in topologies:
+            raise pctx.value_error("topologies must not repeat")
+        topologies.append(topology)
+    return tuple(topologies)
+
+
 @strict_dataclass
 @dataclass(frozen=True, kw_only=True)
 class ConfConnection(StructParseBaseNamed):
@@ -451,6 +470,7 @@ class ConfConnection(StructParseBaseNamed):
     server: tuple[ConfNodeServer, ...]
     client: tuple[ConfNodeClient, ...]
     plugins: tuple[ConfPlugin, ...]
+    secondary_nad_topologies: tuple[str, ...] = ("layer3",)
     secondary_network_nad: Optional[str]
     resource_name: Optional[str]
     duration: Optional[int]
@@ -499,6 +519,8 @@ class ConfConnection(StructParseBaseNamed):
         common.dict_add_optional(extra, "cpu_limit", self.cpu_limit)
         common.dict_add_optional(extra, "mem_request", self.mem_request)
         common.dict_add_optional(extra, "mem_limit", self.mem_limit)
+        if self.secondary_nad_topologies != ("layer3",):
+            extra["secondary_nad_topologies"] = list(self.secondary_nad_topologies)
         if self.test_cases is not None:
             extra["test_cases"] = [t.name for t in self.test_cases]
         if self.egress_ip is not None:
@@ -513,6 +535,32 @@ class ConfConnection(StructParseBaseNamed):
             "plugins": [p.serialize() for p in self.plugins],
             **extra,
         }
+
+    def get_secondary_nad_topologies(
+        self, test_case: TestCaseType
+    ) -> tuple[Optional[str], ...]:
+        # Endpoint NADs are user-owned; UDN cases select their own networks.
+        if (
+            any(
+                node.secondary_network_nad is not None
+                for node in (*self.server, *self.client)
+            )
+            or test_case.is_udn
+            or not (
+                self.secondary_network_nad is not None
+                or test_case.name.startswith("POD_TO_POD_2ND_INTERFACE")
+                or test_case == TestCaseType.POD_TO_POD_PRIMARY_INTERFACE_MNP_DENY_2ND
+            )
+        ):
+            # None keeps one execution without choosing a generated topology.
+            return (None,)
+        return self.secondary_nad_topologies
+
+    def get_secondary_network_nad(self, topology: str) -> str:
+        nad = self.effective_secondary_network_nad
+        if len(self.secondary_nad_topologies) == 1:
+            return nad
+        return f"{nad}-{topology}"
 
     @property
     def effective_secondary_network_nad(self) -> str:
@@ -587,6 +635,12 @@ class ConfConnection(StructParseBaseNamed):
                 default=None,
             )
 
+            secondary_nad_topologies = common.structparse_pop_obj(
+                varg.for_key("secondary_nad_topologies"),
+                construct=_construct_secondary_nad_topologies,
+                default=("layer3",),
+            )
+
             resource_name = common.structparse_pop_str(
                 varg.for_key("resource_name"),
                 default=None,
@@ -655,6 +709,7 @@ class ConfConnection(StructParseBaseNamed):
             server=server,
             client=client,
             plugins=plugins,
+            secondary_nad_topologies=secondary_nad_topologies,
             secondary_network_nad=secondary_network_nad,
             resource_name=resource_name,
             duration=duration_conn,
