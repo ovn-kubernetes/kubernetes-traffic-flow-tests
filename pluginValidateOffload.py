@@ -280,7 +280,11 @@ class TaskValidateOffload(PluginTask):
 
     def _ensure_dpu_namespaces(self) -> None:
         base_namespace = self.ts.cfg_descr.get_tft().namespace
-        namespaces = (base_namespace, tftbase.get_udn_namespace(base_namespace))
+        namespaces = [base_namespace, tftbase.get_udn_namespace(base_namespace)]
+        # DPU tools pods use the same namespace as their traffic endpoint.
+        namespace = self.get_namespace()
+        if namespace not in namespaces:
+            namespaces.append(namespace)
         for namespace in namespaces:
             if (
                 self.tc.client_infra.oc_get(

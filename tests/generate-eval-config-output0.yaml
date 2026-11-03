@@ -444,6 +444,16 @@ IPERF_TCP:
       threshold: 18
     Reverse:
       threshold: 18
+  - id: UDN_PRIMARY_POD_TO_OTHER_UDN_POD_SAME_NODE
+    Normal:
+      threshold: 0
+    Reverse:
+      threshold: 0
+  - id: UDN_PRIMARY_POD_TO_OTHER_UDN_POD_DIFF_NODE
+    Normal:
+      threshold: 0
+    Reverse:
+      threshold: 0
 IPERF_UDP:
   - id: POD_TO_POD_SAME_NODE
     Normal:
@@ -890,3 +900,13 @@ IPERF_UDP:
       threshold: 5
     Reverse:
       threshold: 5
+  - id: UDN_PRIMARY_POD_TO_OTHER_UDN_POD_SAME_NODE
+    Normal:
+      threshold: 0
+    Reverse:
+      threshold: 0
+  - id: UDN_PRIMARY_POD_TO_OTHER_UDN_POD_DIFF_NODE
+    Normal:
+      threshold: 0
+    Reverse:
+      threshold: 0

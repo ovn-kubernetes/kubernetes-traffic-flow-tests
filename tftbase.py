@@ -290,7 +290,9 @@ TFT_TESTS = "tft-tests"
 UDN_TRANSPORT_ACCEPTED_TIMEOUT = 120
 
 ENV_TFT_EXISTING_PRIMARY_CUDN = "TFT_EXISTING_PRIMARY_CUDN"
+ENV_TFT_EXISTING_OTHER_PRIMARY_CUDN = "TFT_EXISTING_OTHER_PRIMARY_CUDN"
 ENV_TFT_UDN_PRIMARY_CIDR = "TFT_UDN_PRIMARY_CIDR"
+ENV_TFT_UDN_PRIMARY_OTHER_CIDR = "TFT_UDN_PRIMARY_OTHER_CIDR"
 ENV_TFT_CUDN_SECONDARY_LAYER3_CIDR = "TFT_CUDN_SECONDARY_LAYER3_CIDR"
 ENV_TFT_UDN_SECONDARY_LAYER3_CIDR = "TFT_UDN_SECONDARY_LAYER3_CIDR"
 ENV_TFT_CUDN_SECONDARY_LAYER2_CIDR = "TFT_CUDN_SECONDARY_LAYER2_CIDR"
@@ -328,9 +330,27 @@ def get_udn_primary_subnets() -> tuple[tuple[str, int], ...]:
 
 
 @functools.cache
+def get_udn_primary_other_subnets() -> tuple[tuple[str, int], ...]:
+    """Give the other primary network CIDRs independent of the first network."""
+    s = get_environ(ENV_TFT_UDN_PRIMARY_OTHER_CIDR) or "15.7.0.0/16"
+    logger.info(f"env: {ENV_TFT_UDN_PRIMARY_OTHER_CIDR}={shlex.quote(s)}")
+    return tuple(
+        _parse_udn_primary_subnet(cidr.strip()) for cidr in s.split(",") if cidr.strip()
+    )
+
+
+@functools.cache
 def get_existing_primary_cudn() -> Optional[str]:
     s = get_environ(ENV_TFT_EXISTING_PRIMARY_CUDN)
     logger.info(f"env: {ENV_TFT_EXISTING_PRIMARY_CUDN}={shlex.quote(s or '')}")
+    return s or None
+
+
+@functools.cache
+def get_existing_other_primary_cudn() -> Optional[str]:
+    """Select a user-owned server-side primary CUDN for UDN-to-UDN cases."""
+    s = get_environ(ENV_TFT_EXISTING_OTHER_PRIMARY_CUDN)
+    logger.info(f"env: {ENV_TFT_EXISTING_OTHER_PRIMARY_CUDN}={shlex.quote(s or '')}")
     return s or None
 
 
@@ -391,8 +411,9 @@ def get_cudn_secondary_localnet_ipam_mode() -> Optional[str]:
     return _get_udn_ipam_mode(ENV_TFT_CUDN_SECONDARY_LOCALNET_IPAM_MODE)
 
 
-def get_udn_namespace(base_namespace: str) -> str:
-    return f"{base_namespace}-udn"
+def get_udn_namespace(base_namespace: str, *, other: bool = False) -> str:
+    """Use a separate namespace for the other network: only one primary is allowed."""
+    return f"{base_namespace}-udn" + ("-2" if other else "")
 
 
 @functools.cache
@@ -765,6 +786,8 @@ class TestCaseType(Enum):
     HOST_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE = 99
     UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE = 100
     UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE = 101
+    UDN_PRIMARY_POD_TO_OTHER_UDN_POD_SAME_NODE = 102
+    UDN_PRIMARY_POD_TO_OTHER_UDN_POD_DIFF_NODE = 103
 
     @property
     def is_egress_ip(self) -> bool:
@@ -1323,6 +1346,7 @@ class TestCaseTypInfo:
     expects_blocked: bool = False
     udn_network_spec: Optional[UDNSecondaryNetworkSpec] = None
     server_uses_default_network: bool = False
+    server_uses_other_primary_network: bool = False
 
     @property
     def node_location(self) -> str:
@@ -1354,7 +1378,13 @@ class TestCaseTypInfo:
 
     def get_namespace(self, base_namespace: str, task_role: TaskRole) -> str:
         if self.uses_primary_udn(task_role):
-            return get_udn_namespace(base_namespace)
+            return get_udn_namespace(
+                base_namespace,
+                other=(
+                    task_role == TaskRole.SERVER
+                    and self.server_uses_other_primary_network
+                ),
+            )
         if self.test_case_type.is_udn_secondary:
             return get_udn_namespace(base_namespace)
         return base_namespace
@@ -2037,6 +2067,24 @@ _test_case_typ_infos = {
             is_same_node=False,
             is_server_hostbacked=False,
             is_client_hostbacked=False,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_OTHER_UDN_POD_SAME_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=True,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            server_uses_other_primary_network=True,
+        ),
+        TestCaseTypInfo(
+            test_case_type=TestCaseType.UDN_PRIMARY_POD_TO_OTHER_UDN_POD_DIFF_NODE,
+            connection_mode=ConnectionMode.POD_IP,
+            is_same_node=False,
+            is_server_hostbacked=False,
+            is_client_hostbacked=False,
+            expects_blocked=True,
+            server_uses_other_primary_network=True,
         ),
     )
 }

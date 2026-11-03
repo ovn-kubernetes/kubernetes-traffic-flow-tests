@@ -132,8 +132,8 @@ def test_test_case_typ_infos() -> None:
         assert ti.test_case_type is typ
         assert typ.info is ti
 
-    assert list(TestCaseType)[-1].value == 101
-    expected_values = [*range(1, 48), *range(60, 102)]
+    assert list(TestCaseType)[-1].value == 103
+    expected_values = [*range(1, 48), *range(60, 104)]
     assert expected_values == [typ.value for typ in tftbase.TestCaseType]
 
     for typ in TestCaseType:
@@ -166,6 +166,8 @@ def test_test_case_typ_infos() -> None:
             and ti1.is_server_hostbacked == ti2.is_server_hostbacked
             and ti1.is_client_hostbacked == ti2.is_client_hostbacked
             and ti1.expects_blocked == ti2.expects_blocked
+            and ti1.server_uses_other_primary_network
+            == ti2.server_uses_other_primary_network
         )
 
     for idx1, ti1 in enumerate(test_case_typ_infos):

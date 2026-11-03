@@ -31,8 +31,8 @@ logger = common.ExtendedLogger("tft." + __name__)
 class TrafficFlowTests:
     def __init__(self, *, no_cleanup: int = 0) -> None:
         self._no_cleanup = no_cleanup
-        self._udn_ns: str | None = None
-        self._udn_ns_created: bool = False
+        # Only namespaces created by this run may be deleted during cleanup.
+        self._udn_namespaces: dict[str, bool] = {}
         self._udn_setup_done: bool = False
 
     def _uses_base_namespace(self, cfg_descr: ConfigDescriptor) -> bool:
@@ -223,6 +223,123 @@ class TrafficFlowTests:
         if is_no_overlay:
             self._wait_for_cudn_transport_accepted(cfg_descr, network_name)
 
+    def _get_udn_namespaces(self, cfg_descr: ConfigDescriptor) -> tuple[str, ...]:
+        """Include the second namespace only when UDN-to-UDN cases are selected."""
+        tft = cfg_descr.get_tft()
+        namespaces: tuple[str, ...] = (tftbase.get_udn_namespace(tft.namespace),)
+        if any(
+            tc.info.server_uses_other_primary_network
+            for tc in tft.get_all_conn_test_cases()
+        ):
+            namespaces += (tftbase.get_udn_namespace(tft.namespace, other=True),)
+        return namespaces
+
+    def _setup_udn_namespace(
+        self,
+        cfg_descr: ConfigDescriptor,
+        udn_ns: str,
+        *,
+        needs_primary: bool,
+    ) -> None:
+        """Share namespace creation, primary-label validation, and security setup.
+
+        Track creation separately so cleanup preserves reused namespaces.
+        """
+        client = cfg_descr.tc.client_tenant
+        self._udn_namespaces[udn_ns] = False
+
+        ns_data = client.oc_get(f"namespace/{udn_ns}", may_fail=True)
+        if ns_data is not None:
+            if needs_primary:
+                labels = ns_data.get("metadata", {}).get("labels", {})
+                if "k8s.ovn.org/primary-user-defined-network" not in labels:
+                    raise RuntimeError(
+                        f"Namespace {udn_ns} exists without the "
+                        f"k8s.ovn.org/primary-user-defined-network label. "
+                        f"Delete it and retry."
+                    )
+        else:
+            ns_yaml = tftbase.get_manifest_renderpath(f"{udn_ns}-namespace.yaml")
+            with open(ns_yaml, "w") as f:
+                f.write(
+                    f"apiVersion: v1\nkind: Namespace\nmetadata:\n  name: {udn_ns}\n"
+                )
+                if needs_primary:
+                    # OVN requires this label when the namespace is created.
+                    f.write("  labels:\n")
+                    f.write('    k8s.ovn.org/primary-user-defined-network: ""\n')
+            client.oc(f"apply -f {ns_yaml}", die_on_error=True)
+            self._udn_namespaces[udn_ns] = True
+
+        self._configure_namespace(cfg_descr, namespace=udn_ns)
+
+    def _setup_existing_primary_cudn(
+        self,
+        cfg_descr: ConfigDescriptor,
+        udn_ns: str,
+        cudn_name: str,
+    ) -> None:
+        """Apply the same existing-CUDN validation and attachment to either namespace.
+
+        Label the test namespace without modifying the user-owned CUDN.
+        """
+        client = cfg_descr.tc.client_tenant
+        logger.info(
+            "Configuring existing "
+            f"ClusterUserDefinedNetwork/{cudn_name} "
+            f"for namespace {udn_ns}"
+        )
+        cudn = client.oc_get(
+            f"clusteruserdefinednetwork/{cudn_name}",
+            namespace=None,
+            die_on_error=True,
+        )
+        if cudn is None:
+            raise RuntimeError(
+                f"Failed to get existing ClusterUserDefinedNetwork/{cudn_name}"
+            )
+        cudn_spec = cudn.get("spec")
+        network_spec = (
+            cudn_spec.get("network", {}) if isinstance(cudn_spec, dict) else {}
+        )
+        topology = network_spec.get("topology", "")
+        if (
+            topology not in ("Layer2", "Layer3")
+            or network_spec.get(topology.lower(), {}).get("role") != "Primary"
+        ):
+            raise RuntimeError(
+                f"ClusterUserDefinedNetwork/{cudn_name} "
+                "must have role Primary in its configured Layer2 or Layer3 topology"
+            )
+        namespace_selector = (
+            cudn_spec.get("namespaceSelector") if isinstance(cudn_spec, dict) else None
+        )
+        if not isinstance(namespace_selector, dict):
+            raise RuntimeError(
+                "Existing "
+                f"ClusterUserDefinedNetwork/{cudn_name} "
+                "has no namespace selector"
+            )
+        if namespace_selector.get("matchExpressions"):
+            raise RuntimeError(
+                f"ClusterUserDefinedNetwork/{cudn_name} only supports "
+                "namespace selectors with matchLabels"
+            )
+        # Match the namespace to the CUDN without changing its existing selection.
+        match_labels = namespace_selector.get("matchLabels", {})
+        if match_labels:
+            client.oc(
+                [
+                    "label",
+                    "namespace",
+                    udn_ns,
+                    "--overwrite",
+                    *(f"{key}={value}" for key, value in match_labels.items()),
+                ],
+                namespace=None,
+                die_on_error=True,
+            )
+
     def _setup_udn(self, cfg_descr: ConfigDescriptor) -> None:
         tft = cfg_descr.get_tft()
         needs_primary = any(tc.is_udn_primary for tc in tft.get_all_conn_test_cases())
@@ -236,18 +353,34 @@ class TrafficFlowTests:
             return
 
         udn_ns = tftbase.get_udn_namespace(tft.namespace)
-        client = cfg_descr.tc.client_tenant
         existing_primary_cudn = (
             tftbase.get_existing_primary_cudn() if needs_primary else None
         )
-        if (
-            existing_primary_cudn is not None
-            and existing_primary_cudn in secondary_networks
-        ):
-            raise RuntimeError(
-                "TFT cannot create a secondary network with the same name as "
-                f"the existing primary CUDN: {existing_primary_cudn}"
-            )
+        needs_other_primary = any(
+            tc.info.server_uses_other_primary_network
+            for tc in tft.get_all_conn_test_cases()
+        )
+        existing_other_primary_cudn = (
+            tftbase.get_existing_other_primary_cudn() if needs_other_primary else None
+        )
+        for cudn_name in (existing_primary_cudn, existing_other_primary_cudn):
+            if cudn_name is not None and cudn_name in secondary_networks:
+                raise RuntimeError(
+                    "TFT cannot create a secondary network with the same name as "
+                    f"the existing primary CUDN: {cudn_name}"
+                )
+        if needs_other_primary:
+            primary_name = existing_primary_cudn
+            other_name = existing_other_primary_cudn
+            # Config mode determines generated names, not existing CUDN eligibility.
+            if tft.udn_primary_network.mode == tftbase.UdnNetworkMode.CUDN:
+                primary_name = primary_name or tft.udn_primary_network.name
+                other_name = other_name or f"{tft.udn_primary_network.name}-2"
+            if primary_name is not None and primary_name == other_name:
+                raise RuntimeError(
+                    "UDN-to-UDN tests require two distinct primary CUDNs: "
+                    f"{primary_name} is selected for both networks"
+                )
 
         logger.info(f"Setting up UDN in namespace {udn_ns}")
 
@@ -261,89 +394,13 @@ class TrafficFlowTests:
             else None
         )
 
-        self._udn_ns = udn_ns
-
-        ns_data = client.oc_get(f"namespace/{udn_ns}", may_fail=True)
-        if ns_data is not None:
-            if needs_primary:
-                labels = ns_data.get("metadata", {}).get("labels", {})
-                if "k8s.ovn.org/primary-user-defined-network" not in labels:
-                    raise RuntimeError(
-                        f"Namespace {udn_ns} exists without the "
-                        f"k8s.ovn.org/primary-user-defined-network label. "
-                        f"Delete it and retry."
-                    )
-        else:
-            ns_yaml = tftbase.get_manifest_renderpath("udn-namespace.yaml")
-            with open(ns_yaml, "w") as f:
-                f.write(
-                    f"apiVersion: v1\nkind: Namespace\nmetadata:\n  name: {udn_ns}\n"
-                )
-                if needs_primary:
-                    f.write("  labels:\n")
-                    f.write('    k8s.ovn.org/primary-user-defined-network: ""\n')
-            client.oc(f"apply -f {ns_yaml}", die_on_error=True)
-            self._udn_ns_created = True
+        self._setup_udn_namespace(cfg_descr, udn_ns, needs_primary=needs_primary)
 
         if needs_primary:
             if existing_primary_cudn is not None:
-                logger.info(
-                    "Configuring existing "
-                    f"ClusterUserDefinedNetwork/{existing_primary_cudn} "
-                    f"for namespace {udn_ns}"
+                self._setup_existing_primary_cudn(
+                    cfg_descr, udn_ns, existing_primary_cudn
                 )
-                cudn = client.oc_get(
-                    f"clusteruserdefinednetwork/{existing_primary_cudn}",
-                    namespace=None,
-                    die_on_error=True,
-                )
-                if cudn is None:
-                    raise RuntimeError(
-                        "Failed to get existing "
-                        f"ClusterUserDefinedNetwork/{existing_primary_cudn}"
-                    )
-                cudn_spec = cudn.get("spec")
-                network_spec = (
-                    cudn_spec.get("network", {}) if isinstance(cudn_spec, dict) else {}
-                )
-                topology = network_spec.get("topology", "")
-                if (
-                    topology not in ("Layer2", "Layer3")
-                    or network_spec.get(topology.lower(), {}).get("role") != "Primary"
-                ):
-                    raise RuntimeError(
-                        f"ClusterUserDefinedNetwork/{existing_primary_cudn} "
-                        "must have role Primary in its configured Layer2 or Layer3 topology"
-                    )
-                namespace_selector = (
-                    cudn_spec.get("namespaceSelector")
-                    if isinstance(cudn_spec, dict)
-                    else None
-                )
-                if not isinstance(namespace_selector, dict):
-                    raise RuntimeError(
-                        "Existing "
-                        f"ClusterUserDefinedNetwork/{existing_primary_cudn} "
-                        "has no namespace selector"
-                    )
-                if namespace_selector.get("matchExpressions"):
-                    raise RuntimeError(
-                        "TFT_EXISTING_PRIMARY_CUDN only supports namespace "
-                        "selectors with matchLabels"
-                    )
-                match_labels = namespace_selector.get("matchLabels", {})
-                if match_labels:
-                    client.oc(
-                        [
-                            "label",
-                            "namespace",
-                            udn_ns,
-                            "--overwrite",
-                            *(f"{key}={value}" for key, value in match_labels.items()),
-                        ],
-                        namespace=None,
-                        die_on_error=True,
-                    )
             else:
                 self._setup_udn_network(
                     cfg_descr,
@@ -380,7 +437,30 @@ class TrafficFlowTests:
                 ),
             )
 
-        self._configure_namespace(cfg_descr, namespace=udn_ns)
+        if needs_other_primary:
+            other_ns = tftbase.get_udn_namespace(tft.namespace, other=True)
+            self._setup_udn_namespace(cfg_descr, other_ns, needs_primary=True)
+            if existing_other_primary_cudn is not None:
+                self._setup_existing_primary_cudn(
+                    cfg_descr, other_ns, existing_other_primary_cudn
+                )
+            else:
+                # Generate from TFT settings, not from the client's existing CUDN.
+                other_network = dataclasses.replace(
+                    tft.udn_primary_network,
+                    name=f"{tft.udn_primary_network.name}-2",
+                )
+                self._setup_udn_network(
+                    cfg_descr,
+                    udn_ns=other_ns,
+                    resource_name=resource_name,
+                    network=other_network,
+                    network_name=other_network.name,
+                    is_primary=True,
+                    subnets=tftbase.get_udn_primary_other_subnets(),
+                    ipam_mode=None,
+                )
+
         self._udn_setup_done = True
 
     def _setup_secondary_nad(self, cfg_descr: ConfigDescriptor) -> None:
@@ -471,7 +551,7 @@ class TrafficFlowTests:
         if force_cleanup:
             namespaces = [namespace]
             if self._udn_setup_done:
-                namespaces.append(tftbase.get_udn_namespace(namespace))
+                namespaces.extend(self._udn_namespaces)
         elif cfg_descr.get_test_case().is_udn:
             namespaces = [tftbase.get_udn_namespace(namespace)]
         else:
@@ -509,12 +589,11 @@ class TrafficFlowTests:
     def _cleanup_udn_resources(
         self,
         cfg_descr: ConfigDescriptor,
-        udn_ns: str | None,
-        *,
-        delete_namespace: bool,
+        udn_namespaces: dict[str, bool],
     ) -> None:
+        """Clean both namespaces before deleting cluster-scoped network resources."""
         client = cfg_descr.tc.client_tenant
-        if udn_ns is not None:
+        for udn_ns, delete_namespace in udn_namespaces.items():
             client.oc(
                 "delete userdefinednetwork -l tft-tests",
                 namespace=udn_ns,
@@ -543,14 +622,13 @@ class TrafficFlowTests:
         )
 
     def _cleanup_stale_udn(self, cfg_descr: ConfigDescriptor) -> None:
-        tft = cfg_descr.get_tft()
-        udn_ns = tftbase.get_udn_namespace(tft.namespace)
         client = cfg_descr.tc.client_tenant
-        if client.oc_get(f"namespace/{udn_ns}", may_fail=True) is None:
-            self._cleanup_udn_resources(cfg_descr, None, delete_namespace=False)
-            return
-        logger.info(f"Found existing UDN namespace {udn_ns}, cleaning up TFT resources")
-        self._cleanup_udn_resources(cfg_descr, udn_ns, delete_namespace=False)
+        namespaces = {
+            ns: False
+            for ns in self._get_udn_namespaces(cfg_descr)
+            if client.oc_get(f"namespace/{ns}", may_fail=True) is not None
+        }
+        self._cleanup_udn_resources(cfg_descr, namespaces)
 
     def _cleanup_previous_testspace(
         self, cfg_descr: ConfigDescriptor, force_cleanup: bool = False
@@ -569,9 +647,9 @@ class TrafficFlowTests:
                 self._cleanup_secondary_nad(cfg_descr)
 
             if self._udn_setup_done:
-                udn_ns = tftbase.get_udn_namespace(namespace)
-                client.oc("delete pods -l tft-tests", namespace=udn_ns)
-                client.oc("delete services -l tft-tests", namespace=udn_ns)
+                for udn_ns in self._udn_namespaces:
+                    client.oc("delete pods -l tft-tests", namespace=udn_ns)
+                    client.oc("delete services -l tft-tests", namespace=udn_ns)
 
             logger.info(
                 f"Cleaning external containers {task.EXTERNAL_PERF_SERVER} (if present)"
@@ -621,7 +699,7 @@ class TrafficFlowTests:
             if connection_mode == ConnectionMode.LOAD_BALANCER:
                 lb_namespaces = [namespace]
                 if cfg_descr.get_test_case().is_udn and self._udn_setup_done:
-                    lb_namespaces.append(tftbase.get_udn_namespace(namespace))
+                    lb_namespaces.extend(self._udn_namespaces)
                 for ns in lb_namespaces:
                     logger.info(f"Cleaning LoadBalancer services in namespace {ns}")
                     client.oc(
@@ -630,19 +708,10 @@ class TrafficFlowTests:
                     )
 
     def _cleanup_udn(self, cfg_descr: ConfigDescriptor) -> None:
-        if self._udn_ns is None:
+        if not self._udn_namespaces:
             return
-        udn_ns = self._udn_ns
-        logger.info(f"Cleaning up UDN resources in namespace {udn_ns}")
-        if self._udn_ns_created:
-            logger.info(f"Deleting UDN namespace {udn_ns}")
-        self._cleanup_udn_resources(
-            cfg_descr,
-            udn_ns,
-            delete_namespace=self._udn_ns_created,
-        )
-        self._udn_ns = None
-        self._udn_ns_created = False
+        self._cleanup_udn_resources(cfg_descr, self._udn_namespaces)
+        self._udn_namespaces.clear()
         self._udn_setup_done = False
 
     def _create_log_paths_from_tests(self, test: testConfig.ConfTest) -> Path:

@@ -7,7 +7,7 @@
 tft:
   - name: "kind-resource-limits"
     namespace: "default"
-    test_cases: "1,3-12,28-31,82-89"
+    test_cases: "1,3-12,28-31,82-89,102-103"
     duration: 5
     pre_provision: true
     connections:

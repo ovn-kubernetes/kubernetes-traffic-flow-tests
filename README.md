@@ -204,6 +204,8 @@ dpu_node_host_label: (44)
     | 99 | HOST_TO_NODE_PORT_SERVER_TO_HOST_DIFF_NODE |
     | 100 | UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_SAME_NODE |
     | 101 | UDN_PRIMARY_POD_TO_NODE_PORT_SERVER_TO_POD_DIFF_NODE |
+    | 102 | UDN_PRIMARY_POD_TO_OTHER_UDN_POD_SAME_NODE |
+    | 103 | UDN_PRIMARY_POD_TO_OTHER_UDN_POD_DIFF_NODE |
 
     NodePort test names containing `NODE_PORT_TO` without a node qualifier
     (cases 9-12, 21-24, and 41-42) use the configured client node's InternalIP
@@ -451,7 +453,7 @@ for checking whether the selected nodes satisfy its scheduling constraints.
 
 See the [OVN-Kubernetes UDN documentation](https://github.com/ovn-kubernetes/ovn-kubernetes/blob/master/docs/features/user-defined-networks/user-defined-networks.md) for details on User Defined Networks.
 
-Test cases 37-47, 70-91, and 100-101 run traffic over OVN-Kubernetes User Defined Networks. By default, the framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies, MultiNetworkPolicies, and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
+Test cases 37-47, 70-91, and 100-103 run traffic over OVN-Kubernetes User Defined Networks. By default, the framework creates and cleans up a `{namespace}-udn` namespace with the appropriate UDN CRDs automatically. NetworkPolicies, MultiNetworkPolicies, and LoadBalancer services for UDN tests are also created in (and torn down from) the `{namespace}-udn` namespace.
 
 - **37-47** (Primary UDN): Network replacing the pod's default network. Its mode, topology, and transport are configured through `udn_primary_network`.
   - **37-42**: pod-to-pod, ClusterIP, and NodePort.
@@ -467,10 +469,24 @@ Test cases 37-47, 70-91, and 100-101 run traffic over OVN-Kubernetes User Define
 - **80-81** (Primary UDN isolation): Expected-block tests from a primary UDN pod to a cluster default network pod using direct pod IPs (same / different node).
 - **82-91** (Secondary UDN/CUDN MultiNetworkPolicy): Different-node deny and allow variants on the second interface.
 - **100-101** (Primary UDN): NodePort through the server node IP (same / different node).
+- **102-103** (Primary UDN isolation): Tests from a primary UDN pod to a pod on another primary UDN using direct pod IPs (same / different node). Traffic must be blocked; no deny policy is installed.
 
 In the names of cases 80-81, `CDN` means cluster default network and is distinct from `CUDN`.
 
 The primary CIDR defaults to `15.1.0.0/16` with host subnet `24`. `TFT_UDN_PRIMARY_CIDR` accepts comma-separated entries, for example `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry can include an optional host subnet length as `15.1.0.0/16/24`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
+
+Cases 102-103 use `{namespace}-udn` for the client and `{namespace}-udn-2`
+for the server, both labeled for primary UDNs. The generated second network
+inherits `udn_primary_network` settings with `-2` appended to its name
+(default `tft-primary-2`). Its subnet defaults to `15.7.0.0/16` with host subnet
+`24`; override it with `TFT_UDN_PRIMARY_OTHER_CIDR`, using the same syntax as
+`TFT_UDN_PRIMARY_CIDR`. Choose non-overlapping subnets.
+
+Set `TFT_EXISTING_OTHER_PRIMARY_CUDN` to use an existing primary CUDN for the
+server instead. It follows the same attachment and ownership rules as
+`TFT_EXISTING_PRIMARY_CUDN`; the second subnet setting is ignored. The two
+CUDNs must differ, and each selector must exclude the other test namespace.
+These cases always expect blocked traffic, so the networks must be isolated.
 
 Secondary Layer2 and Localnet IPAM modes can be passed through with the corresponding environment variables listed below. TFT does not validate their values. When a variable is unset, TFT omits `ipam` from that UDN/CUDN. TFT includes `subnets` only when the mode is unset or `Enabled`, as required by the OVN-Kubernetes API.
 
@@ -761,7 +777,10 @@ match. The `EgressIP` resource and the egress node's labels are removed during c
      applies the CUDN's namespace selector `matchLabels` to it, and leaves the CUDN unchanged.
      Selectors with `matchExpressions` are rejected.
      TFT does not create the primary UDN or CUDN resource.
+- `TFT_EXISTING_OTHER_PRIMARY_CUDN` user-provided primary CUDN for `{namespace}-udn-2` in cases 102-103.
+     Same attachment rules as `TFT_EXISTING_PRIMARY_CUDN`; must use a different CUDN.
 - `TFT_UDN_PRIMARY_CIDR` comma-separated CIDR entries for primary UDN tests, e.g. `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry supports an optional host subnet length, e.g. `15.1.0.0/16/24`; entries without one use `24`. Defaults to a single `15.1.0.0/16` entry.
+- `TFT_UDN_PRIMARY_OTHER_CIDR` comma-separated CIDR entries for the second primary network in cases 102-103. Same syntax as `TFT_UDN_PRIMARY_CIDR`; defaults to `15.7.0.0/16` with host subnet `24`.
 - `TFT_CUDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 CUDN tests. Defaults to `15.2.0.0/16`.
 - `TFT_UDN_SECONDARY_LAYER3_CIDR` CIDR for secondary Layer3 UDN tests. Defaults to `15.3.0.0/16`.
 - `TFT_CUDN_SECONDARY_LAYER2_CIDR` CIDR for secondary Layer2 CUDN tests. Defaults to `15.4.0.0/16`.
