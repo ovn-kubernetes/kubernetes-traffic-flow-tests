@@ -23,6 +23,7 @@ from typing import TypeVar
 
 from ktoolbox import common
 from ktoolbox import host
+from ktoolbox import netdev
 from ktoolbox.common import StructParseBase
 from ktoolbox.common import StructParseBaseNamed
 from ktoolbox.common import StructParseParseContext
@@ -80,6 +81,22 @@ def _construct_test_cases(
     except Exception:
         raise pctx.value_error("value is not a valid list of test cases") from None
     return tuple(lst)
+
+
+# Host-network validation requires valid host interface names for both nodes.
+def _construct_host_network_interfaces(
+    pctx: StructParseParseContext,
+) -> dict[str, str]:
+    with pctx.with_strdict() as varg:
+        interfaces = {}
+        for role in ("client", "server"):
+            ifname = common.structparse_pop_str(varg.for_key(role), allow_empty=False)
+            try:
+                netdev.validate_ifname(ifname)
+            except ValueError as e:
+                raise pctx.value_error(str(e), key=role) from e
+            interfaces[role] = ifname
+    return interfaces
 
 
 def _construct_capabilities_pod(
@@ -327,6 +344,8 @@ class ConfPlugin(_ConfBaseConnectionItem):
         result = super().serialize()
         if isinstance(self.plugin, PluginValidateOffload):
             result["vf_rep_traffic_threshold"] = self.plugin.vf_rep_traffic_threshold
+            if self.plugin.host_network_interfaces is not None:
+                result["host_network_interfaces"] = self.plugin.host_network_interfaces
         return result
 
     def applies_to_test_case(self, test_case: TestCaseType) -> bool:
@@ -358,7 +377,15 @@ class ConfPlugin(_ConfBaseConnectionItem):
                         check=lambda val: val > 0,
                         description="positive packet threshold for VF representor traffic",
                     )
-                    plugin = type(plugin)(vf_rep_traffic_threshold=threshold)
+                    interfaces = common.structparse_pop_obj(
+                        varg.for_key("host_network_interfaces"),
+                        construct=_construct_host_network_interfaces,
+                        default=None,
+                    )
+                    plugin = type(plugin)(
+                        vf_rep_traffic_threshold=threshold,
+                        host_network_interfaces=interfaces,
+                    )
                 test_cases_raw = common.structparse_pop_obj(
                     varg.for_key("test_cases"),
                     construct=_construct_test_cases,

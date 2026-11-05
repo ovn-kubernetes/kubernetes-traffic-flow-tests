@@ -127,6 +127,25 @@ def check_no_traffic_on_vf_rep(
     return None
 
 
+# Match the host PF to one external DPU port using its MAC and optional PF index.
+def find_host_pf_representor(
+    data: str, mac: str, pf_index: Optional[int] = None
+) -> str:
+    ports = json.loads(data)["port"].values()
+    matches = [
+        port["netdev"]
+        for port in ports
+        if port.get("flavour") == "pcipf"
+        and port.get("external") is True
+        and (pf_index is None or port.get("pfnum") == pf_index)
+        and port.get("function", {}).get("hw_addr", "").lower() == mac.lower()
+        and isinstance(port.get("netdev"), str)
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"expected one external host PF representor for MAC {mac}")
+    return str(matches[0])
+
+
 @common.strict_dataclass
 @dataclass(frozen=True, kw_only=True)
 class PluginValidateOffload(pluginbase.Plugin):
@@ -134,6 +153,7 @@ class PluginValidateOffload(pluginbase.Plugin):
     STATISTICS_BACKEND = "ethtool"
 
     vf_rep_traffic_threshold: int = VF_REP_TRAFFIC_THRESHOLD
+    host_network_interfaces: Optional[dict[str, str]] = None
 
     def statistics_command(self, vf_rep: str) -> str:
         return f"ethtool -S {shlex.quote(vf_rep)}"
@@ -146,6 +166,7 @@ class PluginValidateOffload(pluginbase.Plugin):
     ) -> bool:
         return ethtool_stat_get_startend(parsed_data, output, suffix)
 
+    # Create endpoint monitors, sharing host-network counter checks on the same node.
     def _enable(
         self,
         *,
@@ -154,11 +175,40 @@ class PluginValidateOffload(pluginbase.Plugin):
         perf_client: task.ClientTask,
         tenant: bool,
     ) -> list[PluginTask]:
-        # TODO allow this to run on each individual server + client pairs.
-        return [
-            TaskValidateOffload(self, ts, TaskRole.SERVER, perf_server, tenant),
-            TaskValidateOffload(self, ts, TaskRole.CLIENT, perf_client, tenant),
-        ]
+        if self.host_network_interfaces is not None and ts.test_case_id in (
+            tftbase.TestCaseType.HOST_TO_HOST_SAME_NODE,
+            tftbase.TestCaseType.HOST_TO_CLUSTER_IP_TO_HOST_SAME_NODE,
+        ):
+            if ts.test_case_id == tftbase.TestCaseType.HOST_TO_HOST_SAME_NODE:
+                logger.info(
+                    f"{self.PLUGIN_NAME}: skipping direct same-node host-to-host "
+                    "offload validation; traffic stays in the host network stack"
+                )
+            else:
+                # Same-node host-to-host ClusterIP traffic hairpins and cannot be offloaded.
+                logger.info(
+                    f"{self.PLUGIN_NAME}: skipping same-node host-to-host ClusterIP "
+                    "offload validation; hairpin traffic cannot be offloaded"
+                )
+            return []
+
+        monitors: list[PluginTask] = []
+        host_nodes: set[str] = set()
+        for role, perf in (
+            (TaskRole.SERVER, perf_server),
+            (TaskRole.CLIENT, perf_client),
+        ):
+            if (
+                self.host_network_interfaces is not None
+                and perf.pod_type == PodType.HOSTBACKED
+                and perf.pod_name != task.EXTERNAL_PERF_SERVER
+            ):
+                # Host-network endpoints on one node share the same representors.
+                if perf.node_name in host_nodes:
+                    continue
+                host_nodes.add(perf.node_name)
+            monitors.append(TaskValidateOffload(self, ts, role, perf, tenant))
+        return monitors
 
 
 plugin = pluginbase.register_plugin(PluginValidateOffload())
@@ -556,19 +606,93 @@ class TaskValidateOffload(PluginTask):
         vf_rep = self._get_vf_rep_on_dpu(vf_index, pf_index=pf_index)
         return vf_rep
 
+    # Select the configured uplink by actual node placement, not endpoint role.
+    def _host_interface(self) -> str:
+        interfaces = self.plugin.host_network_interfaces
+        assert interfaces is not None
+        (client,) = self.ts.connection.client
+        (server,) = self.ts.connection.server
+        if client.name == server.name and interfaces["client"] != interfaces["server"]:
+            raise ValueError("the same configured node has conflicting host interfaces")
+        pod = self._perf_instance.run_oc_get(
+            f"pod/{self.perf_pod_name}", die_on_error=True
+        )
+        if pod is None or pod["spec"]["nodeName"] != self.node_name:
+            raise ValueError("host-network endpoint is not on its selected node")
+        # Keys identify configured nodes, even when the client runs on the server node.
+        if self.node_name == server.name:
+            return interfaces["server"]
+        if self.node_name == client.name:
+            return interfaces["client"]
+        raise ValueError(f"no host interface configured for node {self.node_name}")
+
+    # Inspect the host through the traffic pod, which shares its network namespace.
+    def _host_exec(self, command: str) -> host.Result:
+        result = self._perf_instance.run_oc_exec(command, may_fail=True)
+        if not result.success:
+            raise RuntimeError(result.debug_msg())
+        return result
+
+    # Match a configured host PF to its external representor on the paired DPU.
+    def _host_representor(self, ifname: str) -> str:
+        if not self._is_dpu_mode:
+            raise ValueError("host-network offload validation requires DPU mode")
+        interface_type = self._host_exec(
+            f"test -L /sys/class/net/{shlex.quote(ifname)}/device/physfn "
+            "&& echo vf || echo pf"
+        ).out.strip()
+        if interface_type == "vf":
+            raise ValueError(
+                f"configured host interface {ifname} must be a PF, not a VF"
+            )
+        info = json.loads(
+            self._host_exec(f"ip -j link show dev {shlex.quote(ifname)}").out
+        )
+        ports = self._run_tools_exec("devlink -j port show", may_fail=True)
+        if not ports.success:
+            raise RuntimeError(ports.debug_msg())
+        port_name = self._perf_instance.run_oc_exec(
+            f"cat /sys/class/net/{shlex.quote(ifname)}/phys_port_name",
+            may_fail=True,
+        )
+        match = re.fullmatch(r"p(\d+)", port_name.out.strip())
+        pf_index = int(match.group(1)) if match else None
+        return find_host_pf_representor(ports.out, info[0]["address"], pf_index)
+
+    # Measure representor counter growth across the transfer using the plugin backend.
     def _create_task_operation(self) -> TaskOperation:
         def _thread_action() -> BaseOutput:
-
             success_result = True
             msg: Optional[str] = None
-            stats_cmd = ""
             stats_backend = self.plugin.STATISTICS_BACKEND
-            parsed_data: dict[str, typing.Any] = {}
-            data1 = ""
-            data2 = ""
+            result_data: dict[str, typing.Any] = {}
             vf_rep: Optional[str] = None
+            ifname: Optional[str] = None
 
-            if self.perf_pod_type == PodType.HOSTBACKED:
+            host_network = (
+                self.perf_pod_type == PodType.HOSTBACKED
+                and self.plugin.host_network_interfaces is not None
+                and self.perf_pod_name != task.EXTERNAL_PERF_SERVER
+            )
+            representors: dict[str, str] = {}
+            if host_network:
+                try:
+                    ifname = self._host_interface()
+                    host_rep = self._host_representor(ifname)
+                    management_rep = self._get_vf_rep_dpu_mode(
+                        self.perf_pod_name, "ovn-k8s-mp0"
+                    )
+                    if management_rep is None:
+                        raise ValueError("cannot discover representor for ovn-k8s-mp0")
+                    # Host traffic can use either path, depending on routing.
+                    representors = {
+                        "ovn-k8s-mp0": management_rep,
+                        ifname: host_rep,
+                    }
+                except (ValueError, RuntimeError, KeyError, TypeError, IndexError) as e:
+                    success_result = False
+                    msg = str(e)
+            elif self.perf_pod_type == PodType.HOSTBACKED:
                 logger.info("The VF representor is: ovn-k8s-mp0")
                 msg = "Hostbacked pod"
             elif self.perf_pod_name == task.EXTERNAL_PERF_SERVER:
@@ -605,17 +729,37 @@ class TaskValidateOffload(PluginTask):
                         logger.info(
                             f"VF representor for {ifname} in pod {self.perf_pod_name} is {repr(vf_rep)}"
                         )
-                        stats_cmd = self.plugin.statistics_command(vf_rep)
+                        representors[ifname] = vf_rep
 
+            commands = {
+                rep: self.plugin.statistics_command(rep)
+                for rep in dict.fromkeys(representors.values())
+            }
             self.ts.clmo_barrier.wait()
 
-            if vf_rep is not None:
-                r1 = self._run_tools_exec(stats_cmd)
-
+            starts = {
+                rep: self._run_tools_exec(command, may_fail=True)
+                for rep, command in commands.items()
+            }
+            if commands:
                 self.ts.event_client_finished.wait()
-
-                r2 = self._run_tools_exec(stats_cmd)
-
+            ends = {
+                rep: self._run_tools_exec(command, may_fail=True)
+                for rep, command in commands.items()
+            }
+            if host_network:
+                result_data["interfaces"] = representors
+                result_data["representors"] = {}
+            for rep, stats_cmd in commands.items():
+                r1, r2 = starts[rep], ends[rep]
+                data1 = ""
+                data2 = ""
+                parsed_data: dict[str, typing.Any] = {}
+                if host_network:
+                    result_data["representors"][rep] = parsed_data
+                else:
+                    # Ordinary pod results retain their existing flat structure.
+                    result_data = parsed_data
                 parsed_data["statistics_backend"] = stats_backend
                 parsed_data[f"{stats_backend}_cmd_1"] = common.dataclass_to_dict(r1)
                 parsed_data[f"{stats_backend}_cmd_2"] = common.dataclass_to_dict(r2)
@@ -652,14 +796,15 @@ class TaskValidateOffload(PluginTask):
 
                 logger.info(
                     f"{stats_backend} statistics for pod {self.perf_pod_name} "
-                    f"on node {self.node_name}:\n"
+                    f"on node {self.node_name}, representor {rep}:\n"
                     f"rx_packet_start: {parsed_data.get('rx_start', 'N/A')}\n"
                     f"tx_packet_start: {parsed_data.get('tx_start', 'N/A')}\n"
                     f"rx_packet_end: {parsed_data.get('rx_end', 'N/A')}\n"
                     f"tx_packet_end: {parsed_data.get('tx_end', 'N/A')}\n"
                 )
 
-                if success_result:
+                # Check RX/TX per representor; summing can count the same packet twice.
+                if r1.success and r2.success and parsed_start and parsed_end:
                     m1 = check_no_traffic_on_vf_rep(
                         parsed_data,
                         "rx",
@@ -674,16 +819,18 @@ class TaskValidateOffload(PluginTask):
                     )
                     if m1 is not None or m2 is not None:
                         success_result = False
-                        msg = "; ".join(
+                        failure = "; ".join(
                             message for message in (m1, m2) if message is not None
                         )
+                        failure = f"{rep}: {failure}" if host_network else failure
+                        msg = f"{msg}; {failure}" if msg else failure
 
             return PluginOutput(
                 success=success_result,
                 msg=msg,
                 plugin_metadata=self.get_plugin_metadata(),
-                command=stats_cmd,
-                result=parsed_data,
+                command="; ".join(commands.values()),
+                result=result_data,
             )
 
         return TaskOperation(
@@ -697,7 +844,10 @@ class TaskValidateOffload(PluginTask):
     ) -> None:
         assert isinstance(result, PluginOutput)
 
-        if self.perf_pod_type == PodType.HOSTBACKED:
+        if (
+            self.perf_pod_type == PodType.HOSTBACKED
+            and self.plugin.host_network_interfaces is None
+        ):
             if isinstance(self._perf_instance, task.ClientTask):
                 logger.info("The client VF representor ovn-k8s-mp0_0 does not exist")
             else:
