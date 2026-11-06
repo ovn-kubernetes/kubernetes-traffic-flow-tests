@@ -570,6 +570,41 @@ Validation fails if either the RX or TX packet counter increase is greater than
 or equal to that plugin's threshold. Omitting the field, including when using a
 plain plugin name, keeps the `1000` default.
 
+Both plugins skip host-network endpoints by default. Enable their validation
+by specifying the host-side interfaces for both configured nodes:
+
+```yaml
+plugins:
+  - name: ovs_doca_validate_offload
+    host_network_interfaces:
+      client: enp197s0f0np0
+      server: enp197s0f0np0
+```
+
+Both keys are required and refer to the configured client and server nodes.
+TFT selects the interface for the endpoint's actual node, so a same-node client
+on the server node uses the `server` setting. These settings do not change
+routing or bind the traffic generator.
+
+Host-network offload validation is supported only in DPU mode. Each configured
+host interface must be a PF; configured VF interfaces and non-DPU deployments
+are unsupported and fail host-network validation. The management interface
+`ovn-k8s-mp0` still uses the existing management-VF representor lookup.
+
+For each host-network node, TFT discovers the representors for `ovn-k8s-mp0`
+and the configured interface, then reads their counters before and after the
+transfer. `validate_offload` uses its existing `ethtool` statistics;
+`ovs_doca_validate_offload` uses its existing OVS `sw_rx_packets` and `tx_packets`
+statistics. Neither plugin starts packet capture. RX and TX deltas are checked
+separately for each representor against `vf_rep_traffic_threshold`.
+
+These are shared-interface counters: unrelated host traffic contributes to the
+deltas. Quiet counters can pass but do not independently prove that the tested
+flow traversed these interfaces or was offloaded. Same-node host-to-host tests
+skip offload validation for direct connections and ClusterIP connections, whose
+hairpin path cannot be offloaded. The traffic test still runs. Ordinary pod
+endpoints retain their existing counter-based validation.
+
 ### How It Works
 
 1. **DPU Node Discovery**: The plugin queries DPU nodes by label to find the DPU
