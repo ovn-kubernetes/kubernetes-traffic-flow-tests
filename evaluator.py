@@ -95,10 +95,12 @@ class Evaluator:
     def eval_test_result(self, tft_result: TftResult) -> TftResult:
         new_flow_test = self.eval_flow_test_output(tft_result.flow_test)
 
+        # Offload percentages need the completed iperf result as their denominator.
         new_plugins = [
             plugin_output.plugin.eval_plugin_output(
                 tft_result.flow_test.tft_metadata,
                 plugin_output,
+                flow_test=tft_result.flow_test,
             )
             for plugin_output in tft_result.plugins
         ]
