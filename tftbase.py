@@ -565,25 +565,36 @@ def eval_binary_opt_in(
 
 
 class IpFamily(Enum):
+    """Connection family selection, expanded into concrete families per run.
+
+    DUAL_STACK requests an IPv4 run followed by an IPv6 run; it does not
+    discover cluster capabilities or fall back to an available family.
+    Address selection helpers operate on already parsed IP addresses.
+    """
+
     IPV4 = 1
     IPV6 = 2
     DUAL_STACK = 3
 
     def ip_families(self) -> tuple["IpFamily", ...]:
+        """Return concrete execution families in their test order."""
         if self == IpFamily.DUAL_STACK:
             return (IpFamily.IPV4, IpFamily.IPV6)
         return (self,)
 
     @staticmethod
     def is_ipv6(addr: str) -> bool:
+        """Identify an IPv6 address, including addresses with a CIDR suffix."""
         return ":" in addr
 
     def matches(self, addr: str) -> bool:
+        """Check an address against this concrete execution family."""
         if self == IpFamily.IPV6:
             return IpFamily.is_ipv6(addr)
         return not IpFamily.is_ipv6(addr)
 
     def pick_ip(self, ips: list[str]) -> Optional[str]:
+        """Return the first matching address, or None if that family is absent."""
         for ip in ips:
             if self.matches(ip):
                 return ip

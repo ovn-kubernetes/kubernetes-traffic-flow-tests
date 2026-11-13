@@ -720,6 +720,11 @@ class Task(ABC):
         )
 
     def _pick_pod_ip_for_family(self, y: dict[str, Any]) -> Optional[str]:
+        """Select status.podIPs for active_ip_family, with a same-family podIP fallback.
+
+        This reads the default network's status, not UDN or Multus annotations.
+        Return None when the requested family has no address.
+        """
         family = self.ts.active_ip_family
         pod_ips = [entry["ip"] for entry in y["status"].get("podIPs", [])]
         ip = family.pick_ip(pod_ips)
@@ -735,7 +740,8 @@ class Task(ABC):
 
         Primary UDN tests use the primary-role network. Secondary UDN tests
         match their exact NAD in Multus network-status. Other tests retain the
-        status.podIP or regular secondary-network behavior.
+        default-network status or regular secondary-network behavior. Every
+        address must match active_ip_family; another family is never a fallback.
         """
         y = self.run_oc_get(f"pod/{self.pod_name}", die_on_error=True)
         pod_ip = None
@@ -743,6 +749,8 @@ class Task(ABC):
             if y:
                 pod_ip = self._pick_pod_ip_for_family(y)
                 if self.uses_primary_udn:
+                    # status.podIPs can describe infrastructure, not the primary UDN.
+                    pod_ip = None
                     pod_networks_str = y["metadata"]["annotations"].get(
                         "k8s.ovn.org/pod-networks", ""
                     )
@@ -750,19 +758,13 @@ class Task(ABC):
                         pod_networks = json.loads(pod_networks_str)
                         for net_info in pod_networks.values():
                             if net_info.get("role") == "primary":
-                                ip_with_cidr = net_info["ip_address"]
-                                candidate = ip_with_cidr.split("/")[0]
-                                if self.ts.active_ip_family.matches(candidate):
-                                    pod_ip = candidate
+                                addresses = net_info.get("ip_addresses") or [
+                                    net_info["ip_address"]
+                                ]
+                                pod_ip = self.ts.active_ip_family.pick_ip(
+                                    [address.split("/")[0] for address in addresses]
+                                )
                                 break
-                    if pod_ip is None:
-                        logger.warning(
-                            f"Could not find UDN primary IP for pod {self.pod_name} "
-                            f"matching {self.ts.active_ip_family.name} "
-                            f"in k8s.ovn.org/pod-networks annotation, "
-                            f"falling back to status.podIP"
-                        )
-                        pod_ip = self._pick_pod_ip_for_family(y)
                 elif self.uses_secondary_ip:
                     if self.ts.test_case_id.is_udn:
                         pod_ip = None
@@ -774,12 +776,16 @@ class Task(ABC):
                     nad = self._get_effective_secondary_network_nad()
                     for network in network_status:
                         if network["name"] == nad:
+                            # Multus stores secondary IPs here, not in status.podIPs.
                             pod_ip = self.ts.active_ip_family.pick_ip(network["ips"])
                             break
         except Exception as e:
             logger.debug(f"Error retrieving pod IP for {self.pod_name}: {e}")
         if not isinstance(pod_ip, str):
-            raise RuntimeError(f"Failure to get pod IP for {self.pod_name}")
+            raise RuntimeError(
+                f"Failure to get {self.ts.active_ip_family.name} pod IP "
+                f"for {self.pod_name} on the test network"
+            )
         return pod_ip
 
     def get_primary_ip(self) -> str:
@@ -788,7 +794,9 @@ class Task(ABC):
         if y:
             pod_ip = self._pick_pod_ip_for_family(y)
         if not isinstance(pod_ip, str):
-            raise RuntimeError(f"Failure to get podIP for {self.pod_name}")
+            raise RuntimeError(
+                f"Failure to get {self.ts.active_ip_family.name} podIP for {self.pod_name}"
+            )
         return pod_ip
 
     def get_secondary_ip(self) -> str:
@@ -954,6 +962,7 @@ class Task(ABC):
         return int(r.out.strip().split()[0])
 
     def get_node_internal_ip(self, node_name: Optional[str] = None) -> str:
+        """Select the active family; Kubernetes does not guarantee address order."""
         node_name = node_name or self.node_name
         r = self.run_oc(
             f"get node {shlex.quote(node_name)} -o=jsonpath='{{.status.addresses[?(@.type==\"InternalIP\")].address}}'",
@@ -961,8 +970,12 @@ class Task(ABC):
             may_fail=True,
         )
         if r.success and r.out.strip():
-            return r.out.strip().split()[0]
-        raise RuntimeError(f"InternalIP not found for node {node_name}")
+            ip = self.ts.active_ip_family.pick_ip(r.out.split())
+            if ip is not None:
+                return ip
+        raise RuntimeError(
+            f"{self.ts.active_ip_family.name} InternalIP not found for node {node_name}"
+        )
 
     def create_load_balancer_service(self) -> None:
         in_file_template = tftbase.get_manifest("svc-loadbalancer.yaml.j2")

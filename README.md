@@ -226,7 +226,18 @@ dpu_node_host_label: (45)
 8. "instances" - The number of instances that would be created. Default is "1"
 9. "reverse" - (Optional) Whether reverse-direction test should run when supported. Defaults to true. Currently, reverse execution is only supported for iperf-tcp. Takes in "true/false".
 10. "duration" - (Optional) Override the test duration for this connection only, in seconds. If omitted, the tft-level duration is used.
-11. "ip_family" - (Optional) The IP address family to use for this connection. Accepted values: `ipv4` (default), `ipv6`, `dual-stack`. When omitted, the connection uses IPv4, which is the same behavior as before this field existed. On a dual-stack cluster, this lets you choose which address family (or both) to exercise per-connection.
+11. "ip_family" - (Optional) The IP address family to use for this connection. Accepted values: `ipv4` (default), `ipv6`, `dual-stack`. Omitting the field preserves the existing IPv4 behavior.
+
+    `dual-stack` requests separate IPv4 and IPv6 executions; it does not
+    auto-detect cluster capabilities. Use `ipv4` on IPv4-only clusters and
+    `ipv6` on IPv6-only clusters. A Service's `PreferDualStack` policy allows
+    single-stack allocation, but does not change the requested test families.
+
+    Address selection never substitutes another family. If a literal target
+    has no address in the requested family, lookup aborts the run and completed
+    results from that test set are not written. HTTP and iperf DNS requests
+    also force the selected family; a failed request is a failed test result.
+
 12. "name" - The node name of the server.
 13. "persistent" - Whether to have the server pod persist after the test. Takes in "true/false"
 14. "sriov" - Whether SRIOV should be used for the server pod. Takes in "true/false"

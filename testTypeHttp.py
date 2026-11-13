@@ -71,8 +71,12 @@ class HttpClient(task.ClientTask):
 
         timeout = int(self.get_duration() * 1.5)
 
+        # DNS targets may resolve to both families regardless of test metadata.
+        family_flag = (
+            "-6" if self.ts.active_ip_family == tftbase.IpFamily.IPV6 else "-4"
+        )
         if use_internet:
-            cmd = f"curl -s -m {timeout} {external_url}"
+            cmd = f"curl {family_flag} -s -m {timeout} {external_url}"
             expected_string = (
                 tftbase.get_tft_external_server_string()
                 or _INTERNET_DEFAULT_SERVER_STRING
@@ -86,7 +90,7 @@ class HttpClient(task.ClientTask):
             target_port = self.get_target_port()
             if tftbase.IpFamily.is_ipv6(server_ip):
                 server_ip = f"[{server_ip}]"
-            cmd = f"curl --fail -s --connect-timeout {timeout} http://{server_ip}:{target_port}/data"
+            cmd = f"curl {family_flag} --fail -s --connect-timeout {timeout} http://{server_ip}:{target_port}/data"
 
             def _check_success_podman(r: host.Result) -> bool:
                 return r.success and r.match(

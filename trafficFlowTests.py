@@ -793,6 +793,7 @@ class TrafficFlowTests:
             target_access_modes = tftbase.get_target_access_modes(
                 cfg_descr2.get_test_case().info.connection_mode
             )
+            # Each family gets its own settings and result, including reverse runs.
             for active_family in connection.ip_family.ip_families():
                 for instance_index in range(connection.instances):
                     for target_access_mode in target_access_modes:

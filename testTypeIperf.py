@@ -144,7 +144,11 @@ class IperfClient(task.ClientTask):
         server_ip = self.get_target_ip()
         target_port = self.get_target_port()
         timeout = self.get_duration() + IPERF_TIMEOUT
-        cmd = f"timeout {timeout} {IPERF_EXE} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
+        # Service DNS must use the same family as literal IP targets and results.
+        family_flag = (
+            "-6" if self.ts.active_ip_family == tftbase.IpFamily.IPV6 else "-4"
+        )
+        cmd = f"timeout {timeout} {IPERF_EXE} {family_flag} -c {server_ip} -p {target_port} --json -t {self.get_duration()}"
 
         connect_timeout_ms = int(self.get_duration() * 1.5 * 1000)
         cmd += f" --connect-timeout {connect_timeout_ms}"

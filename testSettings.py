@@ -17,7 +17,16 @@ from tftbase import TestMetadata
 @common.strict_dataclass
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class TestSettings:
-    """TestSettings will handle determining the logic require to configure the client/server for a given test"""
+    """Settings shared by the server, client, and monitors of one execution.
+
+    cfg_descr identifies the test case and configured connection;
+    instance_index distinguishes repeated instances, reverse selects the
+    traffic direction, and target_access_mode selects how to reach the server.
+    ip_family is the connection's request and may be DUAL_STACK.
+    active_ip_family is the concrete IPv4 or IPv6 family for this execution.
+    It remains fixed: dual-stack creates separate settings for each family.
+    The events synchronize server readiness and client completion.
+    """
 
     cfg_descr: testConfig.ConfigDescriptor
     instance_index: int
