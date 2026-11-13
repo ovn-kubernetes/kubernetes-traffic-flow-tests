@@ -17,12 +17,22 @@ from tftbase import TestMetadata
 @common.strict_dataclass
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class TestSettings:
-    """TestSettings will handle determining the logic require to configure the client/server for a given test"""
+    """Settings shared by the server, client, and monitors of one execution.
+
+    cfg_descr identifies the test case and configured connection;
+    instance_index distinguishes repeated instances, reverse selects the
+    traffic direction, and target_access_mode selects how to reach the server.
+    ip_family is the connection's request and may be DUAL_STACK.
+    active_ip_family is the concrete IPv4 or IPv6 family for this execution.
+    It remains fixed: dual-stack creates separate settings for each family.
+    The events synchronize server readiness and client completion.
+    """
 
     cfg_descr: testConfig.ConfigDescriptor
     instance_index: int
     reverse: bool
     target_access_mode: tftbase.TargetAccessMode = tftbase.TargetAccessMode.IP
+    active_ip_family: tftbase.IpFamily = tftbase.IpFamily.IPV4
 
     event_server_alive: threading.Event = dataclasses.field(
         init=False, default_factory=threading.Event
@@ -138,6 +148,10 @@ class TestSettings:
         return self.test_case_id.info.get_client_pod_type(self.node_client.pod_type)
 
     @property
+    def ip_family(self) -> tftbase.IpFamily:
+        return self.connection.ip_family
+
+    @property
     def connection_mode(self) -> tftbase.ConnectionMode:
         return self.test_case_id.info.connection_mode
 
@@ -152,7 +166,7 @@ class TestSettings:
             )
         ):
             target_access_name = tftbase.ConnectionMode.CLUSTER_IP.name
-        return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}, target-access={target_access_name}
+        return f"""type={self.connection.test_type.name}, test-case={self.test_case_id.name}, ip_family={self.active_ip_family.name}: {self.client_pod_type.name} pod to {self.connection_mode.name} to {self.server_pod_type.name} pod - {self.test_case_id.info.node_location}, target-access={target_access_name}
         Client Pod: {client_pod_name}
         Client Node: {self.node_client.name}
             Tenant={self.client_is_tenant}
@@ -172,7 +186,7 @@ class TestSettings:
             self.connection_mode
         ):
             target_access = f"-{self.target_access_mode.name}"
-        return f"{self.test_case_id.name}-{self.client_pod_type.name}_TO_{self.connection_mode.name}_TO_{self.server_pod_type.name}-{self.test_case_id.info.node_location}{direction}{target_access}"
+        return f"{self.test_case_id.name}-{self.client_pod_type.name}_TO_{self.connection_mode.name}_TO_{self.server_pod_type.name}-{self.test_case_id.info.node_location}{direction}{target_access}-{self.active_ip_family.name}"
 
     def get_test_metadata(self) -> TestMetadata:
         return TestMetadata(
@@ -195,5 +209,6 @@ class TestSettings:
                 is_tenant=self.client_is_tenant,
                 index=self.client_index,
             ),
+            active_ip_family=self.active_ip_family,
             expects_blocked=self.test_case_id.info.expects_blocked,
         )
