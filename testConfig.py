@@ -32,6 +32,7 @@ from ktoolbox.k8sClient import K8sClient
 from pluginbase import Plugin
 from testType import TestTypeHandler
 from tftbase import ClusterMode
+from tftbase import IpFamily
 from tftbase import PodType
 from tftbase import TestCaseType
 from tftbase import TestType
@@ -454,6 +455,7 @@ class ConfConnection(StructParseBaseNamed):
     secondary_network_nad: Optional[str]
     resource_name: Optional[str]
     duration: Optional[int]
+    ip_family: IpFamily
     cpu_request: Optional[str]
     cpu_limit: Optional[str]
     mem_request: Optional[str]
@@ -508,6 +510,7 @@ class ConfConnection(StructParseBaseNamed):
             "type": self.test_type.name,
             "instances": self.instances,
             "reverse": self.reverse,
+            "ip_family": self.ip_family.name,
             "server": [s.serialize() for s in self.server],
             "client": [c.serialize() for c in self.client],
             "plugins": [p.serialize() for p in self.plugins],
@@ -592,6 +595,12 @@ class ConfConnection(StructParseBaseNamed):
                 default=None,
             )
 
+            ip_family = common.structparse_pop_enum(
+                varg.for_key("ip_family"),
+                enum_type=IpFamily,
+                default=IpFamily.IPV4,
+            )
+
             duration_conn = common.structparse_pop_int(
                 varg.for_key("duration"),
                 default=None,
@@ -658,6 +667,7 @@ class ConfConnection(StructParseBaseNamed):
             secondary_network_nad=secondary_network_nad,
             resource_name=resource_name,
             duration=duration_conn,
+            ip_family=ip_family,
             cpu_request=cpu_request,
             cpu_limit=cpu_limit,
             mem_request=mem_request,
