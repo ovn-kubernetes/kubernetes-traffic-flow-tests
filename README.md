@@ -233,6 +233,10 @@ dpu_node_host_label: (45)
     `ipv6` on IPv6-only clusters. A Service's `PreferDualStack` policy allows
     single-stack allocation, but does not change the requested test families.
 
+    UDN tests also require UDN subnets in each requested family; `ip_family`
+    does not change their IPv4-only defaults. See the IPv6 configuration and
+    secondary-network limitations under [UDN Tests](#udn-user-defined-network-tests).
+
     Address selection never substitutes another family. If a literal target
     has no address in the requested family, lookup aborts the run and completed
     results from that test set are not written. HTTP and iperf DNS requests
@@ -484,6 +488,19 @@ Test cases 37-47, 70-91, and 100-101 run traffic over OVN-Kubernetes User Define
 In the names of cases 80-81, `CDN` means cluster default network and is distinct from `CUDN`.
 
 The primary CIDR defaults to `15.1.0.0/16` with host subnet `24`. `TFT_UDN_PRIMARY_CIDR` accepts comma-separated entries, for example `15.1.0.0/17/24,15.1.128.0/17/24`. Each entry can include an optional host subnet length as `15.1.0.0/16/24`. Secondary CIDRs default to `15.2.0.0/16` (Layer3 CUDN), `15.3.0.0/16` (Layer3 UDN), `15.4.0.0/16` (Layer2 CUDN), `15.5.0.0/16` (Layer2 UDN), and `15.6.0.0/24` (localnet CUDN). Each CIDR has a corresponding environment variable listed below. The localnet physical network name defaults to `physnet`, overridable via `TFT_CUDN_LOCALNET_PHYSICAL_NETWORK`. Reference manifests are in `manifests/udn.yaml.j2` and `manifests/cudn.yaml.j2`.
+
+For IPv6 primary UDN tests, set `TFT_UDN_PRIMARY_CIDR` to an IPv6 subnet with
+an explicit host subnet length, for example `fd00:15:1::/48/64`. For dual-stack
+primary UDN tests, configure both families, for example
+`15.1.0.0/16/24,fd00:15:1::/48/64`. The cluster and network must support the
+requested families. Omitting the IPv6 host subnet length uses the IPv4 default
+of `24`, which is invalid for this IPv6 subnet.
+
+Each secondary UDN/CUDN CIDR variable currently accepts one CIDR, not a
+comma-separated dual-stack list. Secondary Layer2 and Localnet tests can use
+an IPv6 CIDR when the network supports it. Secondary Layer3 setup currently
+hardcodes a host subnet length of `24`, so IPv6 secondary Layer3 UDN/CUDN
+tests are not supported.
 
 Secondary Layer2 and Localnet IPAM modes can be passed through with the corresponding environment variables listed below. TFT does not validate their values. When a variable is unset, TFT omits `ipam` from that UDN/CUDN. TFT includes `subnets` only when the mode is unset or `Enabled`, as required by the OVN-Kubernetes API.
 

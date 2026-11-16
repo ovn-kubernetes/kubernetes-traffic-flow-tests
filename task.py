@@ -1946,7 +1946,8 @@ class ClientTask(Task, ABC):
         """
         family = self.ts.active_ip_family
         server_name = self.ts.node_server.name
-        r = self.lh.run(f"getent hosts {shlex.quote(server_name)}")
+        database = "ahostsv4" if family == tftbase.IpFamily.IPV4 else "hosts"
+        r = self.lh.run(f"getent {database} {shlex.quote(server_name)}")
         node_ip = None
         if r.success and r.out.strip():
             resolved_ips = [

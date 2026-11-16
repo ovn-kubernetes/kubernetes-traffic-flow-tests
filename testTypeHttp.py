@@ -43,12 +43,14 @@ TestTypeHandler.register_test_type(TestTypeHandlerHttp())
 
 class HttpServer(task.ServerTask):
     def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        family = self.ts.ip_family if for_template else self.ts.active_ip_family
+        bind_address = "0.0.0.0" if family == tftbase.IpFamily.IPV4 else "::"
         return [
             "python3",
             "-m",
             "http.server",
             "--bind",
-            "::",
+            bind_address,
             "-d",
             "/etc/kubernetes-traffic-flow-tests",
             f"{self.port}",
