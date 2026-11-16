@@ -134,6 +134,7 @@ class PluginValidateOffload(pluginbase.Plugin):
     STATISTICS_BACKEND = "ethtool"
 
     vf_rep_traffic_threshold: int = VF_REP_TRAFFIC_THRESHOLD
+    node: Optional[str] = None
 
     def statistics_command(self, vf_rep: str) -> str:
         return f"ethtool -S {shlex.quote(vf_rep)}"
@@ -154,11 +155,16 @@ class PluginValidateOffload(pluginbase.Plugin):
         perf_client: task.ClientTask,
         tenant: bool,
     ) -> list[PluginTask]:
-        # TODO allow this to run on each individual server + client pairs.
-        return [
-            TaskValidateOffload(self, ts, TaskRole.SERVER, perf_server, tenant),
-            TaskValidateOffload(self, ts, TaskRole.CLIENT, perf_client, tenant),
-        ]
+        tasks: list[PluginTask] = []
+        if self.node is None or self.node == "server":
+            tasks.append(
+                TaskValidateOffload(self, ts, TaskRole.SERVER, perf_server, tenant)
+            )
+        if self.node is None or self.node == "client":
+            tasks.append(
+                TaskValidateOffload(self, ts, TaskRole.CLIENT, perf_client, tenant)
+            )
+        return tasks
 
 
 plugin = pluginbase.register_plugin(PluginValidateOffload())

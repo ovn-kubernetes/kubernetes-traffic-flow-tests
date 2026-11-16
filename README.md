@@ -570,6 +570,21 @@ Validation fails if either the RX or TX packet counter increase is greater than
 or equal to that plugin's threshold. Omitting the field, including when using a
 plain plugin name, keeps the `1000` default.
 
+Both offload plugins also accept an optional `node` field set to `client` or
+`server`. Use it when the endpoints run different OVS backends:
+
+```yaml
+plugins:
+  - name: validate_offload
+    node: client
+  - name: ovs_doca_validate_offload
+    node: server
+```
+
+Omitting `node` runs the plugin on both endpoints. The selection follows the
+client and server roles even during reverse traffic or same-node test cases.
+In DPU mode, the selected endpoint uses the existing worker-to-DPU mapping.
+
 ### How It Works
 
 1. **DPU Node Discovery**: The plugin queries DPU nodes by label to find the DPU

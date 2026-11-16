@@ -327,6 +327,8 @@ class ConfPlugin(_ConfBaseConnectionItem):
         result = super().serialize()
         if isinstance(self.plugin, PluginValidateOffload):
             result["vf_rep_traffic_threshold"] = self.plugin.vf_rep_traffic_threshold
+            if self.plugin.node is not None:
+                result["node"] = self.plugin.node
         return result
 
     def applies_to_test_case(self, test_case: TestCaseType) -> bool:
@@ -358,7 +360,13 @@ class ConfPlugin(_ConfBaseConnectionItem):
                         check=lambda val: val > 0,
                         description="positive packet threshold for VF representor traffic",
                     )
-                    plugin = type(plugin)(vf_rep_traffic_threshold=threshold)
+                    node = common.structparse_pop_str(
+                        varg.for_key("node"),
+                        default=None,
+                        empty_as_default=False,
+                        check=lambda val: val in ("client", "server"),
+                    )
+                    plugin = type(plugin)(vf_rep_traffic_threshold=threshold, node=node)
                 test_cases_raw = common.structparse_pop_obj(
                     varg.for_key("test_cases"),
                     construct=_construct_test_cases,
