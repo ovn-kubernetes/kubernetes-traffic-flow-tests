@@ -8,6 +8,7 @@ The current Maintainers Group for the kubernetes-traffic-flow-tests Project cons
 | Name | Employer | Responsibilities |
 | ---- | -------- | ---------------- |
 | [William Zhao](https://github.com/wizhaoredhat)   | Red Hat | All things traffic flows |
+| [Venkat Kunaparaju](https://github.com/Venkat-Kunaparaju)   | NVIDIA | All things traffic flows |
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for general contribution guidelines.
 See [GOVERNANCE.md](./GOVERNANCE.md) for governance guidelines and maintainer responsibilities.
