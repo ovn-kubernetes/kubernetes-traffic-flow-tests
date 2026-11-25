@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright The OVN-Kubernetes Contributors
 # SPDX-License-Identifier: Apache-2.0
 
+import dataclasses
 import json
 import re
 import shlex
@@ -46,28 +47,30 @@ def ethtool_stat_parse(output: str) -> dict[str, str]:
     return result
 
 
-def ethtool_stat_get_packets(data: dict[str, str], packet_type: str) -> Optional[int]:
+def ethtool_stat_get_packets(
+    data: dict[str, str], packet_type: str, metric: str = "packets"
+) -> Optional[int]:
 
     # Case1: Try to parse rx_packets and tx_packets from ethtool output
-    val = data.get(f"{packet_type}_packets")
+    val = data.get(f"{packet_type}_{metric}")
     if val is not None:
         try:
             return int(val)
-        except KeyError:
+        except (KeyError, ValueError):
             return None
 
     # Case2: Ethtool output does not provide these fields, so we need to sum
     # the queues manually.
     total_packets = 0
     prefix = f"{packet_type}_queue_"
-    packet_suffix = "_xdp_packets"
+    packet_suffix = f"_xdp_{metric}"
     any_match = False
 
     for k, v in data.items():
         if k.startswith(prefix) and k.endswith(packet_suffix):
             try:
                 total_packets += int(v)
-            except KeyError:
+            except (KeyError, ValueError):
                 return None
             any_match = True
     if not any_match:
@@ -83,6 +86,17 @@ KEY_NAMES = {
     "end": {
         "rx": "rx_end",
         "tx": "tx_end",
+    },
+}
+
+BYTE_KEY_NAMES = {
+    "start": {
+        "rx": "rx_bytes_start",
+        "tx": "tx_bytes_start",
+    },
+    "end": {
+        "rx": "rx_bytes_end",
+        "tx": "tx_bytes_end",
     },
 }
 
@@ -144,7 +158,78 @@ class PluginValidateOffload(pluginbase.Plugin):
         output: str,
         suffix: typing.Literal["start", "end"],
     ) -> bool:
-        return ethtool_stat_get_startend(parsed_data, output, suffix)
+        packet_stats = ethtool_stat_get_startend(parsed_data, output, suffix)
+        data = ethtool_stat_parse(output)
+        for direction in ("rx", "tx"):
+            value = ethtool_stat_get_packets(data, direction, "bytes")
+            if value is not None:
+                parsed_data[f"{direction}_bytes_{suffix}"] = value
+        return packet_stats
+
+    def statistics_bytes_command(self, vf_rep: str) -> Optional[str]:
+        return None
+
+    def statistics_bytes_get_startend(
+        self,
+        parsed_data: dict[str, int],
+        output: str,
+        suffix: typing.Literal["start", "end"],
+    ) -> bool:
+        return False
+
+    def eval_plugin_output(
+        self,
+        md: tftbase.TestMetadata,
+        plugin_output: PluginOutput,
+        *,
+        flow_test: Optional[tftbase.FlowTestOutput] = None,
+    ) -> PluginOutput:
+        # Only iperf TCP provides the transfer summaries used here; UDP and other
+        # tests keep the packet-threshold verdict without percentage reporting.
+        if (
+            flow_test is not None
+            and md.test_type == tftbase.TestType.IPERF_TCP
+            and any(
+                key in plugin_output.result
+                for key in (
+                    "software_bytes_percent",
+                    "rx_bytes_start",
+                    "tx_bytes_start",
+                )
+            )
+        ):
+            role = plugin_output.plugin_metadata.plugin_role
+            if role in ("client", "server"):
+                # Normal tests send client -> server; reverse tests send server -> client.
+                sender = (role == "client") != md.reverse
+                # Sender traffic enters software through representor RX; receiver
+                # traffic leaves software toward the endpoint through representor TX.
+                direction = "rx" if sender else "tx"
+                # Match sender RX with iperf end.sum_sent.bytes and receiver TX
+                # with end.sum_received.bytes, including when roles reverse.
+                summary = "sum_sent" if sender else "sum_received"
+                data = dict(plugin_output.result)
+                data["software_bytes_direction"] = direction
+                data["software_bytes_percent"] = None
+                end = flow_test.result.get("end", {})
+                transfer = end.get(summary, {}) if isinstance(end, dict) else {}
+                total = transfer.get("bytes") if isinstance(transfer, dict) else None
+                start = data.get(f"{direction}_bytes_start")
+                finish = data.get(f"{direction}_bytes_end")
+                if (
+                    flow_test.success
+                    and isinstance(total, (int, float))
+                    and total > 0
+                    and isinstance(start, int)
+                    and isinstance(finish, int)
+                    and finish >= start
+                ):
+                    data["software_bytes_delta"] = finish - start
+                    data["iperf_bytes"] = total
+                    data["software_bytes_percent"] = 100.0 * (finish - start) / total
+                # The percentage is informational, so preserve the packet verdict.
+                plugin_output = dataclasses.replace(plugin_output, result=data)
+        return super().eval_plugin_output(md, plugin_output, flow_test=flow_test)
 
     def _enable(
         self,
@@ -607,14 +692,32 @@ class TaskValidateOffload(PluginTask):
                         )
                         stats_cmd = self.plugin.statistics_command(vf_rep)
 
+            # Both monitors must sample before the barrier allows iperf to start.
+            r1 = None
+            if vf_rep is not None:
+                parsed_data["software_bytes_percent"] = None
+                r1 = self._run_tools_exec(stats_cmd)
+                bytes_cmd = self.plugin.statistics_bytes_command(vf_rep)
+                if bytes_cmd is not None:
+                    b1 = self._run_tools_exec(bytes_cmd, may_fail=True)
+                    if b1.success:
+                        self.plugin.statistics_bytes_get_startend(
+                            parsed_data, b1.out, "start"
+                        )
+
             self.ts.clmo_barrier.wait()
 
             if vf_rep is not None:
-                r1 = self._run_tools_exec(stats_cmd)
-
+                assert r1 is not None
                 self.ts.event_client_finished.wait()
 
                 r2 = self._run_tools_exec(stats_cmd)
+                if bytes_cmd is not None:
+                    b2 = self._run_tools_exec(bytes_cmd, may_fail=True)
+                    if b2.success:
+                        self.plugin.statistics_bytes_get_startend(
+                            parsed_data, b2.out, "end"
+                        )
 
                 parsed_data["statistics_backend"] = stats_backend
                 parsed_data[f"{stats_backend}_cmd_1"] = common.dataclass_to_dict(r1)

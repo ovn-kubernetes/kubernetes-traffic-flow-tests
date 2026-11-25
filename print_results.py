@@ -78,6 +78,18 @@ def print_plugin_output(
     role = plugin_output.plugin_metadata.plugin_role
     role_str = f" ({role})" if role else ""
     log(f"     plugin {plugin_output.plugin_metadata.plugin_name}{role_str}, {msg}")
+    if "software_bytes_direction" in plugin_output.result:
+        percent = plugin_output.result["software_bytes_percent"]
+        direction = plugin_output.result["software_bytes_direction"].upper()
+        if percent is None:
+            log(f"       Software {direction} bytes / iperf bytes: N/A")
+        else:
+            delta = plugin_output.result["software_bytes_delta"]
+            total = plugin_output.result["iperf_bytes"]
+            log(
+                f"       Software {direction} bytes / iperf bytes: "
+                f"{percent:.2f}% ({delta} / {total} bytes)"
+            )
 
 
 def print_tft_result(

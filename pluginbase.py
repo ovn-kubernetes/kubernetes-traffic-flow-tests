@@ -9,6 +9,7 @@ from abc import abstractmethod
 
 from ktoolbox import common
 
+from tftbase import FlowTestOutput
 from tftbase import PluginOutput
 from tftbase import TestMetadata
 
@@ -54,6 +55,8 @@ class Plugin(ABC):
         self,
         md: TestMetadata,
         plugin_output: PluginOutput,
+        *,
+        flow_test: typing.Optional[FlowTestOutput] = None,
     ) -> PluginOutput:
         if not plugin_output.eval_success:
             logger.error(
