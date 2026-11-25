@@ -43,10 +43,14 @@ TestTypeHandler.register_test_type(TestTypeHandlerHttp())
 
 class HttpServer(task.ServerTask):
     def cmd_line_args(self, *, for_template: bool = False) -> list[str]:
+        family = self.ts.ip_family if for_template else self.ts.active_ip_family
+        bind_address = "0.0.0.0" if family == tftbase.IpFamily.IPV4 else "::"
         return [
             "python3",
             "-m",
             "http.server",
+            "--bind",
+            bind_address,
             "-d",
             "/etc/kubernetes-traffic-flow-tests",
             f"{self.port}",
@@ -69,8 +73,12 @@ class HttpClient(task.ClientTask):
 
         timeout = int(self.get_duration() * 1.5)
 
+        # DNS targets may resolve to both families regardless of test metadata.
+        family_flag = (
+            "-6" if self.ts.active_ip_family == tftbase.IpFamily.IPV6 else "-4"
+        )
         if use_internet:
-            cmd = f"curl -s -m {timeout} {external_url}"
+            cmd = f"curl {family_flag} -s -m {timeout} {external_url}"
             expected_string = (
                 tftbase.get_tft_external_server_string()
                 or _INTERNET_DEFAULT_SERVER_STRING
@@ -82,7 +90,9 @@ class HttpClient(task.ClientTask):
         else:
             server_ip = self.get_target_ip()
             target_port = self.get_target_port()
-            cmd = f"curl --fail -s --connect-timeout {timeout} http://{server_ip}:{target_port}/data"
+            if tftbase.IpFamily.is_ipv6(server_ip):
+                server_ip = f"[{server_ip}]"
+            cmd = f"curl {family_flag} --fail -s --connect-timeout {timeout} http://{server_ip}:{target_port}/data"
 
             def _check_success_podman(r: host.Result) -> bool:
                 return r.success and r.match(
